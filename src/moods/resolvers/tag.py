@@ -29,3 +29,8 @@ async def resolve_update_tag_metadata(_obj, info, *, input):
 @mutation.field("archiveTag")
 async def resolve_archive_tag(_obj, info, *, name):
     return await tag_data.archive_tag(info.context["pool"], name)
+
+
+@mutation.field("unarchiveTag")
+async def resolve_unarchive_tag(_obj, info, *, name):
+    return await tag_data.unarchive_tag(info.context["pool"], name)

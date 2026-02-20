@@ -48,3 +48,10 @@ async def archive_tag(pool: Pool, name: str) -> dict:
     if not row:
         raise ValueError("Tag not found or already archived")
     return dict(row)
+
+
+async def unarchive_tag(pool: Pool, name: str) -> dict:
+    row = await queries.unarchive_tag(pool, name=name)
+    if not row:
+        raise ValueError("Tag not found or not archived")
+    return dict(row)

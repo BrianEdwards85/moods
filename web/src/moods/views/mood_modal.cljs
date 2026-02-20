@@ -3,6 +3,7 @@
             [moods.events :as events]
             [moods.subs :as subs]
             [moods.util :as util]
+            [moods.views.components :as comp]
             [re-frame.core :as rf]
             [reagent.core :as r]))
 
@@ -15,13 +16,21 @@
      (str value)]))
 
 (defn tag-renderer [^js item ^js props]
-  (let [^js mods (.-modifiers props)]
+  (let [^js mods (.-modifiers props)
+        metadata (js->clj (.-metadata item) :keywordize-keys true)
+        face  (:face metadata)
+        color (:color metadata)]
     (when (.-matchesPredicate mods)
       (r/as-element
        [bp/menu-item {:key      (.-name item)
-                      :text     (.-name item)
+                      :text     (r/as-element
+                                 [:span.flex.items-center.gap-1
+                                  (when (seq face)
+                                    [:span face])
+                                  (.-name item)])
                       :active   (.-active mods)
                       :disabled (.-disabled mods)
+                      :style    (when color {:border-left (str "3px solid " color)})
                       :on-click (.-handleClick props)}]))))
 
 (defn tag-input-props [tag-query]
@@ -75,7 +84,12 @@
          :on-item-select    #(rf/dispatch [::events/add-mood-tag (js->clj % :keywordize-keys true)])
          :on-remove         (fn [tag-name _idx]
                               (rf/dispatch [::events/remove-mood-tag tag-name]))
-         :tag-renderer      (fn [item] (.-name item))
+         :tag-renderer      (fn [^js item]
+                              (let [metadata (js->clj (.-metadata item) :keywordize-keys true)
+                                    face (:face metadata)]
+                                (if (seq face)
+                                  (str face " " (.-name item))
+                                  (.-name item))))
          :no-results        (r/as-element [bp/menu-item {:disabled true :text "No matching tags"}])
          :create-new-item-from-query (fn [q] #js {:name q :metadata #js {}})
          :create-new-item-renderer   create-new-tag-renderer

@@ -37,4 +37,5 @@ input UpdateTagMetadataInput {
 extend type Mutation {
   updateTagMetadata(input: UpdateTagMetadataInput!): Tag!
   archiveTag(name: String!): Tag!
+  unarchiveTag(name: String!): Tag!
 }

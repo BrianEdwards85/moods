@@ -3,6 +3,7 @@
             [moods.events :as events]
             [moods.subs :as subs]
             [moods.util :as util]
+            [moods.views.components :as comp]
             [re-frame.core :as rf]))
 
 (defn mood-badge [value]
@@ -30,7 +31,7 @@
       [:div {:class "mt-2 flex flex-wrap gap-1"}
        (for [t tags]
          ^{:key (:name t)}
-         [bp/tag {:minimal true} (:name t)])])]])
+         [comp/mood-tag t])])]])
 
 (defn date-divider [label]
   [:div {:class "flex items-center gap-3 my-5"}
@@ -43,13 +44,7 @@
         loading?    @(rf/subscribe [::subs/loading? :entries])
         current-id  @(rf/subscribe [::subs/current-user-id])
         users-by-id @(rf/subscribe [::subs/users-by-id])]
-    [:div {:class "max-w-2xl mx-auto px-4 py-4"}
-     [:div.flex.items-center.justify-between.mb-4
-      [:h3.bp6-heading "Timeline"]
-      [bp/button {:icon     "refresh"
-                  :minimal  true
-                  :loading  loading?
-                  :on-click #(rf/dispatch [::events/fetch-entries])}]]
+    [:div {:class "max-w-2xl mx-auto px-4 py-2 pb-20"}
      (cond
        (and loading? (empty? (:edges entries)))
        [:div.py-8.text-center [bp/spinner {:size 40}]]
@@ -83,4 +78,9 @@
                          :minimal  true
                          :loading  loading?
                          :on-click #(rf/dispatch [::events/load-more-entries
-                                                  (get-in entries [:page-info :endCursor])])}]])]))]))
+                                                  (get-in entries [:page-info :endCursor])])}]])]))
+     [:div {:class "fixed bottom-6 right-6 z-10"}
+      [bp/button {:icon     "refresh"
+                  :loading  loading?
+                  :class    "rounded-full shadow-lg"
+                  :on-click #(rf/dispatch [::events/fetch-entries])}]]]))

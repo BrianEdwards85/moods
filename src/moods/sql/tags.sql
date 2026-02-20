@@ -32,3 +32,10 @@ set archived_at = now()
 where name = :name
   and archived_at is null
 returning name, metadata, archived_at;
+
+-- name: unarchive_tag(name)^
+update tags
+set archived_at = null
+where name = :name
+  and archived_at is not null
+returning name, metadata, archived_at;

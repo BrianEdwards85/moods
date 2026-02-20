@@ -168,25 +168,29 @@
 (rf/reg-event-fx
  ::fetch-tags-page
  (fn [{:keys [db]} _]
-   (let [search (get-in db [:tags-page :search])]
+   (let [search   (get-in db [:tags-page :search])
+         archived (get-in db [:tags-page :show-archived])]
      {:db       (update db :loading conj :tags-page)
       :dispatch [::re-graph/query
                  {:query     gql/tags-query
-                  :variables {:search (when (seq search) search)
-                              :first  tags-page-size}
+                  :variables {:search          (when (seq search) search)
+                              :includeArchived (boolean archived)
+                              :first           tags-page-size}
                   :callback  [::on-tags-page-fresh]}]})))
 
 (rf/reg-event-fx
  ::load-more-tags-page
  (fn [{:keys [db]} _]
-   (let [search (get-in db [:tags-page :search])
-         cursor (get-in db [:tags-page :page-info :endCursor])]
+   (let [search   (get-in db [:tags-page :search])
+         archived (get-in db [:tags-page :show-archived])
+         cursor   (get-in db [:tags-page :page-info :endCursor])]
      {:db       (update db :loading conj :tags-page)
       :dispatch [::re-graph/query
                  {:query     gql/tags-query
-                  :variables {:search (when (seq search) search)
-                              :first  tags-page-size
-                              :after  cursor}
+                  :variables {:search          (when (seq search) search)
+                              :includeArchived (boolean archived)
+                              :first           tags-page-size
+                              :after           cursor}
                   :callback  [::on-tags-page-append]}]})))
 
 (rf/reg-event-fx
@@ -218,6 +222,15 @@
  (fn [{:keys [db]} [_ text]]
    {:db       (-> db
                   (assoc-in [:tags-page :search] text)
+                  (assoc-in [:tags-page :edges] [])
+                  (assoc-in [:tags-page :page-info] {:hasNextPage false :endCursor nil}))
+    :dispatch [::fetch-tags-page]}))
+
+(rf/reg-event-fx
+ ::toggle-show-archived
+ (fn [{:keys [db]} _]
+   {:db       (-> db
+                  (update-in [:tags-page :show-archived] not)
                   (assoc-in [:tags-page :edges] [])
                   (assoc-in [:tags-page :page-info] {:hasNextPage false :endCursor nil}))
     :dispatch [::fetch-tags-page]}))
@@ -283,6 +296,29 @@
                 (assoc-in [:errors :archive-tag] errors))}
        {:db       (-> db
                       (update :loading disj :archive-tag)
+                      (assoc-in [:tags-page :editing] nil))
+        :dispatch [::fetch-tags-page]}))))
+
+(rf/reg-event-fx
+ ::unarchive-tag
+ (fn [{:keys [db]} [_ tag-name]]
+   {:db       (update db :loading conj :unarchive-tag)
+    :dispatch [::re-graph/mutate
+               {:query     gql/unarchive-tag-mutation
+                :variables {:name tag-name}
+                :callback  [::on-tag-unarchived]}]}))
+
+(rf/reg-event-fx
+ ::on-tag-unarchived
+ [rf/unwrap]
+ (fn [{:keys [db]} {:keys [response]}]
+   (let [{:keys [errors]} response]
+     (if errors
+       {:db (-> db
+                (update :loading disj :unarchive-tag)
+                (assoc-in [:errors :unarchive-tag] errors))}
+       {:db       (-> db
+                      (update :loading disj :unarchive-tag)
                       (assoc-in [:tags-page :editing] nil))
         :dispatch [::fetch-tags-page]}))))
 

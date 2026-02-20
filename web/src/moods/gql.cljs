@@ -19,8 +19,8 @@
    }")
 
 (def tags-query
-  "query Tags($search: String, $first: Int, $after: String) {
-     tags(search: $search, first: $first, after: $after) {
+  "query Tags($search: String, $includeArchived: Boolean, $first: Int, $after: String) {
+     tags(search: $search, includeArchived: $includeArchived, first: $first, after: $after) {
        edges { cursor node { name metadata archivedAt } }
        pageInfo { hasNextPage endCursor }
      }
@@ -46,4 +46,9 @@
 (def archive-tag-mutation
   "mutation ArchiveTag($name: String!) {
      archiveTag(name: $name) { name metadata archivedAt }
+   }")
+
+(def unarchive-tag-mutation
+  "mutation UnarchiveTag($name: String!) {
+     unarchiveTag(name: $name) { name metadata archivedAt }
    }")

@@ -37,6 +37,14 @@ mutation ArchiveTag($name: String!) {
 }
 """
 
+UNARCHIVE_TAG = """
+mutation UnarchiveTag($name: String!) {
+  unarchiveTag(name: $name) {
+    name archivedAt
+  }
+}
+"""
+
 
 async def _setup_tags(client, tag_names):
     """Create a user and log a mood with the given tags, returning tag names."""
@@ -99,6 +107,31 @@ async def test_archive_tag(client):
     await _setup_tags(client, ["happy"])
     body = await gql(client, ARCHIVE_TAG, {"name": "happy"})
     assert body["data"]["archiveTag"]["archivedAt"] is not None
+
+
+async def test_unarchive_tag(client):
+    await _setup_tags(client, ["happy"])
+    await gql(client, ARCHIVE_TAG, {"name": "happy"})
+    body = await gql(client, UNARCHIVE_TAG, {"name": "happy"})
+    assert body["data"]["unarchiveTag"]["archivedAt"] is None
+
+
+async def test_archived_tags_excluded_by_default(client):
+    await _setup_tags(client, ["happy", "sad"])
+    await gql(client, ARCHIVE_TAG, {"name": "sad"})
+    body = await gql(client, TAGS_QUERY)
+    names = [e["node"]["name"] for e in body["data"]["tags"]["edges"]]
+    assert "happy" in names
+    assert "sad" not in names
+
+
+async def test_archived_tags_included_when_requested(client):
+    await _setup_tags(client, ["happy", "sad"])
+    await gql(client, ARCHIVE_TAG, {"name": "sad"})
+    body = await gql(client, TAGS_QUERY, {"includeArchived": True})
+    names = [e["node"]["name"] for e in body["data"]["tags"]["edges"]]
+    assert "happy" in names
+    assert "sad" in names
 
 
 async def test_tags_pagination(client):

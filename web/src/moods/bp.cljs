@@ -23,6 +23,7 @@
 (def spinner        (r/adapt-react-class bp/Spinner))
 (def input-group    (r/adapt-react-class bp/InputGroup))
 (def menu-item      (r/adapt-react-class bp/MenuItem))
+(def switch-control (r/adapt-react-class bp/Switch))
 (def multi-select   (r/adapt-react-class bp-select/MultiSelect))
 
 (def emoji-picker-component (r/adapt-react-class EmojiPicker))
