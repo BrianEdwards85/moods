@@ -12,13 +12,17 @@
    (str value)])
 
 (defn entry-card [entry]
-  (let [mood (:mood entry)]
+  (let [mood (:mood entry)
+        user (:user entry)]
     [bp/card {:class "mb-3 p-4"}
      [:div.flex.items-center.gap-3
       [mood-badge mood]
       [:div {:class "flex-1 min-w-0"}
        [:div.flex.items-center.justify-between
-        [:span.font-bold (str mood "/10")]
+        [:div.flex.items-center.gap-2
+         [:span.font-bold (str mood "/10")]
+         (when user
+           [:span {:class "text-tn-fg-muted text-sm"} (str "— " (:name user))])]
         [:span {:class "text-tn-fg-dim text-xs"} (:createdAt entry)]]
        (when-let [notes (not-empty (:notes entry))]
          [:p {:class "text-tn-fg-muted text-sm mt-1"} notes])
@@ -28,37 +32,29 @@
             ^{:key (:name t)}
             [bp/tag {:minimal true} (:name t)])])]]]))
 
-(defn user-column [label entries-sub load-more-event]
-  (let [entries @(rf/subscribe [entries-sub])
-        loading @(rf/subscribe [::subs/loading])]
-    [:div {:class "flex-1 min-w-0 px-2"}
-     [:h3.bp6-heading.mb-3 label]
-     (if (empty? (:edges entries))
+(defn timeline-screen []
+  (let [entries  @(rf/subscribe [::subs/entries])
+        loading? @(rf/subscribe [::subs/loading? :entries])]
+    [:div {:class "max-w-2xl mx-auto px-4 py-4"}
+     [:h3.bp6-heading.mb-4 "Timeline"]
+     (cond
+       (and loading? (empty? (:edges entries)))
+       [:div.py-8.text-center [bp/spinner {:size 40}]]
+
+       (empty? (:edges entries))
        [bp/non-ideal-state {:icon        "timeline-events"
                             :title       "No entries yet"
                             :description "Mood entries will appear here."}]
+
+       :else
        [:div
-        (for [{:keys [node cursor]} (:edges entries)]
+        (for [{:keys [node]} (:edges entries)]
           ^{:key (:id node)}
           [entry-card node])
         (when (get-in entries [:page-info :hasNextPage])
           [:div.text-center.mt-2
            [bp/button {:text     "Load more"
                        :minimal  true
-                       :loading  (contains? loading entries-sub)
-                       :on-click #(rf/dispatch [load-more-event
+                       :loading  loading?
+                       :on-click #(rf/dispatch [::events/load-more-entries
                                                 (get-in entries [:page-info :endCursor])])}]])])]))
-
-(defn timeline-screen []
-  (let [current @(rf/subscribe [::subs/current-user])
-        partner @(rf/subscribe [::subs/partner-user])]
-    [:div {:class "max-w-5xl mx-auto px-4 py-4"}
-     [:div {:class "flex flex-col md:flex-row gap-6"}
-      [user-column
-       (str (:name current) " (You)")
-       ::subs/my-entries
-       ::events/load-more-my-entries]
-      [user-column
-       (or (:name partner) "Partner")
-       ::subs/partner-entries
-       ::events/load-more-partner-entries]]]))

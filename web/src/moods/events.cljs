@@ -49,20 +49,22 @@
                       (update :loading disj :users)
                       (assoc-in [:errors :users] errors))}
        current (-> (assoc-in [:db :current-user] current)
-                   (assoc :dispatch-n [[::fetch-my-entries]
-                                       [::fetch-partner-entries]]))))))
+                   (assoc :dispatch [::fetch-entries]))))))
 
 ;; ---------------------------------------------------------------------------
-;; Mood Entries — helpers
+;; Mood Entries
 ;; ---------------------------------------------------------------------------
 
 (def ^:private entries-page-size 20)
 
-(defn- entries-query-dispatch [user-id after callback]
+(defn- all-user-ids [db]
+  (mapv :id (:users db)))
+
+(defn- entries-query-dispatch [user-ids after callback]
   [::re-graph/query {:query     gql/mood-entries-query
-                     :variables {:userId user-id
-                                 :first  entries-page-size
-                                 :after  after}
+                     :variables {:userIds user-ids
+                                 :first   entries-page-size
+                                 :after   after}
                      :callback  callback}])
 
 (defn- apply-entries [prev connection append?]
@@ -73,85 +75,41 @@
     {:edges     (:edges connection)
      :page-info (:pageInfo connection)}))
 
-;; ---------------------------------------------------------------------------
-;; My Entries
-;; ---------------------------------------------------------------------------
-
 (rf/reg-event-fx
- ::fetch-my-entries
+ ::fetch-entries
  (fn [{:keys [db]} _]
-   (when-let [user-id (:current-user-id db)]
-     {:db       (update db :loading conj :my-entries)
-      :dispatch (entries-query-dispatch user-id nil [::on-my-entries-fresh])})))
+   (let [user-ids (all-user-ids db)]
+     (when (seq user-ids)
+       {:db       (update db :loading conj :entries)
+        :dispatch (entries-query-dispatch user-ids nil [::on-entries-fresh])}))))
 
 (rf/reg-event-fx
- ::load-more-my-entries
+ ::load-more-entries
  (fn [{:keys [db]} [_ cursor]]
-   (when-let [user-id (:current-user-id db)]
-     {:db       (update db :loading conj :my-entries)
-      :dispatch (entries-query-dispatch user-id cursor [::on-my-entries-append])})))
+   (let [user-ids (all-user-ids db)]
+     (when (seq user-ids)
+       {:db       (update db :loading conj :entries)
+        :dispatch (entries-query-dispatch user-ids cursor [::on-entries-append])}))))
 
 (rf/reg-event-fx
- ::on-my-entries-fresh
+ ::on-entries-fresh
  [rf/unwrap]
  (fn [{:keys [db]} {:keys [response]}]
    (let [{:keys [data errors]} response]
      {:db (-> db
-              (assoc :my-entries (apply-entries nil (:moodEntries data) false))
-              (update :loading disj :my-entries)
-              (assoc-in [:errors :my-entries] errors))})))
+              (assoc :entries (apply-entries nil (:moodEntries data) false))
+              (update :loading disj :entries)
+              (assoc-in [:errors :entries] errors))})))
 
 (rf/reg-event-fx
- ::on-my-entries-append
+ ::on-entries-append
  [rf/unwrap]
  (fn [{:keys [db]} {:keys [response]}]
    (let [{:keys [data errors]} response]
      {:db (-> db
-              (update :my-entries apply-entries (:moodEntries data) true)
-              (update :loading disj :my-entries)
-              (assoc-in [:errors :my-entries] errors))})))
-
-;; ---------------------------------------------------------------------------
-;; Partner Entries
-;; ---------------------------------------------------------------------------
-
-(rf/reg-event-fx
- ::fetch-partner-entries
- (fn [{:keys [db]} _]
-   (let [user-id (:current-user-id db)
-         partner (first (filter #(not= (:id %) user-id) (:users db)))]
-     (when partner
-       {:db       (update db :loading conj :partner-entries)
-        :dispatch (entries-query-dispatch (:id partner) nil [::on-partner-entries-fresh])}))))
-
-(rf/reg-event-fx
- ::load-more-partner-entries
- (fn [{:keys [db]} [_ cursor]]
-   (let [user-id (:current-user-id db)
-         partner (first (filter #(not= (:id %) user-id) (:users db)))]
-     (when partner
-       {:db       (update db :loading conj :partner-entries)
-        :dispatch (entries-query-dispatch (:id partner) cursor [::on-partner-entries-append])}))))
-
-(rf/reg-event-fx
- ::on-partner-entries-fresh
- [rf/unwrap]
- (fn [{:keys [db]} {:keys [response]}]
-   (let [{:keys [data errors]} response]
-     {:db (-> db
-              (assoc :partner-entries (apply-entries nil (:moodEntries data) false))
-              (update :loading disj :partner-entries)
-              (assoc-in [:errors :partner-entries] errors))})))
-
-(rf/reg-event-fx
- ::on-partner-entries-append
- [rf/unwrap]
- (fn [{:keys [db]} {:keys [response]}]
-   (let [{:keys [data errors]} response]
-     {:db (-> db
-              (update :partner-entries apply-entries (:moodEntries data) true)
-              (update :loading disj :partner-entries)
-              (assoc-in [:errors :partner-entries] errors))})))
+              (update :entries apply-entries (:moodEntries data) true)
+              (update :loading disj :entries)
+              (assoc-in [:errors :entries] errors))})))
 
 ;; ---------------------------------------------------------------------------
 ;; Tags
@@ -208,7 +166,7 @@
        {:db       (-> db
                       (update :loading disj :submit-mood)
                       (assoc :mood-modal (:mood-modal db/default-db)))
-        :dispatch [::fetch-my-entries]}))))
+        :dispatch [::fetch-entries]}))))
 
 ;; ---------------------------------------------------------------------------
 ;; Archive Entry (mutation)
@@ -230,8 +188,7 @@
    (let [{:keys [errors]} response]
      (if errors
        {:db (assoc-in db [:errors :archive] errors)}
-       {:dispatch-n [[::fetch-my-entries]
-                     [::fetch-partner-entries]]}))))
+       {:dispatch [::fetch-entries]}))))
 
 ;; ---------------------------------------------------------------------------
 ;; User selection / switching
@@ -242,13 +199,11 @@
  (fn [{:keys [db]} [_ user]]
    (cookies/set-cookie! "moods-user-id" (:id user))
    (routes/navigate! :route/timeline)
-   {:db         (assoc db
-                       :current-user-id (:id user)
-                       :current-user user
-                       :my-entries (:my-entries db/default-db)
-                       :partner-entries (:partner-entries db/default-db))
-    :dispatch-n [[::fetch-my-entries]
-                 [::fetch-partner-entries]]}))
+   {:db       (assoc db
+                     :current-user-id (:id user)
+                     :current-user user
+                     :entries (:entries db/default-db))
+    :dispatch [::fetch-entries]}))
 
 (rf/reg-event-fx
  ::switch-user
@@ -258,8 +213,7 @@
    {:db (assoc db
                :current-user-id nil
                :current-user nil
-               :my-entries (:my-entries db/default-db)
-               :partner-entries (:partner-entries db/default-db))}))
+               :entries (:entries db/default-db))}))
 
 ;; ---------------------------------------------------------------------------
 ;; Mood modal UI

@@ -8,11 +8,11 @@
   "query User($id: ID!) { user(id: $id) { id name email settings } }")
 
 (def mood-entries-query
-  "query MoodEntries($userId: ID, $first: Int, $after: String) {
-     moodEntries(userId: $userId, first: $first, after: $after) {
+  "query MoodEntries($userIds: [ID!], $first: Int, $after: String) {
+     moodEntries(userIds: $userIds, first: $first, after: $after) {
        edges {
          cursor
-         node { id mood notes createdAt archivedAt tags { name metadata } }
+         node { id mood notes createdAt archivedAt user { id name } tags { name metadata } }
        }
        pageInfo { hasNextPage endCursor }
      }
