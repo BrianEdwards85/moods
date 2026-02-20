@@ -2,10 +2,10 @@
   "GraphQL query and mutation strings, plus re-graph initialization.")
 
 (def users-query
-  "{ users { id name email } }")
+  "{ users { id name email settings } }")
 
 (def user-query
-  "query User($id: ID!) { user(id: $id) { id name email } }")
+  "query User($id: ID!) { user(id: $id) { id name email settings } }")
 
 (def mood-entries-query
   "query MoodEntries($userId: ID, $first: Int, $after: String) {

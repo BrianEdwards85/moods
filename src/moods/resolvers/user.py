@@ -25,6 +25,13 @@ async def resolve_create_user(_obj, info, *, input):
     )
 
 
+@mutation.field("updateUserSettings")
+async def resolve_update_user_settings(_obj, info, *, input):
+    return await user_data.update_user_settings(
+        info.context["pool"], id=input["id"], settings=input["settings"]
+    )
+
+
 @user_obj.field("entries")
 async def resolve_user_entries(
     user, info, *, include_archived=False, first=None, after=None

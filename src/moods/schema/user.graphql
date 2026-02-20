@@ -2,6 +2,7 @@ type User {
   id: ID!
   name: String!
   email: String!
+  settings: JSON!
   entries(
     includeArchived: Boolean = false
     first: Int
@@ -23,6 +24,12 @@ input CreateUserInput {
   email: String!
 }
 
+input UpdateUserSettingsInput {
+  id: ID!
+  settings: JSON!
+}
+
 extend type Mutation {
   createUser(input: CreateUserInput!): User!
+  updateUserSettings(input: UpdateUserSettingsInput!): User!
 }
