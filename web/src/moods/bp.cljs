@@ -1,6 +1,7 @@
 (ns moods.bp
   "Reagent wrappers for Blueprint.js components."
   (:require ["@blueprintjs/core" :as bp]
+            ["@blueprintjs/select" :as bp-select]
             [reagent.core :as r]))
 
 (def button         (r/adapt-react-class bp/Button))
@@ -18,3 +19,5 @@
 (def tag            (r/adapt-react-class bp/Tag))
 (def text-area      (r/adapt-react-class bp/TextArea))
 (def spinner        (r/adapt-react-class bp/Spinner))
+(def menu-item      (r/adapt-react-class bp/MenuItem))
+(def multi-select   (r/adapt-react-class bp-select/MultiSelect))

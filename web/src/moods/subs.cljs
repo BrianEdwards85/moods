@@ -11,8 +11,15 @@
 (rf/reg-sub ::my-entries        (fn [db _] (:my-entries db)))
 (rf/reg-sub ::partner-entries   (fn [db _] (:partner-entries db)))
 (rf/reg-sub ::mood-modal        (fn [db _] (:mood-modal db)))
+(rf/reg-sub ::tags              (fn [db _] (:tags db)))
 (rf/reg-sub ::loading           (fn [db _] (:loading db)))
+(rf/reg-sub ::loading?
+ :<- [::loading]
+ (fn [loading [_ key]] (contains? loading key)))
 (rf/reg-sub ::errors            (fn [db _] (:errors db)))
+(rf/reg-sub ::error
+ :<- [::errors]
+ (fn [errors [_ key]] (get errors key)))
 
 (rf/reg-sub
  ::partner-user

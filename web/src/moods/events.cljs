@@ -265,10 +265,11 @@
 ;; Mood modal UI
 ;; ---------------------------------------------------------------------------
 
-(rf/reg-event-db
+(rf/reg-event-fx
  ::open-mood-modal
- (fn [db _]
-   (assoc-in db [:mood-modal :open?] true)))
+ (fn [{:keys [db]} _]
+   {:db       (assoc-in db [:mood-modal :open?] true)
+    :dispatch [::search-tags nil]}))
 
 (rf/reg-event-db
  ::close-mood-modal
@@ -289,3 +290,26 @@
  ::set-mood-tags
  (fn [db [_ tags]]
    (assoc-in db [:mood-modal :tags] tags)))
+
+(rf/reg-event-fx
+ ::set-tag-query
+ (fn [{:keys [db]} [_ text]]
+   (cond-> {:db (assoc-in db [:mood-modal :tag-query] text)}
+     (>= (count text) 1) (assoc :dispatch [::search-tags text]))))
+
+(rf/reg-event-db
+ ::add-mood-tag
+ (fn [db [_ tag]]
+   (let [tags (get-in db [:mood-modal :tags])
+         already? (some #(= (:name %) (:name tag)) tags)]
+     (if already?
+       db
+       (-> db
+           (update-in [:mood-modal :tags] conj tag)
+           (assoc-in [:mood-modal :tag-query] ""))))))
+
+(rf/reg-event-db
+ ::remove-mood-tag
+ (fn [db [_ tag-name]]
+   (update-in db [:mood-modal :tags]
+              (fn [tags] (vec (remove #(= (:name %) tag-name) tags))))))

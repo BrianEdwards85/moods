@@ -2,22 +2,31 @@
   (:require [moods.bp :as bp]
             [moods.events :as events]
             [moods.subs :as subs]
+            [moods.util :as util]
             [re-frame.core :as rf]))
+
+(defn mood-badge [value]
+  [:div {:class "w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-bold text-sm"
+         :style {:background-color (util/mood-color value)
+                 :color "#1f2335"}}
+   (str value)])
 
 (defn entry-card [entry]
   (let [mood (:mood entry)]
     [bp/card {:class "mb-3 p-4"}
-     [:div.flex.items-center.justify-between
-      [:div
-       [:span.bp6-text-large.font-bold (str mood "/10")]
+     [:div.flex.items-center.gap-3
+      [mood-badge mood]
+      [:div {:class "flex-1 min-w-0"}
+       [:div.flex.items-center.justify-between
+        [:span.font-bold (str mood "/10")]
+        [:span {:class "text-tn-fg-dim text-xs"} (:createdAt entry)]]
        (when-let [notes (not-empty (:notes entry))]
-         [:p.bp6-text-muted.mt-1 notes])]
-      [:span.bp6-text-muted.text-sm (:createdAt entry)]]
-     (when-let [tags (seq (:tags entry))]
-       [:div.mt-2.flex.flex-wrap.gap-1
-        (for [t tags]
-          ^{:key (:name t)}
-          [bp/tag {:minimal true} (:name t)])])]))
+         [:p {:class "text-tn-fg-muted text-sm mt-1"} notes])
+       (when-let [tags (seq (:tags entry))]
+         [:div {:class "mt-2 flex flex-wrap gap-1"}
+          (for [t tags]
+            ^{:key (:name t)}
+            [bp/tag {:minimal true} (:name t)])])]]]))
 
 (defn user-column [label entries-sub load-more-event]
   (let [entries @(rf/subscribe [entries-sub])

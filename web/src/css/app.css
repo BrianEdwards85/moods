@@ -32,6 +32,12 @@ body {
 
 .bp6-dark .bp6-card {
   background-color: var(--color-tn-bg-float);
+  border: 1px solid var(--color-tn-border);
+}
+
+.bp6-dark .bp6-card.bp6-interactive:hover {
+  border-color: var(--color-tn-blue);
+  background-color: var(--color-tn-selection);
 }
 
 .bp6-dark .bp6-dialog {
