@@ -3,6 +3,7 @@ type User {
   name: String!
   email: String!
   settings: JSON!
+  archivedAt: DateTime
   entries(
     includeArchived: Boolean = false
     first: Int
@@ -13,7 +14,7 @@ type User {
 # --- Queries ---
 
 extend type Query {
-  users: [User!]!
+  users(includeArchived: Boolean = false): [User!]!
   user(id: ID!): User
 }
 
@@ -32,4 +33,5 @@ input UpdateUserSettingsInput {
 extend type Mutation {
   createUser(input: CreateUserInput!): User!
   updateUserSettings(input: UpdateUserSettingsInput!): User!
+  archiveUser(id: ID!): User!
 }

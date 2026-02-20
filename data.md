@@ -4,12 +4,13 @@
 
 ## users
 
-| Column   | Type        | Constraints            |
-|----------|-------------|------------------------|
-| id       | uuid (v7)   | PK                     |
-| name     | text        | NOT NULL               |
-| email    | text        | NOT NULL, UNIQUE       |
-| settings | jsonb       | NOT NULL, DEFAULT '{}' |
+| Column      | Type        | Constraints            |
+|-------------|-------------|------------------------|
+| id          | uuid (v7)   | PK                     |
+| name        | text        | NOT NULL               |
+| email       | text        | NOT NULL, UNIQUE       |
+| settings    | jsonb       | NOT NULL, DEFAULT '{}' |
+| archived_at | timestamptz | NULL                   |
 
 ---
 

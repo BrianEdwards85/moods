@@ -9,8 +9,8 @@ user_obj = ObjectType("User")
 
 
 @query.field("users")
-async def resolve_users(_obj, info):
-    return await user_data.get_users(info.context["pool"])
+async def resolve_users(_obj, info, *, include_archived=False):
+    return await user_data.get_users(info.context["pool"], include_archived=include_archived)
 
 
 @query.field("user")
@@ -30,6 +30,11 @@ async def resolve_update_user_settings(_obj, info, *, input):
     return await user_data.update_user_settings(
         info.context["pool"], id=input["id"], settings=input["settings"]
     )
+
+
+@mutation.field("archiveUser")
+async def resolve_archive_user(_obj, info, *, id):
+    return await user_data.archive_user(info.context["pool"], id=id)
 
 
 @user_obj.field("entries")
