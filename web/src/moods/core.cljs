@@ -1,21 +1,26 @@
 (ns moods.core
-  (:require ["@blueprintjs/core" :refer [Card Icon]]
-            [reagent.core :as r]
+  (:require [moods.events :as events]
+            [moods.subs :as subs]
+            [moods.views.header :as header]
+            [moods.views.mood-modal :as mood-modal]
+            [moods.views.timeline :as timeline]
+            [moods.views.user-select :as user-select]
+            [re-frame.core :as rf]
             [reagent.dom.client :as rdc]))
 
 (defonce root (atom nil))
 
-(def bp-card (r/adapt-react-class Card))
-(def bp-icon (r/adapt-react-class Icon))
-
 (defn app []
-  [:div.flex.items-center.justify-center.min-h-screen
-   [bp-card {:elevation 3 :class "p-8 text-center"}
-    [bp-icon {:icon "heart" :size 48 :class "mb-4" :intent "primary"}]
-    [:h1.bp5-heading {:style {:font-size "2.5rem"}} "Moods"]
-    [:p.bp5-text-muted.bp5-text-large "Track and share how you feel."]]])
+  (let [user-id @(rf/subscribe [::subs/current-user-id])]
+    (if user-id
+      [:<>
+       [header/header]
+       [timeline/timeline-screen]
+       [mood-modal/mood-modal]]
+      [user-select/user-select-screen])))
 
 (defn ^:export init []
+  (rf/dispatch-sync [::events/initialize-db])
   (let [container (js/document.getElementById "app")]
     (if-let [r @root]
       (rdc/render r [app])

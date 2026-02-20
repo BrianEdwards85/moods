@@ -1,0 +1,18 @@
+(ns moods.subs
+  (:require [re-frame.core :as rf]))
+
+(rf/reg-sub ::current-user-id   (fn [db _] (:current-user-id db)))
+(rf/reg-sub ::current-user      (fn [db _] (:current-user db)))
+(rf/reg-sub ::users             (fn [db _] (:users db)))
+(rf/reg-sub ::my-entries        (fn [db _] (:my-entries db)))
+(rf/reg-sub ::partner-entries   (fn [db _] (:partner-entries db)))
+(rf/reg-sub ::mood-modal        (fn [db _] (:mood-modal db)))
+(rf/reg-sub ::loading           (fn [db _] (:loading db)))
+(rf/reg-sub ::errors            (fn [db _] (:errors db)))
+
+(rf/reg-sub
+ ::partner-user
+ :<- [::current-user-id]
+ :<- [::users]
+ (fn [[current-id users] _]
+   (first (filter #(not= (:id %) current-id) users))))
