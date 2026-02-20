@@ -5,33 +5,142 @@
             [re-frame.core :as rf]
             [reagent.core :as r]))
 
+(defn- desktop? []
+  (and (exists? js/window)
+       (>= (.-innerWidth js/window) 768)))
+
+(defn color-swatch [color selected? on-click]
+  [:button {:class    (str "w-8 h-8 rounded-full border-2 transition-all cursor-pointer "
+                           (if selected? "border-white scale-110" "border-transparent hover:scale-105"))
+            :style    {:background-color color}
+            :on-click #(on-click color)}])
+
+(def ^:private preset-colors
+  ["#f7768e" "#ff9e64" "#e0af68" "#9ece6a" "#73daca"
+   "#7dcfff" "#7aa2f7" "#bb9af7" "#c0caf5" "#565f89"])
+
 (defn tag-edit-modal []
-  (let [{:keys [editing]} @(rf/subscribe [::subs/tags-page])]
-    [bp/dialog {:title    (str "Edit Tag: " (:name editing))
-                :icon     "tag"
-                :is-open  (some? editing)
-                :on-close #(rf/dispatch [::events/close-tag-editor])
-                :class    "w-full max-w-md"}
-     [bp/dialog-body
-      [:p {:class "text-tn-fg-muted"} "Tag editing coming soon."]]
-     [bp/dialog-footer
-      {:actions
-       (r/as-element
-        [bp/button {:text     "Close"
-                    :on-click #(rf/dispatch [::events/close-tag-editor])}])}]]))
+  (let [{:keys [editing]} @(rf/subscribe [::subs/tags-page])
+        saving?    @(rf/subscribe [::subs/loading? :save-tag])
+        archiving? @(rf/subscribe [::subs/loading? :archive-tag])
+        save-error @(rf/subscribe [::subs/error :save-tag])]
+    (when editing
+      (let [{:keys [name metadata archivedAt]} editing
+            current-color (:color metadata)
+            current-face  (or (:face metadata) "")]
+        [bp/dialog {:title    (str "Edit Tag: " name)
+                    :icon     "tag"
+                    :is-open  true
+                    :on-close #(rf/dispatch [::events/close-tag-editor])
+                    :class    "w-full max-w-md"}
+         [bp/dialog-body
+          [:div.mb-5
+           [:label.bp6-label "Color"]
+           [:div {:class "flex flex-wrap gap-2 mb-2"}
+            (for [c preset-colors]
+              ^{:key c}
+              [color-swatch c (= c current-color)
+               #(rf/dispatch [::events/set-editing-tag-field :color %])])]
+           [:div.flex.items-center.gap-2.mt-2
+            [:input {:type      "color"
+                     :value     (or current-color "#7aa2f7")
+                     :class     "w-8 h-8 rounded cursor-pointer border-0 p-0"
+                     :on-change #(rf/dispatch [::events/set-editing-tag-field
+                                               :color (.. % -target -value)])}]
+            [:span {:class "text-sm text-tn-fg-muted"} "Custom color"]
+            (when current-color
+              [bp/button {:icon     "cross"
+                          :minimal  true
+                          :small    true
+                          :on-click #(rf/dispatch [::events/set-editing-tag-field :color nil])}])]]
+
+          [:div.mb-5
+           [:label.bp6-label "Face (emoji)"]
+           [:div.flex.items-center.gap-3
+            [:div {:class    "w-12 h-12 rounded border border-tn-border flex items-center justify-center text-3xl cursor-pointer hover:border-tn-fg-muted transition-colors"
+                   :on-click (fn []
+                               (if (desktop?)
+                                 (rf/dispatch [::events/set-editing-tag-field :picker-open? true])
+                                 (.focus (.querySelector js/document "#face-input"))))}
+             (if (seq current-face) current-face "?")]
+            (when (seq current-face)
+              [bp/button {:icon     "cross"
+                          :minimal  true
+                          :small    true
+                          :on-click #(rf/dispatch [::events/set-editing-tag-field :face ""])}])]
+           [:div {:class "hidden"}
+            [:input {:id          "face-input"
+                     :type        "text"
+                     :value       current-face
+                     :placeholder "e.g. 😊"
+                     :class       "bp6-input w-20 text-center text-2xl"
+                     :max-length  4
+                     :on-change   #(rf/dispatch [::events/set-editing-tag-field
+                                                  :face (.. % -target -value)])}]]
+           [:div {:class "md:hidden mt-2"}
+            [:input {:type        "text"
+                     :value       current-face
+                     :placeholder "Tap to type emoji"
+                     :class       "bp6-input w-full text-center text-2xl"
+                     :max-length  4
+                     :on-change   #(rf/dispatch [::events/set-editing-tag-field
+                                                  :face (.. % -target -value)])}]]
+           (when (:picker-open? metadata)
+             [:div {:class "mt-2"}
+              [bp/emoji-picker
+               {:theme         "dark"
+                :skin          1
+                :set           "native"
+                :onEmojiSelect (fn [emoji]
+                                 (rf/dispatch [::events/set-editing-tag-field :face (.-native emoji)])
+                                 (rf/dispatch [::events/set-editing-tag-field :picker-open? nil]))
+                :onClickOutside #(rf/dispatch [::events/set-editing-tag-field :picker-open? nil])
+                :previewPosition "none"
+                :skinTonePosition "none"}]])]
+
+          (when save-error
+            [:div {:class "mt-3 p-3 rounded bg-tn-red/10 text-tn-red text-sm"}
+             "Failed to save tag. Please try again."])
+
+          (when-not archivedAt
+            [:div {:class "mt-6 pt-4 border-t border-tn-border"}
+             [bp/button {:icon     "trash"
+                         :text     "Archive Tag"
+                         :intent   "danger"
+                         :minimal  true
+                         :loading  archiving?
+                         :on-click #(rf/dispatch [::events/archive-tag name])}]])]
+
+         [bp/dialog-footer
+          {:actions
+           (r/as-element
+            [:<>
+             [bp/button {:text     "Cancel"
+                         :on-click #(rf/dispatch [::events/close-tag-editor])}]
+             [bp/button {:text     "Save"
+                         :intent   "primary"
+                         :icon     "tick"
+                         :loading  saving?
+                         :on-click #(rf/dispatch [::events/save-tag-metadata])}]])}]]))))
+
+(def ^:private default-tag-color "#3b4261")
 
 (defn tag-row [tag]
-  (let [{:keys [name metadata archivedAt]} (:node tag)]
-    [bp/card {:interactive true
-              :class       "mb-2 p-3 cursor-pointer"
-              :on-click    #(rf/dispatch [::events/open-tag-editor (:node tag)])}
+  (let [{:keys [name metadata archivedAt]} (:node tag)
+        color (or (:color metadata) default-tag-color)
+        face  (:face metadata)]
+    [:div {:class    "mb-2 rounded p-3 cursor-pointer transition-all hover:scale-[1.01] hover:brightness-110"
+           :style    {:background-color color
+                      :color            "#1f2335"}
+           :on-click #(rf/dispatch [::events/open-tag-editor (:node tag)])}
      [:div.flex.items-center.justify-between
       [:div.flex.items-center.gap-2
-       [bp/icon {:icon "tag" :class "opacity-60"}]
-       [:span.font-medium name]
+       (when (seq face)
+         [:span {:class "text-lg"} face])
+       [:span.font-semibold name]
        (when archivedAt
-         [bp/tag {:minimal true :intent "warning" :class "ml-2"} "archived"])]
-      [bp/icon {:icon "chevron-right" :class "opacity-40"}]]]))
+         [bp/tag {:minimal true :class "ml-2"} "archived"])]
+      [bp/icon {:icon "chevron-right" :class "opacity-50"}]]]))
 
 (defn tags-screen []
   (let [{:keys [search edges page-info]} @(rf/subscribe [::subs/tags-page])

@@ -1,7 +1,9 @@
 (ns moods.bp
-  "Reagent wrappers for Blueprint.js components."
+  "Reagent wrappers for Blueprint.js and third-party React components."
   (:require ["@blueprintjs/core" :as bp]
             ["@blueprintjs/select" :as bp-select]
+            ["@emoji-mart/react" :default EmojiPicker]
+            ["@emoji-mart/data" :default emoji-data]
             [reagent.core :as r]))
 
 (def button         (r/adapt-react-class bp/Button))
@@ -22,3 +24,9 @@
 (def input-group    (r/adapt-react-class bp/InputGroup))
 (def menu-item      (r/adapt-react-class bp/MenuItem))
 (def multi-select   (r/adapt-react-class bp-select/MultiSelect))
+
+(def emoji-picker-component (r/adapt-react-class EmojiPicker))
+(defn emoji-picker
+  "Emoji-mart picker with data pre-loaded. Pass :onEmojiSelect callback etc."
+  [props]
+  [emoji-picker-component (merge {:data emoji-data} props)])

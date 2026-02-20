@@ -37,3 +37,13 @@
   "mutation ArchiveEntry($id: ID!) {
      archiveMoodEntry(id: $id) { id archivedAt }
    }")
+
+(def update-tag-metadata-mutation
+  "mutation UpdateTagMetadata($input: UpdateTagMetadataInput!) {
+     updateTagMetadata(input: $input) { name metadata archivedAt }
+   }")
+
+(def archive-tag-mutation
+  "mutation ArchiveTag($name: String!) {
+     archiveTag(name: $name) { name metadata archivedAt }
+   }")

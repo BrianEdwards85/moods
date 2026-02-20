@@ -232,6 +232,60 @@
  (fn [db _]
    (assoc-in db [:tags-page :editing] nil)))
 
+(rf/reg-event-db
+ ::set-editing-tag-field
+ (fn [db [_ field value]]
+   (assoc-in db [:tags-page :editing :metadata field] value)))
+
+(rf/reg-event-fx
+ ::save-tag-metadata
+ (fn [{:keys [db]} _]
+   (let [{:keys [name metadata]} (get-in db [:tags-page :editing])
+         clean-metadata (dissoc metadata :picker-open?)]
+     {:db       (update db :loading conj :save-tag)
+      :dispatch [::re-graph/mutate
+                 {:query     gql/update-tag-metadata-mutation
+                  :variables {:input {:name name :metadata (or clean-metadata {})}}
+                  :callback  [::on-tag-saved]}]})))
+
+(rf/reg-event-fx
+ ::on-tag-saved
+ [rf/unwrap]
+ (fn [{:keys [db]} {:keys [response]}]
+   (let [{:keys [data errors]} response]
+     (if errors
+       {:db (-> db
+                (update :loading disj :save-tag)
+                (assoc-in [:errors :save-tag] errors))}
+       {:db       (-> db
+                      (update :loading disj :save-tag)
+                      (assoc-in [:tags-page :editing] nil)
+                      (assoc-in [:errors :save-tag] nil))
+        :dispatch [::fetch-tags-page]}))))
+
+(rf/reg-event-fx
+ ::archive-tag
+ (fn [{:keys [db]} [_ tag-name]]
+   {:db       (update db :loading conj :archive-tag)
+    :dispatch [::re-graph/mutate
+               {:query     gql/archive-tag-mutation
+                :variables {:name tag-name}
+                :callback  [::on-tag-archived]}]}))
+
+(rf/reg-event-fx
+ ::on-tag-archived
+ [rf/unwrap]
+ (fn [{:keys [db]} {:keys [response]}]
+   (let [{:keys [errors]} response]
+     (if errors
+       {:db (-> db
+                (update :loading disj :archive-tag)
+                (assoc-in [:errors :archive-tag] errors))}
+       {:db       (-> db
+                      (update :loading disj :archive-tag)
+                      (assoc-in [:tags-page :editing] nil))
+        :dispatch [::fetch-tags-page]}))))
+
 ;; ---------------------------------------------------------------------------
 ;; Log Mood (mutation)
 ;; ---------------------------------------------------------------------------
