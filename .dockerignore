@@ -1,0 +1,32 @@
+.git/
+.gitignore
+.cursor/
+.venv/
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+web/node_modules/
+
+# Shadow-cljs build cache
+web/.shadow-cljs/
+web/.cpcache/
+
+# Built assets (rebuilt in Docker)
+web/resources/public/js/
+web/resources/public/css/app.css
+web/resources/public/css/vendor/
+
+# Tests and docs
+tests/
+prompts/
+*.md
+!web/resources/public/**
+
+# Secrets (mounted at runtime)
+.secrets.toml
+
+# IDE / OS
+.DS_Store
+*.swp

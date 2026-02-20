@@ -212,7 +212,6 @@ __marimo__/
 
 # Node.js
 node_modules/
-package-lock.json
 
 # shadow-cljs
 web/.shadow-cljs/

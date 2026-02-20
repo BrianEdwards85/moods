@@ -1,0 +1,13 @@
+services:
+  moods:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./settings.toml:/app/settings.toml:ro
+      - ./.secrets.toml:/app/.secrets.toml:ro
+    environment:
+      - MOODS_DB__HOST=host.docker.internal
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
