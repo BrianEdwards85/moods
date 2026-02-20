@@ -12,4 +12,7 @@ password = "moods"
 [development]
 
 [testing]
-db.name = "moods_test"
+dynaconf_merge = true
+
+[testing.db]
+name = "moods_test"

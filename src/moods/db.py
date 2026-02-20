@@ -1,3 +1,4 @@
+import json
 import logging
 from pathlib import Path
 
@@ -34,5 +35,14 @@ def apply_migrations() -> None:
             log.info("Database is up to date")
 
 
+async def _init_connection(conn: asyncpg.Connection):
+    await conn.set_type_codec(
+        "jsonb", encoder=json.dumps, decoder=json.loads, schema="pg_catalog"
+    )
+    await conn.set_type_codec(
+        "json", encoder=json.dumps, decoder=json.loads, schema="pg_catalog"
+    )
+
+
 async def create_pool() -> asyncpg.Pool:
-    return await asyncpg.create_pool(get_dsn())
+    return await asyncpg.create_pool(get_dsn(), init=_init_connection)

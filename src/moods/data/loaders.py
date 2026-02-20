@@ -15,8 +15,8 @@ class UserLoader(DataLoader):
         rows = [
             dict(r) async for r in queries.get_users_by_ids(self.pool, ids=list(user_ids))
         ]
-        by_id = {r["id"]: r for r in rows}
-        return [by_id.get(uid) for uid in user_ids]
+        by_id = {str(r["id"]): r for r in rows}
+        return [by_id.get(str(uid)) for uid in user_ids]
 
 
 class MoodEntryTagsLoader(DataLoader):
@@ -32,10 +32,10 @@ class MoodEntryTagsLoader(DataLoader):
         ]
         by_entry = defaultdict(list)
         for r in rows:
-            by_entry[r["mood_entry_id"]].append(
+            by_entry[str(r["mood_entry_id"])].append(
                 {"name": r["name"], "metadata": r["metadata"], "archived_at": r["archived_at"]}
             )
-        return [by_entry.get(eid, []) for eid in entry_ids]
+        return [by_entry.get(str(eid), []) for eid in entry_ids]
 
 
 def create_loaders(pool: Pool) -> dict:

@@ -1,5 +1,3 @@
-import json
-
 from asyncpg import Pool
 
 from moods.data import queries
@@ -16,7 +14,7 @@ async def create_user(pool: Pool, name: str, email: str) -> dict:
 
 async def update_user_settings(pool: Pool, id: str, settings: dict) -> dict:
     row = await queries.update_user_settings(
-        pool, id=id, settings=json.dumps(settings)
+        pool, id=id, settings=settings
     )
     return dict(row)
 
