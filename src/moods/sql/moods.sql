@@ -21,7 +21,7 @@ returning id, user_id, mood, notes, created_at, archived_at;
 
 -- name: add_mood_entry_tag(mood_entry_id, tag_name)!
 insert into mood_entry_tags (mood_entry_id, tag_name)
-values (:mood_entry_id, :tag_name);
+values (:mood_entry_id, lower(:tag_name));
 
 -- name: get_tags_for_entries(mood_entry_ids)
 select met.mood_entry_id, t.name, t.metadata, t.archived_at

@@ -62,12 +62,26 @@ async def test_query_tags(client):
     assert sorted(names) == ["grateful", "happy"]
 
 
-async def test_search_tags(client):
+async def test_search_tags_exact(client):
     await _setup_tags(client, ["happy", "grateful", "anxious"])
     body = await gql(client, TAGS_QUERY, {"search": "happy"})
     names = [e["node"]["name"] for e in body["data"]["tags"]["edges"]]
     assert "happy" in names
     assert "anxious" not in names
+
+
+async def test_search_tags_fuzzy(client):
+    await _setup_tags(client, ["happy", "grateful", "anxious"])
+    body = await gql(client, TAGS_QUERY, {"search": "hapy"})
+    names = [e["node"]["name"] for e in body["data"]["tags"]["edges"]]
+    assert "happy" in names
+
+
+async def test_tags_stored_lowercase(client):
+    await _setup_tags(client, ["Happy", "GRATEFUL"])
+    body = await gql(client, TAGS_QUERY)
+    names = [e["node"]["name"] for e in body["data"]["tags"]["edges"]]
+    assert sorted(names) == ["grateful", "happy"]
 
 
 async def test_update_tag_metadata(client):
