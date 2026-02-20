@@ -11,7 +11,8 @@
               :on-click #(rf/dispatch [::events/set-mood-value value])}])
 
 (defn mood-modal []
-  (let [{:keys [open? mood notes]} @(rf/subscribe [::subs/mood-modal])]
+  (let [{:keys [open? mood notes]} @(rf/subscribe [::subs/mood-modal])
+        loading @(rf/subscribe [::subs/loading])]
     [bp/dialog {:title    "Log Mood"
                 :icon     "heart"
                 :is-open  open?
@@ -39,4 +40,5 @@
          [bp/button {:text     "Save"
                      :intent   "primary"
                      :icon     "tick"
-                     :on-click #(js/console.log "TODO: submit mood")}]])}]]))
+                     :loading  (contains? loading :submit-mood)
+                     :on-click #(rf/dispatch [::events/submit-mood])}]])}]]))

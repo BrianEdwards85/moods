@@ -44,33 +44,35 @@ opening conversations, and spotting patterns together.
 
 | Concern             | Library / Tool      | Role                                         |
 |----------------------|---------------------|----------------------------------------------|
-| HTTP server          | **Starlette**       | ASGI framework                               |
-| GraphQL              | **Ariadne**         | Schema-first GraphQL                         |
-| DB driver            | **asyncpg**         | Async PostgreSQL client                      |
-| SQL management       | **aiosql**          | Named queries from `.sql` files              |
-| Configuration        | **Dynaconf**        | Layered settings (env, TOML, secrets)        |
-| Migrations           | **yoyo-migrations** | Plain-SQL, sequential migration files        |
-| Testing              | **pytest**          | With pytest-asyncio for async tests          |
-| Package management   | **uv**              | Fast dependency resolution & virtualenvs     |
+| HTTP server          | **[Starlette](https://www.starlette.io/)**       | ASGI framework                               |
+| GraphQL              | **[Ariadne](https://ariadnegraphql.org/)**         | Schema-first GraphQL                         |
+| DB driver            | **[asyncpg](https://magicstack.github.io/asyncpg/)**         | Async PostgreSQL client                      |
+| SQL management       | **[aiosql](https://nackjicholson.github.io/aiosql/)**          | Named queries from `.sql` files              |
+| Configuration        | **[Dynaconf](https://www.dynaconf.com/)**        | Layered settings (env, TOML, secrets)        |
+| Migrations           | **[yoyo-migrations](https://ollycope.com/software/yoyo/)** | Plain-SQL, sequential migration files        |
+| Testing              | **[pytest](https://docs.pytest.org/)**          | With pytest-asyncio for async tests          |
+| Package management   | **[uv](https://docs.astral.sh/uv/)**              | Fast dependency resolution & virtualenvs     |
 
 ### 3.2 Web Frontend
 
 | Concern          | Library / Tool              | Role                                    |
 |------------------|-----------------------------|-----------------------------------------|
-| Language         | **ClojureScript**           | Compiled to JS, full REPL-driven dev    |
-| UI               | **Reagent**                 | Minimal React wrapper for ClojureScript |
-| State management | **re-frame**                | App-db, subscriptions, event handlers   |
-| GraphQL client   | **re-graph**                | re-frame-based GraphQL subscriptions    |
-| Build            | **shadow-cljs**             | Builds, hot-reload, npm interop         |
-| CSS              | **Tailwind CSS**            | Utility-first styling via PostCSS       |
+| Language         | **[ClojureScript](https://clojurescript.org/)**           | Compiled to JS, full REPL-driven dev    |
+| UI               | **[Reagent](https://reagent-project.github.io/)**                 | Minimal React wrapper for ClojureScript |
+| State management | **[re-frame](https://day8.github.io/re-frame/)**                | App-db, subscriptions, event handlers   |
+| GraphQL client   | **[re-graph](https://github.com/oliyh/re-graph)**                | re-frame-based GraphQL subscriptions    |
+| Build            | **[shadow-cljs](https://shadow-cljs.github.io/docs/UsersGuide.html)**             | Builds, hot-reload, npm interop         |
+| CSS              | **[Tailwind CSS](https://tailwindcss.com/)**            | Utility-first styling via PostCSS       |
+| UI toolkit       | **[Blueprint.js](https://blueprintjs.com/)**            | Component library (dark mode, icons)    |
+| Routing          | **[reitit](https://github.com/metosin/reitit)**                  | Data-driven client-side HTML5 router    |
 
 ### 3.3 Android App (future)
 
 | Concern       | Library / Tool          |
 |---------------|-------------------------|
-| Framework     | **React Native**        |
-| GraphQL       | TBD (Apollo or urql)    |
-| Navigation    | React Navigation        |
+| Framework     | **[React Native](https://reactnative.dev/)**        |
+| GraphQL       | TBD ([Apollo](https://www.apollographql.com/) or [urql](https://commerce.nearform.com/open-source/urql/))    |
+| Navigation    | [React Navigation](https://reactnavigation.org/)        |
 
 ---
 
@@ -188,21 +190,27 @@ step until confirmation before moving on.
 
 **Stop and wait for approval before continuing.**
 
-#### Step 2 — App Shell and Routing
+#### Step 2 — App Shell and State Management
 
-- Layout scaffold: header/nav, main content area
-- Client-side routing (reitit-frontend or secretary)
-- Placeholder pages/views for each screen (mood log, timeline, settings)
-- Navigation between pages works
+- re-frame app-db structure, events, and subscriptions
+- Cookie-based current user (`moods-user-id`): read on init,
+  set on selection, clear on switch
+- Conditional rendering: user selection screen vs. timeline screen
+- Header with app title, current user name, switch-user button,
+  and "Add Mood" button
+- Client-side routing with reitit (HTML5 history)
+- Routes: `/` (user select), `/timeline` (main), `/tags` (tag
+  management), `/settings` (user settings), `/summary` (aggregates)
 
 **Stop and wait for approval before continuing.**
 
 #### Step 3 — GraphQL Client Layer
 
 - re-graph initialization pointing at backend `/graphql`
-- re-frame subscriptions and event handlers for GraphQL queries/mutations
-- Test with a simple query (e.g. fetch users) and verify data flows
-  from backend through re-frame to UI
+- re-frame events for GraphQL queries and mutations
+- Fetch users list on app init
+- Fetch mood entries (per user) when current user is set
+- Tag search query for autocomplete
 
 **Stop and wait for approval before continuing.**
 
@@ -211,11 +219,14 @@ step until confirmation before moving on.
 Build out the real screens one at a time, collaborating on layout and
 behavior. Each sub-view is presented for review before moving to the next.
 
-- **Mood log form** — mood scale input, notes field, tag autocomplete
-  (using `tags` search query), submit via `logMood` mutation
-- **Timeline / history** — paginated list of mood entries for the current
-  user, with cursor-based "load more"
-- **Partner view** — see partner's mood entries
+- **User selection screen** — list of Blueprint Cards, one per user;
+  clicking sets cookie and transitions to timeline
+- **Timeline screen** — side-by-side columns ("My Moods" / "Partner's
+  Moods"), each showing paginated MoodEntry cards with mood value
+  (1-10), notes, tags, and relative timestamp; cursor-based "Load more"
+- **Log mood modal** — Blueprint Dialog with ButtonGroup (1-10),
+  TextArea for notes, MultiSelect for tags with search autocomplete,
+  submit via `logMood` mutation
 
 **Stop and wait for approval before continuing.**
 
@@ -246,7 +257,60 @@ behavior. Each sub-view is presented for review before moving to the next.
 
 ---
 
-## 8. Conventions
+## 8. Web App UI/UX
+
+### App Flow
+
+1. On load, check for a `moods-user-id` cookie.
+2. **No cookie** → show the User Selection Screen.
+3. **Cookie set** → show the Timeline Screen.
+
+### User Selection Screen
+
+- Fetches all users via `Query.users`.
+- Displays a Blueprint `Card` per user (name + email), centered layout.
+- Clicking a card sets the `moods-user-id` cookie and transitions to
+  the timeline.
+
+### Timeline Screen
+
+**Header:**
+- "Moods" title on the left.
+- Current user name on the right with a "Switch User" button
+  (clears cookie, returns to selection screen).
+- "Add Mood" button (primary intent) opens the log mood modal.
+
+**Body — side-by-side layout:**
+- Left column: "My Moods" — entries for the current user.
+- Right column: "Partner's Moods" — entries for the other user.
+- Each entry card shows: mood value (1-10) with visual indicator,
+  notes, tags (Blueprint `Tag`), and relative timestamp.
+- Cursor-based "Load more" at the bottom of each column.
+
+### Log Mood Modal
+
+Blueprint `Dialog` containing:
+- `ButtonGroup` with buttons 1-10 for mood value.
+- `TextArea` for notes.
+- `MultiSelect` (`@blueprintjs/select`) for tags with search
+  autocomplete via `Query.tags(search: ...)`.
+- Submit calls `Mutation.logMood`; on success, closes the modal
+  and refreshes the "My Moods" column.
+
+### State Management
+
+- **Current user ID** — browser cookie (`moods-user-id`), read on init.
+- **re-frame app-db** — current user, users list, mood entries per
+  column, tags, modal open/close state.
+- **re-graph** — GraphQL queries and mutations dispatched as re-frame
+  events.
+- **Navigation** — reitit HTML5 history router. Routes: `/` (user
+  select or redirect), `/timeline`, `/tags`, `/settings`, `/summary`.
+  Current route stored in app-db as `:current-route`.
+
+---
+
+## 9. Conventions
 
 These are inherited from the cursor rules and apply project-wide.
 
@@ -272,11 +336,11 @@ These are inherited from the cursor rules and apply project-wide.
 
 ---
 
-## 9. Open Questions
+## 10. Open Questions
 
 - **Auth**: Full auth (JWT, OAuth) or simple shared-secret for a two-person app?
 - **Hosting**: Self-hosted (VPS, home server) or managed (Fly.io, Railway)?
-- **Mood scale**: 1–10 numeric? Emoji picker? Both?
+- ~~**Mood scale**: 1–10 numeric? Emoji picker? Both?~~ → **Decided: 1-10 ButtonGroup.**
 - **Privacy**: Any entries the partner should *not* see?
 
 ---

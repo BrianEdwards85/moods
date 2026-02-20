@@ -1,7 +1,8 @@
 {:source-paths ["src"]
  :dependencies [[reagent/reagent "2.0.1"]
                 [re-frame/re-frame "1.4.4"]
-                [re-graph/re-graph "0.2.0"]]
+                [re-graph/re-graph "0.2.0"]
+                [metosin/reitit-frontend "0.7.2"]]
  :builds {:app {:target     :browser
                 :output-dir "resources/public/js"
                 :asset-path "/js"

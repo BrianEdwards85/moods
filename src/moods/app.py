@@ -4,6 +4,8 @@ from pathlib import Path
 from ariadne import load_schema_from_path, make_executable_schema
 from ariadne.asgi import GraphQL
 from starlette.applications import Starlette
+from starlette.middleware import Middleware
+from starlette.middleware.cors import CORSMiddleware
 from starlette.routing import Route
 
 from moods.data.loaders import create_loaders
@@ -55,6 +57,15 @@ def create_app() -> Starlette:
         lifespan=lifespan,
         routes=[
             Route("/graphql", graphql_app, methods=["GET", "POST"]),
+        ],
+        middleware=[
+            Middleware(
+                CORSMiddleware,
+                allow_origins=["http://localhost:3000"],
+                allow_credentials=True,
+                allow_methods=["GET", "POST", "OPTIONS"],
+                allow_headers=["*"],
+            ),
         ],
     )
 
