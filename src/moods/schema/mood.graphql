@@ -24,7 +24,7 @@ type MoodEntryEdge {
 
 extend type Query {
   moodEntries(
-    userId: ID
+    userIds: [ID!]
     includeArchived: Boolean = false
     first: Int
     after: String

@@ -43,7 +43,7 @@ async def resolve_user_entries(
 ):
     return await mood_data.get_mood_entries(
         info.context["pool"],
-        user_id=str(user["id"]),
+        user_ids=[str(user["id"])],
         include_archived=include_archived,
         first=first,
         after=after,

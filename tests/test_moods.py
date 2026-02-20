@@ -17,8 +17,8 @@ mutation LogMood($input: LogMoodInput!) {
 """
 
 MOOD_ENTRIES_QUERY = """
-query MoodEntries($userId: ID, $includeArchived: Boolean, $first: Int, $after: String) {
-  moodEntries(userId: $userId, includeArchived: $includeArchived, first: $first, after: $after) {
+query MoodEntries($userIds: [ID!], $includeArchived: Boolean, $first: Int, $after: String) {
+  moodEntries(userIds: $userIds, includeArchived: $includeArchived, first: $first, after: $after) {
     edges {
       cursor
       node { id mood notes createdAt archivedAt user { id name } tags { name } }
@@ -79,11 +79,25 @@ async def test_query_mood_entries_by_user(client):
     await _log_mood(client, alice["id"], mood=5, notes="meh")
     await _log_mood(client, bob["id"], mood=9, notes="great")
 
-    body = await gql(client, MOOD_ENTRIES_QUERY, {"userId": alice["id"]})
+    body = await gql(client, MOOD_ENTRIES_QUERY, {"userIds": [alice["id"]]})
     edges = body["data"]["moodEntries"]["edges"]
     assert len(edges) == 1
     assert edges[0]["node"]["mood"] == 5
     assert edges[0]["node"]["user"]["id"] == alice["id"]
+
+
+async def test_query_mood_entries_multiple_users(client):
+    alice = await _create_user(client, "Alice", "alice@test.com")
+    bob = await _create_user(client, "Bob", "bob@test.com")
+    await _log_mood(client, alice["id"], mood=5, notes="alice entry")
+    await _log_mood(client, bob["id"], mood=9, notes="bob entry")
+
+    body = await gql(client, MOOD_ENTRIES_QUERY, {"userIds": [alice["id"], bob["id"]]})
+    edges = body["data"]["moodEntries"]["edges"]
+    assert len(edges) == 2
+    user_ids = {e["node"]["user"]["id"] for e in edges}
+    assert alice["id"] in user_ids
+    assert bob["id"] in user_ids
 
 
 async def test_archive_mood_entry(client):

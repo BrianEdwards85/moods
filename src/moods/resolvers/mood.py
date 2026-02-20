@@ -9,11 +9,11 @@ mood_entry = ObjectType("MoodEntry")
 
 @query.field("moodEntries")
 async def resolve_mood_entries(
-    _obj, info, *, user_id=None, include_archived=False, first=None, after=None
+    _obj, info, *, user_ids=None, include_archived=False, first=None, after=None
 ):
     return await mood_data.get_mood_entries(
         info.context["pool"],
-        user_id=user_id,
+        user_ids=user_ids,
         include_archived=include_archived,
         first=first,
         after=after,

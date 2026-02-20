@@ -1,7 +1,7 @@
--- name: get_mood_entries(user_id, include_archived, after_id, page_limit)
+-- name: get_mood_entries(user_ids, include_archived, after_id, page_limit)
 select me.id, me.user_id, me.mood, me.notes, me.created_at, me.archived_at
 from mood_entries me
-where (:user_id::uuid IS NULL OR me.user_id = :user_id::uuid)
+where (:user_ids::uuid[] IS NULL OR me.user_id = ANY(:user_ids::uuid[]))
   and (:include_archived::boolean OR me.archived_at IS NULL)
   and (:after_id::uuid IS NULL OR me.id < :after_id::uuid)
 order by me.id desc

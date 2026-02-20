@@ -43,3 +43,9 @@ body {
 .bp6-dark .bp6-dialog {
   background-color: var(--color-tn-bg-float);
 }
+
+@media (max-width: 767px) {
+  .mobile-icon-only .bp6-button-text {
+    display: none;
+  }
+}

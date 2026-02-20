@@ -14,29 +14,37 @@
        [bp/icon {:icon "heart" :intent "primary" :class "mr-2"}]
        [bp/navbar-heading "Moods"]]
       [bp/navbar-divider]
-      [bp/button {:text     "Timeline"
+      [bp/button {:icon     "timeline-events"
+                  :text     "Timeline"
                   :minimal  true
                   :active   (= route-name :route/timeline)
+                  :class    "mobile-icon-only"
                   :on-click #(routes/navigate! :route/timeline)}]
-      [bp/button {:text     "Tags"
+      [bp/button {:icon     "tag"
+                  :text     "Tags"
                   :minimal  true
                   :active   (= route-name :route/tags)
+                  :class    "mobile-icon-only"
                   :on-click #(routes/navigate! :route/tags)}]
-      [bp/button {:text     "Summary"
+      [bp/button {:icon     "chart"
+                  :text     "Summary"
                   :minimal  true
                   :active   (= route-name :route/summary)
+                  :class    "mobile-icon-only"
                   :on-click #(routes/navigate! :route/summary)}]]
      [bp/navbar-group {:align "right"}
       (when user
         [:<>
-         [:span.bp6-text-muted.mr-2 (:name user)]
-         [bp/navbar-divider]
+         [:span {:class "bp6-text-muted mr-2 hidden md:inline"} (:name user)]
+         [bp/navbar-divider {:class "hidden md:block"}]
          [bp/button {:icon     "swap-horizontal"
                      :text     "Switch User"
                      :minimal  true
+                     :class    "mobile-icon-only"
                      :on-click #(rf/dispatch [::events/switch-user])}]
          [bp/navbar-divider]
          [bp/button {:icon     "plus"
-                     :text     "Log Mood"
                      :intent   "primary"
+                     :text     "Log Mood"
+                     :class    "mobile-icon-only"
                      :on-click #(rf/dispatch [::events/open-mood-modal])}]])]]))

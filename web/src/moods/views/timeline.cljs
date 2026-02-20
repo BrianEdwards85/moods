@@ -53,7 +53,7 @@
   (let [current @(rf/subscribe [::subs/current-user])
         partner @(rf/subscribe [::subs/partner-user])]
     [:div {:class "max-w-5xl mx-auto px-4 py-4"}
-     [:div {:class "flex gap-6"}
+     [:div {:class "flex flex-col md:flex-row gap-6"}
       [user-column
        (str (:name current) " (You)")
        ::subs/my-entries

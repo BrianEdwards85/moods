@@ -11,7 +11,7 @@ from moods.data import (
 async def get_mood_entries(
     pool: Pool,
     *,
-    user_id: str | None = None,
+    user_ids: list[str] | None = None,
     include_archived: bool = False,
     first: int | None = None,
     after: str | None = None,
@@ -22,7 +22,7 @@ async def get_mood_entries(
     rows = [
         dict(r) async for r in queries.get_mood_entries(
             pool,
-            user_id=user_id,
+            user_ids=user_ids,
             include_archived=include_archived,
             after_id=after_id,
             page_limit=limit + 1,

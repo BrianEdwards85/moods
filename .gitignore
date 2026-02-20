@@ -224,3 +224,5 @@ web/resources/public/css/vendor/
 
 # Tailwind compiled output
 web/resources/public/css/app.css
+
+prompts/

@@ -9,10 +9,10 @@
 (defn mood-button [current-value value]
   (let [color    (util/mood-color value)
         selected (= current-value value)]
-    [:button {:class    (str "flex-1 py-2 rounded font-bold text-sm transition-all "
+    [:button {:class    (str "py-3 rounded font-bold text-sm transition-all "
                              (if selected "ring-2 ring-white/50 scale-105" "opacity-60 hover:opacity-90"))
               :style    {:background-color color
-                         :color            (if (<= value 4) "#1f2335" "#1f2335")}
+                         :color            "#1f2335"}
               :on-click #(rf/dispatch [::events/set-mood-value value])}
      (str value)]))
 
@@ -54,7 +54,7 @@
      [bp/dialog-body
       [:div.mb-5
        [:label.bp6-label "How are you feeling?"]
-       [:div {:class "flex gap-1"}
+       [:div {:class "grid grid-cols-5 gap-1"}
         (for [v (range 1 11)]
           ^{:key v}
           [mood-button mood v])]]
