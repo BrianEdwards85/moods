@@ -53,14 +53,16 @@ opening conversations, and spotting patterns together.
 | Testing              | **pytest**          | With pytest-asyncio for async tests          |
 | Package management   | **uv**              | Fast dependency resolution & virtualenvs     |
 
-### 3.2 Web Frontend (future)
+### 3.2 Web Frontend
 
-| Concern       | Library / Tool              |
-|---------------|-----------------------------|
-| Language      | **ClojureScript**           |
-| UI            | **Reagent** (React wrapper) |
-| GraphQL       | TBD (re-graph or raw fetch) |
-| Build         | **shadow-cljs**             |
+| Concern          | Library / Tool              | Role                                    |
+|------------------|-----------------------------|-----------------------------------------|
+| Language         | **ClojureScript**           | Compiled to JS, full REPL-driven dev    |
+| UI               | **Reagent**                 | Minimal React wrapper for ClojureScript |
+| State management | **re-frame**                | App-db, subscriptions, event handlers   |
+| GraphQL client   | **re-graph**                | re-frame-based GraphQL subscriptions    |
+| Build            | **shadow-cljs**             | Builds, hot-reload, npm interop         |
+| CSS              | **Tailwind CSS**            | Utility-first styling via PostCSS       |
 
 ### 3.3 Android App (future)
 
@@ -121,7 +123,7 @@ Named queries in `src/moods/sql/`, organized by domain.
 
 ---
 
-## 6. Backend Directory Structure
+## 6. Directory Structure
 
 ```
 moods/
@@ -138,6 +140,15 @@ moods/
 │       ├── schema/            # .graphql files (schema-first)
 │       ├── sql/               # aiosql named query files
 │       └── resolvers/         # GraphQL resolver modules
+├── web/                       # ClojureScript frontend
+│   ├── package.json           # npm deps (shadow-cljs, tailwind, etc.)
+│   ├── shadow-cljs.edn        # shadow-cljs build config
+│   ├── deps.edn               # Clojure/Script deps (reagent, re-frame, re-graph)
+│   ├── tailwind.config.js     # Tailwind CSS config
+│   ├── postcss.config.js      # PostCSS pipeline
+│   ├── resources/public/      # Static assets & index.html
+│   ├── src/                   # ClojureScript source
+│   └── run.sh                 # Dev server start script
 └── tests/
     └── conftest.py            # fixtures: test DB, client, factories
 ```
@@ -160,11 +171,63 @@ moods/
 
 ### Phase 2 — Web frontend (ClojureScript)
 
-1. Set up shadow-cljs project with Reagent.
-2. GraphQL client layer.
-3. Mood logging form (numeric scale + optional note).
-4. Timeline / history view for both partners.
-5. Simple responsive design (mobile-friendly).
+Build the frontend **one step at a time**. Complete each step fully,
+present the output for review, and **do not proceed to the next step
+until explicitly told that all refinements are done**. Iterate on each
+step until confirmation before moving on.
+
+#### Step 1 — Project Setup
+
+- `web/` directory with `package.json`, `shadow-cljs.edn`, `deps.edn`
+- Install shadow-cljs, Reagent, re-frame, re-graph, Tailwind CSS
+- Minimal `index.html` entry point
+- A "hello world" Reagent component rendering to the page
+- Tailwind configured and working (PostCSS pipeline)
+- `web/run.sh` to start the shadow-cljs dev server
+- Verify: page loads in browser with styled hello world
+
+**Stop and wait for approval before continuing.**
+
+#### Step 2 — App Shell and Routing
+
+- Layout scaffold: header/nav, main content area
+- Client-side routing (reitit-frontend or secretary)
+- Placeholder pages/views for each screen (mood log, timeline, settings)
+- Navigation between pages works
+
+**Stop and wait for approval before continuing.**
+
+#### Step 3 — GraphQL Client Layer
+
+- re-graph initialization pointing at backend `/graphql`
+- re-frame subscriptions and event handlers for GraphQL queries/mutations
+- Test with a simple query (e.g. fetch users) and verify data flows
+  from backend through re-frame to UI
+
+**Stop and wait for approval before continuing.**
+
+#### Step 4 — Core Views
+
+Build out the real screens one at a time, collaborating on layout and
+behavior. Each sub-view is presented for review before moving to the next.
+
+- **Mood log form** — mood scale input, notes field, tag autocomplete
+  (using `tags` search query), submit via `logMood` mutation
+- **Timeline / history** — paginated list of mood entries for the current
+  user, with cursor-based "load more"
+- **Partner view** — see partner's mood entries
+
+**Stop and wait for approval before continuing.**
+
+#### Step 5 — Polish and UX
+
+- Loading and error states for all GraphQL operations
+- Responsive layout (mobile-first, Tailwind breakpoints)
+- Empty states (no entries yet, no tags)
+- Archive/unarchive interactions
+- Any visual refinements
+
+**Stop and wait for approval before continuing.**
 
 ### Phase 3 — Android app (React Native)
 
