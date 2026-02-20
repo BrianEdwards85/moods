@@ -7,12 +7,10 @@
             [reagent.core :as r]))
 
 (defn mood-button [current-value value]
-  (let [color    (util/mood-color value)
-        selected (= current-value value)]
-    [:button {:class    (str "py-3 rounded font-bold text-sm transition-all "
+  (let [selected (= current-value value)]
+    [:button {:class    (str "py-3 rounded font-bold text-sm text-tn-bg-dark transition-all "
+                             (util/mood-bg value) " "
                              (if selected "ring-2 ring-white/50 scale-105" "opacity-60 hover:opacity-90"))
-              :style    {:background-color color
-                         :color            "#1f2335"}
               :on-click #(rf/dispatch [::events/set-mood-value value])}
      (str value)]))
 

@@ -6,7 +6,9 @@ from ariadne.asgi import GraphQL
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
-from starlette.routing import Route
+from starlette.responses import FileResponse
+from starlette.routing import Mount, Route
+from starlette.staticfiles import StaticFiles
 
 from moods.data.loaders import create_loaders
 from moods.db import apply_migrations, create_pool
@@ -21,6 +23,7 @@ from moods.resolvers.user import query as user_query
 from moods.resolvers.user import user_obj
 
 SCHEMA_DIR = Path(__file__).parent / "schema"
+WEB_PUBLIC = Path(__file__).parent.parent.parent / "web" / "resources" / "public"
 
 
 def create_app() -> Starlette:
@@ -53,10 +56,17 @@ def create_app() -> Starlette:
 
     graphql_app = GraphQL(schema, context_value=get_context)
 
+    async def spa_fallback(request):
+        return FileResponse(WEB_PUBLIC / "index.html")
+
     return Starlette(
         lifespan=lifespan,
         routes=[
             Route("/graphql", graphql_app, methods=["GET", "POST"]),
+            Mount("/js", StaticFiles(directory=WEB_PUBLIC / "js"), name="js"),
+            Mount("/css", StaticFiles(directory=WEB_PUBLIC / "css"), name="css"),
+            Route("/favicon.svg", spa_fallback),
+            Route("/{path:path}", spa_fallback),
         ],
         middleware=[
             Middleware(

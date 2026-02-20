@@ -26,3 +26,9 @@
  :<- [::users]
  (fn [[current-id users] _]
    (first (filter #(not= (:id %) current-id) users))))
+
+(rf/reg-sub
+ ::users-by-id
+ :<- [::users]
+ (fn [users _]
+   (into {} (map (juxt :id identity)) users)))

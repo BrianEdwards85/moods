@@ -20,7 +20,7 @@
  ::boot
  (fn [_ _]
    {:dispatch-n [[::re-graph/init {:ws   nil
-                                   :http {:url "http://localhost:8000/graphql"}}]
+                                   :http {:url "/graphql"}}]
                  [::fetch-users]]}))
 
 ;; ---------------------------------------------------------------------------
@@ -49,7 +49,31 @@
                       (update :loading disj :users)
                       (assoc-in [:errors :users] errors))}
        current (-> (assoc-in [:db :current-user] current)
-                   (assoc :dispatch [::fetch-entries]))))))
+                   (assoc :dispatch [::fetch-entries])
+                   (assoc :start-poll true))))))
+
+;; ---------------------------------------------------------------------------
+;; Polling
+;; ---------------------------------------------------------------------------
+
+(defonce ^:private poll-handle (atom nil))
+
+(def ^:private poll-interval-ms 60000)
+
+(rf/reg-fx
+ :start-poll
+ (fn [_]
+   (when-let [h @poll-handle]
+     (js/clearInterval h))
+   (reset! poll-handle
+           (js/setInterval #(rf/dispatch [::fetch-entries]) poll-interval-ms))))
+
+(rf/reg-fx
+ :stop-poll
+ (fn [_]
+   (when-let [h @poll-handle]
+     (js/clearInterval h)
+     (reset! poll-handle nil))))
 
 ;; ---------------------------------------------------------------------------
 ;; Mood Entries
@@ -199,21 +223,23 @@
  (fn [{:keys [db]} [_ user]]
    (cookies/set-cookie! "moods-user-id" (:id user))
    (routes/navigate! :route/timeline)
-   {:db       (assoc db
-                     :current-user-id (:id user)
-                     :current-user user
-                     :entries (:entries db/default-db))
-    :dispatch [::fetch-entries]}))
+   {:db         (assoc db
+                       :current-user-id (:id user)
+                       :current-user user
+                       :entries (:entries db/default-db))
+    :dispatch   [::fetch-entries]
+    :start-poll true}))
 
 (rf/reg-event-fx
  ::switch-user
  (fn [{:keys [db]} _]
    (cookies/clear-cookie! "moods-user-id")
    (routes/navigate! :route/user-select)
-   {:db (assoc db
-               :current-user-id nil
-               :current-user nil
-               :entries (:entries db/default-db))}))
+   {:db        (assoc db
+                      :current-user-id nil
+                      :current-user nil
+                      :entries (:entries db/default-db))
+    :stop-poll true}))
 
 ;; ---------------------------------------------------------------------------
 ;; Mood modal UI

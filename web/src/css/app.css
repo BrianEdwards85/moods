@@ -18,6 +18,17 @@
   --color-tn-purple:     #bb9af7;
   --color-tn-cyan:       #7dcfff;
   --color-tn-orange:     #ff9e64;
+
+  --color-mood-1:  #f7768e;
+  --color-mood-2:  #f7768e;
+  --color-mood-3:  #ff9e64;
+  --color-mood-4:  #ff9e64;
+  --color-mood-5:  #e0af68;
+  --color-mood-6:  #e0af68;
+  --color-mood-7:  #9ece6a;
+  --color-mood-8:  #9ece6a;
+  --color-mood-9:  #73daca;
+  --color-mood-10: #73daca;
 }
 
 body {
@@ -42,6 +53,14 @@ body {
 
 .bp6-dark .bp6-dialog {
   background-color: var(--color-tn-bg-float);
+}
+
+.entry-card-mine {
+  border-left: 3px solid rgba(31, 35, 53, 0.4);
+}
+
+.entry-card-partner {
+  border-right: 3px solid rgba(31, 35, 53, 0.4);
 }
 
 @media (max-width: 767px) {

@@ -6,37 +6,50 @@
             [re-frame.core :as rf]))
 
 (defn mood-badge [value]
-  [:div {:class "w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-bold text-sm"
-         :style {:background-color (util/mood-color value)
-                 :color "#1f2335"}}
+  [:div {:class (str "w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-bold text-xs text-tn-bg-dark "
+                     (util/mood-bg value))}
    (str value)])
 
-(defn entry-card [entry]
-  (let [mood (:mood entry)
-        user (:user entry)]
-    [bp/card {:class "mb-3 p-4"}
-     [:div.flex.items-center.gap-3
-      [mood-badge mood]
-      [:div {:class "flex-1 min-w-0"}
-       [:div.flex.items-center.justify-between
-        [:div.flex.items-center.gap-2
-         [:span.font-bold (str mood "/10")]
-         (when user
-           [:span {:class "text-tn-fg-muted text-sm"} (str "— " (:name user))])]
-        [:span {:class "text-tn-fg-dim text-xs"} (:createdAt entry)]]
-       (when-let [notes (not-empty (:notes entry))]
-         [:p {:class "text-tn-fg-muted text-sm mt-1"} notes])
-       (when-let [tags (seq (:tags entry))]
-         [:div {:class "mt-2 flex flex-wrap gap-1"}
-          (for [t tags]
-            ^{:key (:name t)}
-            [bp/tag {:minimal true} (:name t)])])]]]))
+(defn entry-card [entry user-detail mine?]
+  [:div {:class (str "mb-3 " (if mine? "mr-8 md:mr-16" "ml-8 md:ml-16"))}
+   [:div {:class (str "rounded p-4 text-tn-bg-dark "
+                      (if mine? "entry-card-mine " "entry-card-partner ")
+                      (util/mood-bg (:mood entry)))
+          :title (util/format-full-datetime (:createdAt entry))}
+    [:div {:class "flex flex-col items-center mb-3"}
+     [:img {:src   (util/gravatar-url (:email user-detail) 48)
+            :alt   (:name user-detail)
+            :class "w-8 h-8 rounded-full mb-1"}]
+     [:span {:class "font-bold text-base"}
+      (str (:name user-detail) " is at " (:mood entry))]
+     [:span {:class "text-xs opacity-60 mt-0.5"}
+      (util/format-relative-time (:createdAt entry))]]
+    (when-let [notes (not-empty (:notes entry))]
+      [:p {:class "text-sm opacity-90"} notes])
+    (when-let [tags (seq (:tags entry))]
+      [:div {:class "mt-2 flex flex-wrap gap-1"}
+       (for [t tags]
+         ^{:key (:name t)}
+         [bp/tag {:minimal true} (:name t)])])]])
+
+(defn date-divider [label]
+  [:div {:class "flex items-center gap-3 my-5"}
+   [:div {:class "flex-1 h-px bg-tn-border"}]
+   [:span {:class "text-xs text-tn-fg-dim font-medium uppercase tracking-wide"} label]
+   [:div {:class "flex-1 h-px bg-tn-border"}]])
 
 (defn timeline-screen []
-  (let [entries  @(rf/subscribe [::subs/entries])
-        loading? @(rf/subscribe [::subs/loading? :entries])]
+  (let [entries     @(rf/subscribe [::subs/entries])
+        loading?    @(rf/subscribe [::subs/loading? :entries])
+        current-id  @(rf/subscribe [::subs/current-user-id])
+        users-by-id @(rf/subscribe [::subs/users-by-id])]
     [:div {:class "max-w-2xl mx-auto px-4 py-4"}
-     [:h3.bp6-heading.mb-4 "Timeline"]
+     [:div.flex.items-center.justify-between.mb-4
+      [:h3.bp6-heading "Timeline"]
+      [bp/button {:icon     "refresh"
+                  :minimal  true
+                  :loading  loading?
+                  :on-click #(rf/dispatch [::events/fetch-entries])}]]
      (cond
        (and loading? (empty? (:edges entries)))
        [:div.py-8.text-center [bp/spinner {:size 40}]]
@@ -47,14 +60,27 @@
                             :description "Mood entries will appear here."}]
 
        :else
-       [:div
-        (for [{:keys [node]} (:edges entries)]
-          ^{:key (:id node)}
-          [entry-card node])
-        (when (get-in entries [:page-info :hasNextPage])
-          [:div.text-center.mt-2
-           [bp/button {:text     "Load more"
-                       :minimal  true
-                       :loading  loading?
-                       :on-click #(rf/dispatch [::events/load-more-entries
-                                                (get-in entries [:page-info :endCursor])])}]])])]))
+       (let [nodes (mapv :node (:edges entries))]
+         [:div
+          (doall
+           (map-indexed
+            (fn [idx node]
+              (let [cur-date    (util/date-key (:createdAt node))
+                    prev-date   (when (pos? idx)
+                                  (util/date-key (:createdAt (nth nodes (dec idx)))))
+                    show-header (or (zero? idx) (not= cur-date prev-date))
+                    entry-user-id (get-in node [:user :id])
+                    user-detail   (get users-by-id entry-user-id)
+                    mine?         (= entry-user-id current-id)]
+                [:<> {:key (:id node)}
+                 (when show-header
+                   [date-divider (util/date-label (:createdAt node))])
+                 [entry-card node user-detail mine?]]))
+            nodes))
+          (when (get-in entries [:page-info :hasNextPage])
+            [:div.text-center.mt-2
+             [bp/button {:text     "Load more"
+                         :minimal  true
+                         :loading  loading?
+                         :on-click #(rf/dispatch [::events/load-more-entries
+                                                  (get-in entries [:page-info :endCursor])])}]])]))]))
