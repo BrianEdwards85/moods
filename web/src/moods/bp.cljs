@@ -19,5 +19,6 @@
 (def tag            (r/adapt-react-class bp/Tag))
 (def text-area      (r/adapt-react-class bp/TextArea))
 (def spinner        (r/adapt-react-class bp/Spinner))
+(def input-group    (r/adapt-react-class bp/InputGroup))
 (def menu-item      (r/adapt-react-class bp/MenuItem))
 (def multi-select   (r/adapt-react-class bp-select/MultiSelect))

@@ -160,6 +160,79 @@
               (assoc-in [:errors :tags] errors))})))
 
 ;; ---------------------------------------------------------------------------
+;; Tags Page
+;; ---------------------------------------------------------------------------
+
+(def ^:private tags-page-size 30)
+
+(rf/reg-event-fx
+ ::fetch-tags-page
+ (fn [{:keys [db]} _]
+   (let [search (get-in db [:tags-page :search])]
+     {:db       (update db :loading conj :tags-page)
+      :dispatch [::re-graph/query
+                 {:query     gql/tags-query
+                  :variables {:search (when (seq search) search)
+                              :first  tags-page-size}
+                  :callback  [::on-tags-page-fresh]}]})))
+
+(rf/reg-event-fx
+ ::load-more-tags-page
+ (fn [{:keys [db]} _]
+   (let [search (get-in db [:tags-page :search])
+         cursor (get-in db [:tags-page :page-info :endCursor])]
+     {:db       (update db :loading conj :tags-page)
+      :dispatch [::re-graph/query
+                 {:query     gql/tags-query
+                  :variables {:search (when (seq search) search)
+                              :first  tags-page-size
+                              :after  cursor}
+                  :callback  [::on-tags-page-append]}]})))
+
+(rf/reg-event-fx
+ ::on-tags-page-fresh
+ [rf/unwrap]
+ (fn [{:keys [db]} {:keys [response]}]
+   (let [{:keys [data errors]} response
+         connection (:tags data)]
+     {:db (-> db
+              (assoc-in [:tags-page :edges] (:edges connection))
+              (assoc-in [:tags-page :page-info] (:pageInfo connection))
+              (update :loading disj :tags-page)
+              (assoc-in [:errors :tags-page] errors))})))
+
+(rf/reg-event-fx
+ ::on-tags-page-append
+ [rf/unwrap]
+ (fn [{:keys [db]} {:keys [response]}]
+   (let [{:keys [data errors]} response
+         connection (:tags data)]
+     {:db (-> db
+              (update-in [:tags-page :edges] into (:edges connection))
+              (assoc-in [:tags-page :page-info] (:pageInfo connection))
+              (update :loading disj :tags-page)
+              (assoc-in [:errors :tags-page] errors))})))
+
+(rf/reg-event-fx
+ ::set-tags-page-search
+ (fn [{:keys [db]} [_ text]]
+   {:db       (-> db
+                  (assoc-in [:tags-page :search] text)
+                  (assoc-in [:tags-page :edges] [])
+                  (assoc-in [:tags-page :page-info] {:hasNextPage false :endCursor nil}))
+    :dispatch [::fetch-tags-page]}))
+
+(rf/reg-event-db
+ ::open-tag-editor
+ (fn [db [_ tag]]
+   (assoc-in db [:tags-page :editing] tag)))
+
+(rf/reg-event-db
+ ::close-tag-editor
+ (fn [db _]
+   (assoc-in db [:tags-page :editing] nil)))
+
+;; ---------------------------------------------------------------------------
 ;; Log Mood (mutation)
 ;; ---------------------------------------------------------------------------
 

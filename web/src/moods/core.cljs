@@ -4,6 +4,7 @@
             [moods.subs :as subs]
             [moods.views.header :as header]
             [moods.views.mood-modal :as mood-modal]
+            [moods.views.tags :as tags]
             [moods.views.timeline :as timeline]
             [moods.views.user-select :as user-select]
             [re-frame.core :as rf]
@@ -19,7 +20,7 @@
       (case route-name
         :route/user-select [user-select/user-select-screen]
         :route/timeline    [timeline/timeline-screen]
-        :route/tags        [:div.p-8 [:h2.bp6-heading "Tags — coming soon"]]
+        :route/tags        [tags/tags-screen]
         :route/settings    [:div.p-8 [:h2.bp6-heading "Settings — coming soon"]]
         :route/summary     [:div.p-8 [:h2.bp6-heading "Summary — coming soon"]]
         [user-select/user-select-screen]))))

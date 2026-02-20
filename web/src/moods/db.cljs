@@ -6,6 +6,10 @@
    :users           []
    :entries         {:edges [] :page-info {:has-next-page false :end-cursor nil}}
    :tags            []
+   :tags-page       {:search  ""
+                     :edges   []
+                     :page-info {:hasNextPage false :endCursor nil}
+                     :editing nil}
    :mood-modal      {:open?     false
                      :mood      5
                      :notes     ""

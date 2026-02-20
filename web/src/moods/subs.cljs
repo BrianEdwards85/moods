@@ -11,6 +11,7 @@
 (rf/reg-sub ::entries           (fn [db _] (:entries db)))
 (rf/reg-sub ::mood-modal        (fn [db _] (:mood-modal db)))
 (rf/reg-sub ::tags              (fn [db _] (:tags db)))
+(rf/reg-sub ::tags-page         (fn [db _] (:tags-page db)))
 (rf/reg-sub ::loading           (fn [db _] (:loading db)))
 (rf/reg-sub ::loading?
  :<- [::loading]
