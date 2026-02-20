@@ -1,0 +1,50 @@
+---
+description: Conventions for GraphQL schema files in Moods
+globs: src/moods/schema/**/*.graphql
+alwaysApply: false
+---
+
+# GraphQL Schema Conventions
+
+## Documentation Comments
+
+- Add GQL doc strings (`"""..."""`) to all types and any field with a non-trivial or non-obvious purpose.
+- Do NOT document obvious/self-describing fields: `id`, `name`, `title`, `description`, `email`, `timestamp`, `createdOn`, `createdBy`, `updatedOn`, `updatedBy`.
+- Do NOT document standard Relay pagination fields: `cursor`, `node`, `edges`, `pageInfo`.
+- Do NOT document internal implementation details (e.g. default values that are backend logic) in the GQL schema.
+- DO document fields where the meaning, default behavior, or constraints are not obvious from the name and type alone.
+
+## Implicit Fields
+
+- When a type is accessed through a parent connection (e.g. `Task.dates` → `TaskDate`), the back-reference to the parent is implicit and should be omitted from the child type.
+- If an implicit back-reference field is intentionally retained (e.g. for independent query access), add a doc comment explicitly calling out that it is implicit from the parent connection and explaining why it is kept.
+
+### Examples
+
+```graphql
+# EmailAddress is accessed via User.emails — omit the `user` field.
+# TaskDate is accessed via Task.dates — omit the `task` field.
+# StateTransition is accessed via State.allowedTransitions — omit `fromState`.
+
+# TaskStateTransition.task IS kept despite being accessible via Task.stateHistory:
+"""The task that changed state. Retained for independent query access even though stateHistory is accessed via Task."""
+task: Task!
+```
+
+## updatedOn / updatedBy
+
+- These fields are non-null (`DateTime!` / `User!`).
+- The default to `createdOn` / `createdBy` on initial creation is an internal implementation detail — do NOT document it in the GQL schema.
+
+## Schema Organization
+
+- `schema.graphql` defines empty root types: `type Query` and `type Mutation`.
+- Each domain file (e.g. `user.graphql`, `task.graphql`) uses `extend type Query` and `extend type Mutation` to co-locate queries, mutations, and input types alongside the types they operate on.
+- Use flat naming with entity prefixes for queries and mutations (e.g. `createUser`, `updateTask`, `userByEmail`). Do NOT use nested namespace types.
+- Within each domain file, separate sections with `# --- Queries ---` and `# --- Mutations ---` comments.
+- Input types for mutations live in the same domain file as the mutation that uses them.
+
+## Connections and Archived Entities
+
+- Connections to entities that support archiving should include an `includeArchived: Boolean = false` parameter.
+- `stateHistory` (TaskStateTransitionConnection) does NOT get `includeArchived` since TaskStateTransition is not archivable.

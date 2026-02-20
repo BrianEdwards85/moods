@@ -1,0 +1,28 @@
+type User {
+  id: ID!
+  name: String!
+  email: String!
+  entries(
+    includeArchived: Boolean = false
+    first: Int
+    after: String
+  ): MoodEntryConnection!
+}
+
+# --- Queries ---
+
+extend type Query {
+  users: [User!]!
+  user(id: ID!): User
+}
+
+# --- Mutations ---
+
+input CreateUserInput {
+  name: String!
+  email: String!
+}
+
+extend type Mutation {
+  createUser(input: CreateUserInput!): User!
+}

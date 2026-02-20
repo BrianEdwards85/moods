@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS mood_entry_tags;
+DROP TABLE IF EXISTS tags;

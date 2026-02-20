@@ -1,0 +1,46 @@
+"""A single mood log recorded by a user."""
+type MoodEntry {
+  id: ID!
+  user: User!
+  """Numeric mood value."""
+  mood: Int!
+  notes: String!
+  tags: [Tag!]!
+  createdAt: DateTime!
+  archivedAt: DateTime
+}
+
+type MoodEntryConnection {
+  edges: [MoodEntryEdge!]!
+  pageInfo: PageInfo!
+}
+
+type MoodEntryEdge {
+  cursor: String!
+  node: MoodEntry!
+}
+
+# --- Queries ---
+
+extend type Query {
+  moodEntries(
+    userId: ID
+    includeArchived: Boolean = false
+    first: Int
+    after: String
+  ): MoodEntryConnection!
+}
+
+# --- Mutations ---
+
+input LogMoodInput {
+  userId: ID!
+  mood: Int!
+  notes: String!
+  tags: [String!]
+}
+
+extend type Mutation {
+  logMood(input: LogMoodInput!): MoodEntry!
+  archiveMoodEntry(id: ID!): MoodEntry!
+}

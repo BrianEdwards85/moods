@@ -1,0 +1,40 @@
+type Tag {
+  name: String!
+  """Display details such as color, emoji, or icon name."""
+  metadata: JSON!
+  archivedAt: DateTime
+}
+
+type TagConnection {
+  edges: [TagEdge!]!
+  pageInfo: PageInfo!
+}
+
+type TagEdge {
+  cursor: String!
+  node: Tag!
+}
+
+# --- Queries ---
+
+extend type Query {
+  tags(
+    """Prefix/full-text search for autocomplete suggestions."""
+    search: String
+    includeArchived: Boolean = false
+    first: Int
+    after: String
+  ): TagConnection!
+}
+
+# --- Mutations ---
+
+input UpdateTagMetadataInput {
+  name: String!
+  metadata: JSON!
+}
+
+extend type Mutation {
+  updateTagMetadata(input: UpdateTagMetadataInput!): Tag!
+  archiveTag(name: String!): Tag!
+}

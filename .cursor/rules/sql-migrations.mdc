@@ -1,0 +1,32 @@
+---
+description: Conventions for SQL migration files in Moods
+globs: migrations/**/*.sql, src/moods/sql/**/*.sql
+alwaysApply: false
+---
+
+# SQL Migration Conventions
+
+## Table Naming
+
+- Use **plural** names for all tables (e.g. `users`, `email_addresses`, `tasks`, `tags`).
+- Use **snake_case** for table and column names.
+- Do NOT use SQL reserved keywords as column names (e.g. use `principal` instead of `primary`).
+
+## DDL Conventions
+
+- Always use `IF NOT EXISTS` on `CREATE TABLE`, `CREATE INDEX`, and similar DDL statements.
+- Always use `ON CONFLICT DO NOTHING` on `INSERT` statements in migration files.
+- Use `uuidv7()` (built into PostgreSQL 18+) as the default for UUID primary keys. Do NOT use `gen_random_uuid()`.
+
+## Query Conventions
+
+- Never use `SELECT *` or `RETURNING *`. Always explicitly list the columns.
+- Put `WHERE` on its own line.
+- Use `IN` for static value lists. Use `ANY(:param)` when matching against a parameterized list/array (required by asyncpg).
+
+## Migration Files
+
+- Migrations use yoyo-migrations with plain SQL files.
+- Name files with a sequential prefix: `0001.short-description.sql`.
+- Rollback files are named `0001.short-description.rollback.sql`.
+- Declare dependencies with a `-- depends:` comment at the top of the file.
