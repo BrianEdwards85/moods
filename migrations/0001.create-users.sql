@@ -1,3 +1,4 @@
+-- depends: 0000.uuidv7-polyfill
 -- Create users table
 
 CREATE TABLE IF NOT EXISTS users (
