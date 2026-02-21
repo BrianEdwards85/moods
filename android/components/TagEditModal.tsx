@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -73,7 +75,10 @@ export default function TagEditModal({ tag, onClose, onSaved }: Props) {
 
   return (
     <Modal visible={!!tag} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.overlay}>
+      <KeyboardAvoidingView
+        style={styles.overlay}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
         <View style={styles.sheet}>
           <View style={styles.headerRow}>
             <Text style={styles.title}>Edit: {tag.name}</Text>
@@ -171,7 +176,7 @@ export default function TagEditModal({ tag, onClose, onSaved }: Props) {
             </View>
           </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

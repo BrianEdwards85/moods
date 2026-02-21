@@ -236,3 +236,7 @@ android/*.tsbuildinfo
 android/.kotlin/
 android/ios/
 android/android/
+
+.idea
+.vscode
+.DS_Store

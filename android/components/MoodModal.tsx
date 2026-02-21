@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -82,7 +84,10 @@ export default function MoodModal({ onSaved }: { onSaved: () => void }) {
 
   return (
     <Modal visible={open} animationType="slide" transparent onRequestClose={close}>
-      <View style={styles.overlay}>
+      <KeyboardAvoidingView
+        style={styles.overlay}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
         <View style={styles.sheet}>
           <View style={styles.headerRow}>
             <Text style={styles.title}>Log Mood</Text>
@@ -181,7 +186,7 @@ export default function MoodModal({ onSaved }: { onSaved: () => void }) {
             </Pressable>
           </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
