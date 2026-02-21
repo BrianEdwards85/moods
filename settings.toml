@@ -3,11 +3,11 @@ server_host = "0.0.0.0"
 server_port = 8000
 
 [default.db]
-host = "localhost"
-port = 5433
-name = "moods"
-user = "moods"
-password = "moods"
+host = "db"
+port = 5432
+name = "moods_dev"
+user = "moods_dev"
+password = "moods_dev"
 
 [development]
 
