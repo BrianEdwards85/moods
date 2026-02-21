@@ -19,7 +19,7 @@ export default function UserSelectScreen() {
   const router = useRouter();
   const selectUser = useStore((s) => s.selectUser);
   const setUsers = useStore((s) => s.setUsers);
-  const [result] = useQuery({ query: USERS_QUERY });
+  const [result, reexecute] = useQuery({ query: USERS_QUERY });
 
   const users = result.data?.users ?? [];
 
@@ -45,6 +45,12 @@ export default function UserSelectScreen() {
       <View style={styles.center}>
         <Text style={styles.errorText}>Failed to load users</Text>
         <Text style={styles.errorDetail}>{result.error.message}</Text>
+        <Pressable
+          style={styles.retryBtn}
+          onPress={() => reexecute({ requestPolicy: 'network-only' })}
+        >
+          <Text style={styles.retryText}>Retry</Text>
+        </Pressable>
       </View>
     );
   }
@@ -129,5 +135,17 @@ const styles = StyleSheet.create({
     color: colors.fgDim,
     textAlign: 'center',
     paddingHorizontal: 32,
+  },
+  retryBtn: {
+    marginTop: 20,
+    backgroundColor: colors.blue,
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 28,
+  },
+  retryText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1f2335',
   },
 });
