@@ -1,6 +1,8 @@
 -- UUIDv7 polyfill for PostgreSQL < 18
 -- Generates RFC 9562 compliant UUID v7 values with millisecond precision
 
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 CREATE OR REPLACE FUNCTION uuidv7() RETURNS uuid AS $$
 DECLARE
     unix_ms bigint;
