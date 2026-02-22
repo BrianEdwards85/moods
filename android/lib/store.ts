@@ -28,6 +28,7 @@ export interface MoodEntry {
 interface StoreState {
   currentUserId: string | null;
   authToken: string | null;
+  loginEmail: string | null;
   users: User[];
   moodModalOpen: boolean;
 
@@ -37,16 +38,20 @@ interface StoreState {
   setAuthToken: (token: string, userId: string) => Promise<void>;
   restoreAuth: () => Promise<string | null>;
   clearAuth: () => Promise<void>;
+  setLoginEmail: (email: string) => Promise<void>;
+  restoreLoginEmail: () => Promise<string | null>;
   openMoodModal: () => void;
   closeMoodModal: () => void;
 }
 
 const USER_STORAGE_KEY = 'moods_current_user';
 const TOKEN_STORAGE_KEY = 'moods_auth_token';
+const EMAIL_STORAGE_KEY = 'moods_email';
 
 export const useStore = create<StoreState>((set) => ({
   currentUserId: null,
   authToken: null,
+  loginEmail: null,
   users: [],
   moodModalOpen: false,
 
@@ -82,6 +87,17 @@ export const useStore = create<StoreState>((set) => ({
     await AsyncStorage.removeItem(TOKEN_STORAGE_KEY);
     await AsyncStorage.removeItem(USER_STORAGE_KEY);
     set({ authToken: null, currentUserId: null });
+  },
+
+  setLoginEmail: async (email) => {
+    await AsyncStorage.setItem(EMAIL_STORAGE_KEY, email);
+    set({ loginEmail: email });
+  },
+
+  restoreLoginEmail: async () => {
+    const email = await AsyncStorage.getItem(EMAIL_STORAGE_KEY);
+    if (email) set({ loginEmail: email });
+    return email;
   },
 
   openMoodModal: () => set({ moodModalOpen: true }),

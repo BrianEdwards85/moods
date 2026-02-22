@@ -14,10 +14,12 @@
  ::initialize-db
  (fn [_ _]
    (let [user-id (cookies/get-cookie "moods-user-id")
-         token   (cookies/get-cookie "moods-token")]
+         token   (cookies/get-cookie "moods-token")
+         email   (cookies/get-cookie "moods-email")]
      {:db (assoc db/default-db
                  :current-user-id user-id
-                 :auth-token token)})))
+                 :auth-token token
+                 :login-email (or email ""))})))
 
 (defn- re-graph-http-opts [db]
   (let [token (:auth-token db)]
@@ -27,9 +29,9 @@
 (rf/reg-event-fx
  ::boot
  (fn [{:keys [db]} _]
-   {:dispatch-n [[::re-graph/init {:ws   nil
-                                   :http (re-graph-http-opts db)}]
-                 [::fetch-users]]}))
+   (cond-> {:dispatch-n [[::re-graph/init {:ws   nil
+                                            :http (re-graph-http-opts db)}]]}
+     (:auth-token db) (update :dispatch-n conj [::fetch-users]))))
 
 ;; ---------------------------------------------------------------------------
 ;; Users
@@ -391,14 +393,14 @@
 
 (rf/reg-event-fx
  ::send-login-code
- (fn [{:keys [db]} [_ user]]
+ (fn [{:keys [db]} [_ email]]
    {:db       (-> db
                   (update :loading conj :login)
-                  (assoc :login-user user)
+                  (assoc :login-email email)
                   (assoc :login-error nil))
     :dispatch [::re-graph/mutate
                {:query     gql/send-login-code-mutation
-                :variables {:email (:email user)}
+                :variables {:email email}
                 :callback  [::on-login-code-sent]}]}))
 
 (rf/reg-event-fx
@@ -414,7 +416,7 @@
 (rf/reg-event-fx
  ::verify-login-code
  (fn [{:keys [db]} [_ code]]
-   (let [email (get-in db [:login-user :email])]
+   (let [email (:login-email db)]
      {:db       (update db :loading conj :login)
       :dispatch [::re-graph/mutate
                  {:query     gql/verify-login-code-mutation
@@ -433,17 +435,18 @@
        (let [{:keys [token user]} (:verifyLoginCode data)]
          (cookies/set-cookie! "moods-token" token)
          (cookies/set-cookie! "moods-user-id" (:id user))
+         (cookies/set-cookie! "moods-email" (:login-email db))
          (routes/navigate! :route/timeline)
          {:db         (-> db
                           (update :loading disj :login)
                           (assoc :auth-token token)
                           (assoc :current-user-id (:id user))
                           (assoc :current-user user)
-                          (assoc :login-user nil)
                           (assoc :login-code-sent false)
                           (assoc :login-error nil)
                           (assoc :entries (:entries db/default-db)))
           :dispatch-n [[::re-graph/re-init {:http {:impl {:headers {"Authorization" (str "Bearer " token)}}}}]
+                       [::fetch-users]
                        [::fetch-entries]]
           :start-poll true})))))
 
@@ -451,18 +454,12 @@
  ::cancel-login
  (fn [db _]
    (-> db
-       (assoc :login-user nil)
        (assoc :login-code-sent false)
        (assoc :login-error nil))))
 
 ;; ---------------------------------------------------------------------------
 ;; User selection / switching
 ;; ---------------------------------------------------------------------------
-
-(rf/reg-event-fx
- ::select-user
- (fn [_ [_ user]]
-   {:dispatch [::send-login-code user]}))
 
 (rf/reg-event-fx
  ::switch-user
