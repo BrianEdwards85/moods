@@ -6,6 +6,30 @@
             [moods.views.components :as comp]
             [re-frame.core :as rf]))
 
+(defn- delta-color [delta]
+  (let [mag (js/Math.abs delta)]
+    (if (pos? delta)
+      (cond (>= mag 5) "#15803d"    ;; vivid green
+            (>= mag 3) "#4ade80"    ;; medium green
+            :else      "#86efac")   ;; muted green
+      (cond (>= mag 5) "#dc2626"    ;; vivid red
+            (>= mag 3) "#f87171"    ;; medium red
+            :else      "#fca5a5"))));; muted red
+
+(defn- delta-icon-name [delta]
+  (cond (pos? delta)  "arrow-up"
+        (neg? delta)  "arrow-down"
+        :else         "minus"))
+
+(defn delta-indicator [delta]
+  (when (some? delta)
+    (let [color (if (zero? delta) "#9ca3af" (delta-color delta))]
+      [bp/icon {:icon  (delta-icon-name delta)
+                :size  14
+                :color color
+                :style {:margin-left "4px"
+                        :vertical-align "middle"}}])))
+
 (defn mood-badge [value]
   [:div {:class (str "w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-bold text-xs text-tn-bg-dark "
                      (util/mood-bg value))}
@@ -21,8 +45,9 @@
      [:img {:src   (util/gravatar-url (:email user-detail) 48)
             :alt   (:name user-detail)
             :class "w-8 h-8 rounded-full mb-1"}]
-     [:span {:class "font-bold text-base"}
-      (str (:name user-detail) " is at " (:mood entry))]
+     [:span {:class "font-bold text-base inline-flex items-center"}
+      (str (:name user-detail) " is at " (:mood entry))
+      [delta-indicator (:delta entry)]]
      [:span {:class "text-xs opacity-60 mt-0.5"}
       (util/format-relative-time (:createdAt entry))]]
     (when-let [notes (not-empty (:notes entry))]

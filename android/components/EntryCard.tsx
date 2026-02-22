@@ -1,4 +1,5 @@
 import { Image, StyleSheet, Text, View } from 'react-native';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 import MoodTag from './MoodTag';
 import { moodColor, gravatarUrl, formatRelativeTime } from '@/lib/utils';
 import type { MoodEntry, User } from '@/lib/store';
@@ -7,6 +8,24 @@ interface Props {
   entry: MoodEntry;
   user?: User;
   mine: boolean;
+}
+
+function deltaColor(delta: number): string {
+  const mag = Math.abs(delta);
+  if (delta > 0) {
+    if (mag >= 5) return '#15803d';
+    if (mag >= 3) return '#4ade80';
+    return '#86efac';
+  }
+  if (mag >= 5) return '#dc2626';
+  if (mag >= 3) return '#f87171';
+  return '#fca5a5';
+}
+
+function deltaIconName(delta: number): 'arrow-up' | 'arrow-down' | 'minus' {
+  if (delta > 0) return 'arrow-up';
+  if (delta < 0) return 'arrow-down';
+  return 'minus';
 }
 
 export default function EntryCard({ entry, user, mine }: Props) {
@@ -19,9 +38,19 @@ export default function EntryCard({ entry, user, mine }: Props) {
       <View style={[styles.card, { backgroundColor: bg }]}>
         <View style={styles.header}>
           <Image source={{ uri: gravatarUrl(email, 48) }} style={styles.avatar} />
-          <Text style={styles.nameText}>
-            {name} is at {entry.mood}
-          </Text>
+          <View style={styles.nameRow}>
+            <Text style={styles.nameText}>
+              {name} is at {entry.mood}
+            </Text>
+            {entry.delta != null && (
+              <FontAwesome
+                name={deltaIconName(entry.delta)}
+                size={13}
+                color={entry.delta === 0 ? '#9ca3af' : deltaColor(entry.delta)}
+                style={styles.deltaIcon}
+              />
+            )}
+          </View>
           <Text style={styles.time}>{formatRelativeTime(entry.createdAt)}</Text>
         </View>
 
@@ -63,10 +92,17 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginBottom: 4,
   },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   nameText: {
     fontWeight: '700',
     fontSize: 15,
     color: '#1f2335',
+  },
+  deltaIcon: {
+    marginLeft: 5,
   },
   time: {
     fontSize: 11,

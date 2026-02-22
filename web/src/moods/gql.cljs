@@ -12,7 +12,7 @@
      moodEntries(userIds: $userIds, first: $first, after: $after) {
        edges {
          cursor
-         node { id mood notes createdAt archivedAt user { id name } tags { name metadata } }
+         node { id mood delta notes createdAt archivedAt user { id name } tags { name metadata } }
        }
        pageInfo { hasNextPage endCursor }
      }
