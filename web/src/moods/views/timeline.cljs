@@ -9,12 +9,12 @@
 (defn- delta-color [delta]
   (let [mag (js/Math.abs delta)]
     (if (pos? delta)
-      (cond (>= mag 5) "#15803d"    ;; vivid green
-            (>= mag 3) "#4ade80"    ;; medium green
-            :else      "#86efac")   ;; muted green
-      (cond (>= mag 5) "#dc2626"    ;; vivid red
-            (>= mag 3) "#f87171"    ;; medium red
-            :else      "#fca5a5"))));; muted red
+      (cond (>= mag 5) "#14532d"    ;; vivid — dark green
+            (>= mag 3) "#166534"    ;; medium — dark green
+            :else      "#15803d")   ;; subtle — dark green
+      (cond (>= mag 5) "#7f1d1d"    ;; vivid — dark red
+            (>= mag 3) "#991b1b"    ;; medium — dark red
+            :else      "#b91c1c"))));; subtle — dark red
 
 (defn- delta-icon-name [delta]
   (cond (pos? delta)  "arrow-up"

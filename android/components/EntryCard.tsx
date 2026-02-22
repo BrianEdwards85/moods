@@ -13,13 +13,13 @@ interface Props {
 function deltaColor(delta: number): string {
   const mag = Math.abs(delta);
   if (delta > 0) {
-    if (mag >= 5) return '#15803d';
-    if (mag >= 3) return '#4ade80';
-    return '#86efac';
+    if (mag >= 5) return '#14532d';
+    if (mag >= 3) return '#166534';
+    return '#15803d';
   }
-  if (mag >= 5) return '#dc2626';
-  if (mag >= 3) return '#f87171';
-  return '#fca5a5';
+  if (mag >= 5) return '#7f1d1d';
+  if (mag >= 3) return '#991b1b';
+  return '#b91c1c';
 }
 
 function deltaIconName(delta: number): 'arrow-up' | 'arrow-down' | 'minus' {
