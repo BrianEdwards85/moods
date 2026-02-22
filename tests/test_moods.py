@@ -133,6 +133,75 @@ async def test_mood_entry_has_tags(client):
     assert tag_names == ["exercise", "meditation"]
 
 
+DELTA_QUERY = """
+query MoodEntries($userIds: [ID!], $first: Int, $after: String) {
+  moodEntries(userIds: $userIds, first: $first, after: $after) {
+    edges {
+      node { id mood delta user { id } }
+    }
+    pageInfo { hasNextPage endCursor }
+  }
+}
+"""
+
+
+async def test_mood_entry_delta(client):
+    user = await _create_user(client)
+    await _log_mood(client, user["id"], mood=5, notes="first")
+    await _log_mood(client, user["id"], mood=8, notes="second")
+    await _log_mood(client, user["id"], mood=3, notes="third")
+
+    body = await gql(client, DELTA_QUERY, {"userIds": [user["id"]]})
+    edges = body["data"]["moodEntries"]["edges"]
+
+    # Returned newest-first: third(3), second(8), first(5)
+    assert edges[0]["node"]["mood"] == 3
+    assert edges[0]["node"]["delta"] == -5  # 3 - 8
+    assert edges[1]["node"]["mood"] == 8
+    assert edges[1]["node"]["delta"] == 3   # 8 - 5
+    assert edges[2]["node"]["mood"] == 5
+    assert edges[2]["node"]["delta"] is None  # first entry, no prior
+
+
+async def test_mood_entry_delta_per_user(client):
+    alice = await _create_user(client, "Alice", "alice@test.com")
+    bob = await _create_user(client, "Bob", "bob@test.com")
+
+    await _log_mood(client, alice["id"], mood=4, notes="a1")
+    await _log_mood(client, bob["id"], mood=7, notes="b1")
+    await _log_mood(client, alice["id"], mood=9, notes="a2")
+
+    body = await gql(client, DELTA_QUERY)
+    edges = body["data"]["moodEntries"]["edges"]
+
+    # Newest-first: alice 9, bob 7, alice 4
+    deltas = {(e["node"]["user"]["id"], e["node"]["mood"]): e["node"]["delta"] for e in edges}
+    assert deltas[(alice["id"], 9)] == 5    # 9 - 4
+    assert deltas[(bob["id"], 7)] is None   # bob's first
+    assert deltas[(alice["id"], 4)] is None  # alice's first
+
+
+async def test_mood_entry_delta_across_pages(client):
+    user = await _create_user(client)
+    await _log_mood(client, user["id"], mood=2, notes="first")
+    await _log_mood(client, user["id"], mood=6, notes="second")
+    await _log_mood(client, user["id"], mood=10, notes="third")
+
+    # Page 1: newest two entries
+    body = await gql(client, DELTA_QUERY, {"userIds": [user["id"]], "first": 2})
+    page1 = body["data"]["moodEntries"]
+    assert page1["edges"][0]["node"]["delta"] == 4   # 10 - 6
+    assert page1["edges"][1]["node"]["delta"] == 4   # 6 - 2
+
+    # Page 2: oldest entry — delta still computed correctly via CTE
+    body = await gql(client, DELTA_QUERY, {
+        "userIds": [user["id"]], "first": 2, "after": page1["pageInfo"]["endCursor"]
+    })
+    page2 = body["data"]["moodEntries"]
+    assert len(page2["edges"]) == 1
+    assert page2["edges"][0]["node"]["delta"] is None  # first entry
+
+
 async def test_mood_entries_pagination(client):
     user = await _create_user(client)
     for i in range(5):

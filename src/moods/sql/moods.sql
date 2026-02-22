@@ -1,10 +1,15 @@
 -- name: get_mood_entries(user_ids, include_archived, after_id, page_limit)
-select me.id, me.user_id, me.mood, me.notes, me.created_at, me.archived_at
-from mood_entries me
-where (:user_ids::uuid[] IS NULL OR me.user_id = ANY(:user_ids::uuid[]))
-  and (:include_archived::boolean OR me.archived_at IS NULL)
-  and (:after_id::uuid IS NULL OR me.id < :after_id::uuid)
-order by me.id desc
+with entries as (
+  select me.id, me.user_id, me.mood, me.notes, me.created_at, me.archived_at,
+         me.mood - lag(me.mood) over (partition by me.user_id order by me.id) as delta
+  from mood_entries me
+  where (:user_ids::uuid[] IS NULL OR me.user_id = ANY(:user_ids::uuid[]))
+    and (:include_archived::boolean OR me.archived_at IS NULL)
+)
+select id, user_id, mood, notes, created_at, archived_at, delta
+from entries
+where (:after_id::uuid IS NULL OR id < :after_id::uuid)
+order by id desc
 limit :page_limit;
 
 -- name: create_mood_entry(user_id, mood, notes)^
