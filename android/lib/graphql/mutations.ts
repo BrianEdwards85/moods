@@ -23,3 +23,17 @@ export const UNARCHIVE_TAG_MUTATION = `
     unarchiveTag(name: $name) { name metadata archivedAt }
   }
 `;
+
+export const SEND_LOGIN_CODE_MUTATION = `
+  mutation SendLoginCode($email: String!) {
+    sendLoginCode(email: $email) { success }
+  }
+`;
+
+export const VERIFY_LOGIN_CODE_MUTATION = `
+  mutation VerifyLoginCode($email: String!, $code: String!) {
+    verifyLoginCode(email: $email, code: $code) {
+      token user { id name email settings }
+    }
+  }
+`;

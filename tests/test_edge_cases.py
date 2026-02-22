@@ -1,6 +1,8 @@
 import uuid
 
-from tests.conftest import gql
+from tests.conftest import auth_header, gql
+
+H = auth_header("00000000-0000-0000-0000-000000000000")
 
 CREATE_USER = """
 mutation CreateUser($input: CreateUserInput!) {
@@ -40,7 +42,7 @@ async def test_user_not_found(client):
 
 
 async def test_archive_nonexistent_tag(client):
-    body = await gql(client, ARCHIVE_TAG, {"name": "nope"}, expect_errors=True)
+    body = await gql(client, ARCHIVE_TAG, {"name": "nope"}, expect_errors=True, headers=H)
     assert body["data"] is None or body["data"]["archiveTag"] is None
     assert any("error" in e["message"].lower() or "not found" in e["message"].lower()
                for e in body["errors"])
@@ -48,7 +50,7 @@ async def test_archive_nonexistent_tag(client):
 
 async def test_archive_nonexistent_mood_entry(client):
     fake_id = str(uuid.uuid4())
-    body = await gql(client, ARCHIVE_ENTRY, {"id": fake_id}, expect_errors=True)
+    body = await gql(client, ARCHIVE_ENTRY, {"id": fake_id}, expect_errors=True, headers=H)
     assert body["data"] is None or body["data"]["archiveMoodEntry"] is None
     assert any("not found" in e["message"].lower() or "error" in e["message"].lower()
                for e in body["errors"])
@@ -58,29 +60,29 @@ async def test_log_mood_nonexistent_user(client):
     fake_id = str(uuid.uuid4())
     body = await gql(client, LOG_MOOD, {
         "input": {"userId": fake_id, "mood": 5, "notes": "test", "tags": []}
-    }, expect_errors=True)
+    }, expect_errors=True, headers=H)
     assert "errors" in body
 
 
 async def test_create_duplicate_email(client):
-    body = await gql(client, CREATE_USER, {"input": {"name": "A", "email": "same@test.com"}})
+    body = await gql(client, CREATE_USER, {"input": {"name": "A", "email": "same@test.com"}}, headers=H)
     assert body["data"]["createUser"]["id"]
 
     body = await gql(client, CREATE_USER, {
         "input": {"name": "B", "email": "same@test.com"}
-    }, expect_errors=True)
+    }, expect_errors=True, headers=H)
     assert "errors" in body
 
 
 async def test_archive_already_archived_tag(client):
-    body = await gql(client, CREATE_USER, {"input": {"name": "T", "email": "t@test.com"}})
+    body = await gql(client, CREATE_USER, {"input": {"name": "T", "email": "t@test.com"}}, headers=H)
     uid = body["data"]["createUser"]["id"]
     await gql(client, LOG_MOOD, {
         "input": {"userId": uid, "mood": 5, "notes": "", "tags": ["dup"]}
-    })
+    }, headers=H)
 
-    body = await gql(client, ARCHIVE_TAG, {"name": "dup"})
+    body = await gql(client, ARCHIVE_TAG, {"name": "dup"}, headers=H)
     assert body["data"]["archiveTag"]["archivedAt"] is not None
 
-    body = await gql(client, ARCHIVE_TAG, {"name": "dup"}, expect_errors=True)
+    body = await gql(client, ARCHIVE_TAG, {"name": "dup"}, expect_errors=True, headers=H)
     assert "errors" in body

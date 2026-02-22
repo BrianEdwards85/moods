@@ -2,6 +2,7 @@ from ariadne import MutationType, ObjectType, QueryType
 
 from moods.data import moods as mood_data
 from moods.data import users as user_data
+from moods.resolvers.auth import require_auth
 
 query = QueryType()
 mutation = MutationType()
@@ -20,6 +21,7 @@ async def resolve_user(_obj, info, *, id):
 
 @mutation.field("createUser")
 async def resolve_create_user(_obj, info, *, input):
+    require_auth(info)
     return await user_data.create_user(
         info.context["pool"], name=input["name"], email=input["email"]
     )
@@ -27,6 +29,7 @@ async def resolve_create_user(_obj, info, *, input):
 
 @mutation.field("updateUserSettings")
 async def resolve_update_user_settings(_obj, info, *, input):
+    require_auth(info)
     return await user_data.update_user_settings(
         info.context["pool"], id=input["id"], settings=input["settings"]
     )
@@ -34,6 +37,7 @@ async def resolve_update_user_settings(_obj, info, *, input):
 
 @mutation.field("archiveUser")
 async def resolve_archive_user(_obj, info, *, id):
+    require_auth(info)
     return await user_data.archive_user(info.context["pool"], id=id)
 
 

@@ -1,4 +1,6 @@
-from tests.conftest import gql
+from tests.conftest import auth_header, gql
+
+H = auth_header("00000000-0000-0000-0000-000000000000")
 
 CREATE_USER = """
 mutation CreateUser($input: CreateUserInput!) {
@@ -38,14 +40,14 @@ mutation ArchiveMoodEntry($id: ID!) {
 
 
 async def _create_user(client, name="Alice", email="alice@test.com"):
-    body = await gql(client, CREATE_USER, {"input": {"name": name, "email": email}})
+    body = await gql(client, CREATE_USER, {"input": {"name": name, "email": email}}, headers=H)
     return body["data"]["createUser"]
 
 
 async def _log_mood(client, user_id, mood=7, notes="feeling good", tags=None):
     body = await gql(client, LOG_MOOD, {
         "input": {"userId": user_id, "mood": mood, "notes": notes, "tags": tags or []}
-    })
+    }, headers=H)
     return body["data"]["logMood"]
 
 
@@ -68,7 +70,7 @@ async def test_query_mood_entries(client):
     await _log_mood(client, user["id"], mood=3, notes="rough")
     await _log_mood(client, user["id"], mood=9, notes="amazing")
 
-    body = await gql(client, MOOD_ENTRIES_QUERY)
+    body = await gql(client, MOOD_ENTRIES_QUERY, headers=H)
     edges = body["data"]["moodEntries"]["edges"]
     assert len(edges) == 2
 
@@ -79,7 +81,7 @@ async def test_query_mood_entries_by_user(client):
     await _log_mood(client, alice["id"], mood=5, notes="meh")
     await _log_mood(client, bob["id"], mood=9, notes="great")
 
-    body = await gql(client, MOOD_ENTRIES_QUERY, {"userIds": [alice["id"]]})
+    body = await gql(client, MOOD_ENTRIES_QUERY, {"userIds": [alice["id"]]}, headers=H)
     edges = body["data"]["moodEntries"]["edges"]
     assert len(edges) == 1
     assert edges[0]["node"]["mood"] == 5
@@ -92,7 +94,7 @@ async def test_query_mood_entries_multiple_users(client):
     await _log_mood(client, alice["id"], mood=5, notes="alice entry")
     await _log_mood(client, bob["id"], mood=9, notes="bob entry")
 
-    body = await gql(client, MOOD_ENTRIES_QUERY, {"userIds": [alice["id"], bob["id"]]})
+    body = await gql(client, MOOD_ENTRIES_QUERY, {"userIds": [alice["id"], bob["id"]]}, headers=H)
     edges = body["data"]["moodEntries"]["edges"]
     assert len(edges) == 2
     user_ids = {e["node"]["user"]["id"] for e in edges}
@@ -103,13 +105,13 @@ async def test_query_mood_entries_multiple_users(client):
 async def test_archive_mood_entry(client):
     user = await _create_user(client)
     entry = await _log_mood(client, user["id"])
-    body = await gql(client, ARCHIVE_ENTRY, {"id": entry["id"]})
+    body = await gql(client, ARCHIVE_ENTRY, {"id": entry["id"]}, headers=H)
     assert body["data"]["archiveMoodEntry"]["archivedAt"] is not None
 
-    body = await gql(client, MOOD_ENTRIES_QUERY)
+    body = await gql(client, MOOD_ENTRIES_QUERY, headers=H)
     assert len(body["data"]["moodEntries"]["edges"]) == 0
 
-    body = await gql(client, MOOD_ENTRIES_QUERY, {"includeArchived": True})
+    body = await gql(client, MOOD_ENTRIES_QUERY, {"includeArchived": True}, headers=H)
     assert len(body["data"]["moodEntries"]["edges"]) == 1
 
 
@@ -117,7 +119,7 @@ async def test_mood_entry_has_user(client):
     user = await _create_user(client)
     await _log_mood(client, user["id"])
 
-    body = await gql(client, MOOD_ENTRIES_QUERY)
+    body = await gql(client, MOOD_ENTRIES_QUERY, headers=H)
     node = body["data"]["moodEntries"]["edges"][0]["node"]
     assert node["user"]["id"] == user["id"]
     assert node["user"]["name"] == "Alice"
@@ -127,7 +129,7 @@ async def test_mood_entry_has_tags(client):
     user = await _create_user(client)
     await _log_mood(client, user["id"], tags=["exercise", "meditation"])
 
-    body = await gql(client, MOOD_ENTRIES_QUERY)
+    body = await gql(client, MOOD_ENTRIES_QUERY, headers=H)
     node = body["data"]["moodEntries"]["edges"][0]["node"]
     tag_names = sorted(t["name"] for t in node["tags"])
     assert tag_names == ["exercise", "meditation"]
@@ -151,7 +153,7 @@ async def test_mood_entry_delta(client):
     await _log_mood(client, user["id"], mood=8, notes="second")
     await _log_mood(client, user["id"], mood=3, notes="third")
 
-    body = await gql(client, DELTA_QUERY, {"userIds": [user["id"]]})
+    body = await gql(client, DELTA_QUERY, {"userIds": [user["id"]]}, headers=H)
     edges = body["data"]["moodEntries"]["edges"]
 
     # Returned newest-first: third(3), second(8), first(5)
@@ -171,7 +173,7 @@ async def test_mood_entry_delta_per_user(client):
     await _log_mood(client, bob["id"], mood=7, notes="b1")
     await _log_mood(client, alice["id"], mood=9, notes="a2")
 
-    body = await gql(client, DELTA_QUERY)
+    body = await gql(client, DELTA_QUERY, headers=H)
     edges = body["data"]["moodEntries"]["edges"]
 
     # Newest-first: alice 9, bob 7, alice 4
@@ -188,7 +190,7 @@ async def test_mood_entry_delta_across_pages(client):
     await _log_mood(client, user["id"], mood=10, notes="third")
 
     # Page 1: newest two entries
-    body = await gql(client, DELTA_QUERY, {"userIds": [user["id"]], "first": 2})
+    body = await gql(client, DELTA_QUERY, {"userIds": [user["id"]], "first": 2}, headers=H)
     page1 = body["data"]["moodEntries"]
     assert page1["edges"][0]["node"]["delta"] == 4   # 10 - 6
     assert page1["edges"][1]["node"]["delta"] == 4   # 6 - 2
@@ -196,7 +198,7 @@ async def test_mood_entry_delta_across_pages(client):
     # Page 2: oldest entry — delta still computed correctly via CTE
     body = await gql(client, DELTA_QUERY, {
         "userIds": [user["id"]], "first": 2, "after": page1["pageInfo"]["endCursor"]
-    })
+    }, headers=H)
     page2 = body["data"]["moodEntries"]
     assert len(page2["edges"]) == 1
     assert page2["edges"][0]["node"]["delta"] is None  # first entry
@@ -207,17 +209,17 @@ async def test_mood_entries_pagination(client):
     for i in range(5):
         await _log_mood(client, user["id"], mood=i + 1, notes=f"entry {i}")
 
-    body = await gql(client, MOOD_ENTRIES_QUERY, {"first": 2})
+    body = await gql(client, MOOD_ENTRIES_QUERY, {"first": 2}, headers=H)
     page1 = body["data"]["moodEntries"]
     assert len(page1["edges"]) == 2
     assert page1["pageInfo"]["hasNextPage"] is True
 
-    body = await gql(client, MOOD_ENTRIES_QUERY, {"first": 2, "after": page1["pageInfo"]["endCursor"]})
+    body = await gql(client, MOOD_ENTRIES_QUERY, {"first": 2, "after": page1["pageInfo"]["endCursor"]}, headers=H)
     page2 = body["data"]["moodEntries"]
     assert len(page2["edges"]) == 2
     assert page2["pageInfo"]["hasNextPage"] is True
 
-    body = await gql(client, MOOD_ENTRIES_QUERY, {"first": 2, "after": page2["pageInfo"]["endCursor"]})
+    body = await gql(client, MOOD_ENTRIES_QUERY, {"first": 2, "after": page2["pageInfo"]["endCursor"]}, headers=H)
     page3 = body["data"]["moodEntries"]
     assert len(page3["edges"]) == 1
     assert page3["pageInfo"]["hasNextPage"] is False

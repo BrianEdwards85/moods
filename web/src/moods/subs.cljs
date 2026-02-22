@@ -33,3 +33,8 @@
  :<- [::users]
  (fn [users _]
    (into {} (map (juxt :id identity)) users)))
+
+(rf/reg-sub ::login-user        (fn [db _] (:login-user db)))
+(rf/reg-sub ::login-code-sent   (fn [db _] (:login-code-sent db)))
+(rf/reg-sub ::login-error       (fn [db _] (:login-error db)))
+(rf/reg-sub ::auth-token        (fn [db _] (:auth-token db)))

@@ -1,6 +1,12 @@
 [default]
 server_host = "0.0.0.0"
 server_port = 8000
+jwt_expiry_days = 90
+auth_code_expiry_minutes = 10
+
+[default.mailgun]
+domain = "moods.free-side.us"
+from_email = "Moods <noreply@moods.free-side.us>"
 
 [default.db]
 host = "localhost"
@@ -13,6 +19,7 @@ password = "moods"
 
 [testing]
 dynaconf_merge = true
+jwt_secret = "test-secret-do-not-use-in-production-minimum-32-bytes-long"
 
 [testing.db]
 name = "moods_test"

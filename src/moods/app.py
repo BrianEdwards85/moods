@@ -10,8 +10,11 @@ from starlette.responses import FileResponse
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
+from moods.config import settings
+from moods.data.auth import decode_token
 from moods.data.loaders import create_loaders
 from moods.db import apply_migrations, create_pool
+from moods.resolvers.auth import mutation as auth_mutation
 from moods.resolvers.mood import mood_entry
 from moods.resolvers.mood import mutation as mood_mutation
 from moods.resolvers.mood import query as mood_query
@@ -36,6 +39,7 @@ def create_app() -> Starlette:
         user_mutation,
         mood_mutation,
         tag_mutation,
+        auth_mutation,
         mood_entry,
         user_obj,
         datetime_scalar,
@@ -52,7 +56,17 @@ def create_app() -> Starlette:
 
     async def get_context(request, _data=None):
         pool = request.app.state.pool
-        return {"request": request, "pool": pool, **create_loaders(pool)}
+        auth_user_id = None
+        auth_header = request.headers.get("authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header[7:]
+            auth_user_id = decode_token(token, settings.jwt_secret)
+        return {
+            "request": request,
+            "pool": pool,
+            "auth_user_id": auth_user_id,
+            **create_loaders(pool),
+        }
 
     graphql_app = GraphQL(schema, context_value=get_context)
 

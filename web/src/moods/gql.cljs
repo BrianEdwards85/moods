@@ -52,3 +52,15 @@
   "mutation UnarchiveTag($name: String!) {
      unarchiveTag(name: $name) { name metadata archivedAt }
    }")
+
+(def send-login-code-mutation
+  "mutation SendLoginCode($email: String!) {
+     sendLoginCode(email: $email) { success }
+   }")
+
+(def verify-login-code-mutation
+  "mutation VerifyLoginCode($email: String!, $code: String!) {
+     verifyLoginCode(email: $email, code: $code) {
+       token user { id name email settings }
+     }
+   }")

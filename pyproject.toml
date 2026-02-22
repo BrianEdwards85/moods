@@ -13,6 +13,8 @@ dependencies = [
     "uvicorn[standard]",
     "aiodataloader>=0.4.3",
     "psycopg2-binary>=2.9.11",
+    "pyjwt>=2.9",
+    "httpx>=0.28",
 ]
 
 [project.optional-dependencies]

@@ -10,14 +10,18 @@ import os
 
 os.environ["MOODS_ENV"] = "testing"
 
+from datetime import datetime, timedelta, timezone
+
 import httpx
+import jwt
 import pytest
 from httpx import ASGITransport
 
 from moods.app import create_app
+from moods.config import settings
 from moods.db import apply_migrations, create_pool
 
-TABLES = ["mood_entry_tags", "mood_entries", "tags", "users"]
+TABLES = ["mood_entry_tags", "mood_entries", "tags", "auth_codes", "users"]
 
 apply_migrations()
 _app = create_app()
@@ -46,12 +50,26 @@ async def _clean_db(pool):
         await conn.execute(f"TRUNCATE {', '.join(TABLES)} CASCADE")
 
 
+def auth_header(user_id: str) -> dict:
+    """Mint a JWT for test use and return an Authorization header dict."""
+    token = jwt.encode(
+        {
+            "sub": str(user_id),
+            "exp": datetime.now(timezone.utc) + timedelta(days=1),
+        },
+        settings.jwt_secret,
+        algorithm="HS256",
+    )
+    return {"Authorization": f"Bearer {token}"}
+
+
 async def gql(
     client: httpx.AsyncClient,
     query: str,
     variables: dict | None = None,
     *,
     expect_errors: bool = False,
+    headers: dict | None = None,
 ):
     """Send a GraphQL request and return the parsed response body.
 
@@ -61,7 +79,7 @@ async def gql(
     if variables:
         payload["variables"] = variables
 
-    resp = await client.post("/graphql", json=payload)
+    resp = await client.post("/graphql", json=payload, headers=headers or {})
     assert resp.status_code == 200
     body = resp.json()
 

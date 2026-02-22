@@ -1,6 +1,7 @@
 from ariadne import MutationType, ObjectType, QueryType
 
 from moods.data import moods as mood_data
+from moods.resolvers.auth import require_auth
 
 query = QueryType()
 mutation = MutationType()
@@ -11,6 +12,7 @@ mood_entry = ObjectType("MoodEntry")
 async def resolve_mood_entries(
     _obj, info, *, user_ids=None, include_archived=False, first=None, after=None
 ):
+    require_auth(info)
     return await mood_data.get_mood_entries(
         info.context["pool"],
         user_ids=user_ids,
@@ -22,6 +24,7 @@ async def resolve_mood_entries(
 
 @mutation.field("logMood")
 async def resolve_log_mood(_obj, info, *, input):
+    require_auth(info)
     return await mood_data.create_mood_entry(
         info.context["pool"],
         user_id=input["user_id"],
@@ -33,6 +36,7 @@ async def resolve_log_mood(_obj, info, *, input):
 
 @mutation.field("archiveMoodEntry")
 async def resolve_archive_mood_entry(_obj, info, *, id):
+    require_auth(info)
     return await mood_data.archive_mood_entry(info.context["pool"], id)
 
 
