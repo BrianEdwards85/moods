@@ -66,13 +66,15 @@ opening conversations, and spotting patterns together.
 | UI toolkit       | **[Blueprint.js](https://blueprintjs.com/)**            | Component library (dark mode, icons)    |
 | Routing          | **[reitit](https://github.com/metosin/reitit)**                  | Data-driven client-side HTML5 router    |
 
-### 3.3 Android App (future)
+### 3.3 Android App
 
-| Concern       | Library / Tool          |
-|---------------|-------------------------|
-| Framework     | **[React Native](https://reactnative.dev/)**        |
-| GraphQL       | TBD ([Apollo](https://www.apollographql.com/) or [urql](https://commerce.nearform.com/open-source/urql/))    |
-| Navigation    | [React Navigation](https://reactnavigation.org/)        |
+| Concern            | Library / Tool          | Role                                   |
+|--------------------|-------------------------|----------------------------------------|
+| Framework          | **[React Native](https://reactnative.dev/)** (Expo) | Cross-platform mobile app              |
+| GraphQL            | **[urql](https://commerce.nearform.com/open-source/urql/)** | Lightweight GraphQL client             |
+| Navigation         | **[Expo Router](https://docs.expo.dev/router/)** | File-based routing                     |
+| State management   | **[Zustand](https://zustand-demo.pmnd.rs/)** | Lightweight store with AsyncStorage    |
+| Persistent storage | **[AsyncStorage](https://react-native-async-storage.github.io/async-storage/)** | Token, user ID, and email persistence  |
 
 ---
 
@@ -151,6 +153,18 @@ moods/
 │   ├── resources/public/      # Static assets & index.html
 │   ├── src/                   # ClojureScript source
 │   └── run.sh                 # Dev server start script
+├── android/                   # React Native (Expo) app
+│   ├── app/                   # Expo Router screens
+│   │   ├── _layout.tsx        # Root layout (urql Provider, theme)
+│   │   ├── user-select.tsx    # Email-based login screen
+│   │   └── (tabs)/            # Tab navigator (timeline, settings, etc.)
+│   ├── components/            # Shared UI components
+│   ├── lib/
+│   │   ├── store.ts           # Zustand store (auth, users, email)
+│   │   ├── graphql/           # Query & mutation strings, urql client
+│   │   ├── theme.ts           # Color tokens
+│   │   └── utils.ts           # Gravatar, date formatting, etc.
+│   └── package.json
 └── tests/
     └── conftest.py            # fixtures: test DB, client, factories
 ```
@@ -193,13 +207,13 @@ step until confirmation before moving on.
 #### Step 2 — App Shell and State Management
 
 - re-frame app-db structure, events, and subscriptions
-- Cookie-based current user (`moods-user-id`): read on init,
-  set on selection, clear on switch
-- Conditional rendering: user selection screen vs. timeline screen
+- Cookie-based auth (`moods-user-id`, `moods-token`, `moods-email`):
+  read on init, set on login, clear on switch
+- Conditional rendering: login screen vs. timeline screen
 - Header with app title, current user name, switch-user button,
   and "Add Mood" button
 - Client-side routing with reitit (HTML5 history)
-- Routes: `/` (user select), `/timeline` (main), `/tags` (tag
+- Routes: `/` (login), `/timeline` (main), `/tags` (tag
   management), `/settings` (user settings), `/summary` (aggregates)
 
 **Stop and wait for approval before continuing.**
@@ -208,7 +222,7 @@ step until confirmation before moving on.
 
 - re-graph initialization pointing at backend `/graphql`
 - re-frame events for GraphQL queries and mutations
-- Fetch users list on app init
+- Fetch users list after authentication (not on login screen)
 - Fetch mood entries (per user) when current user is set
 - Tag search query for autocomplete
 
@@ -219,8 +233,8 @@ step until confirmation before moving on.
 Build out the real screens one at a time, collaborating on layout and
 behavior. Each sub-view is presented for review before moving to the next.
 
-- **User selection screen** — list of Blueprint Cards, one per user;
-  clicking sets cookie and transitions to timeline
+- **Login screen** — email input with "Send Code" button; entering a
+  valid code sets auth cookies and transitions to timeline
 - **Timeline screen** — side-by-side columns ("My Moods" / "Partner's
   Moods"), each showing paginated MoodEntry cards with mood value
   (1-10), notes, tags, and relative timestamp; cursor-based "Load more"
@@ -306,13 +320,16 @@ reload.
 
 **Stop and wait for approval before continuing.**
 
-### Phase 3 — Android app (React Native)
+### Phase 3 — Android app (React Native) ✅
 
-1. Initialize React Native project.
-2. GraphQL client (Apollo or urql).
-3. Mood logging screen.
-4. Partner timeline screen.
-5. Push-notification reminders (stretch).
+1. ~~Initialize React Native project.~~ Done (Expo + Expo Router).
+2. ~~GraphQL client.~~ Done (urql).
+3. ~~Mood logging screen.~~ Done (MoodModal component).
+4. ~~Partner timeline screen.~~ Done (unified chronological list with
+   polling, pagination, pull-to-refresh).
+5. ~~Email-based login screen.~~ Done (email input → code verify →
+   AsyncStorage persistence).
+6. Push-notification reminders (stretch).
 
 ### Phase 4 — Polish & extend
 
@@ -327,16 +344,22 @@ reload.
 
 ### App Flow
 
-1. On load, check for a `moods-user-id` cookie.
-2. **No cookie** → show the User Selection Screen.
-3. **Cookie set** → show the Timeline Screen.
+1. On load, check for `moods-user-id` and `moods-token` cookies.
+2. **No token** → show the Login Screen (email input, pre-filled from
+   `moods-email` cookie if present).
+3. **Token set** → fetch users, show the Timeline Screen.
 
-### User Selection Screen
+### Login Screen
 
-- Fetches all users via `Query.users`.
-- Displays a Blueprint `Card` per user (name + email), centered layout.
-- Clicking a card sets the `moods-user-id` cookie and transitions to
-  the timeline.
+- Centered form with an email text input and "Send Code" button.
+- Email field is pre-filled from the `moods-email` cookie (saved after
+  successful login), so returning users see their address already filled in.
+- Submitting dispatches `sendLoginCode` with the typed email; a dialog
+  opens for the 6-digit verification code.
+- On successful verification, `moods-token`, `moods-user-id`, and
+  `moods-email` cookies are set and the user is navigated to the timeline.
+- No user list is fetched or displayed — the full user list is never
+  exposed on the login screen.
 
 ### Timeline Screen
 
@@ -368,16 +391,25 @@ Blueprint `Dialog` containing:
 - Submit calls `Mutation.logMood`; on success, closes the modal
   and refreshes the "My Moods" column.
 
-### State Management
+### State Management (Web)
 
-- **Current user ID** — browser cookie (`moods-user-id`), read on init.
-- **re-frame app-db** — current user, users list, unified mood
-  entries list (all users), tags, modal open/close state.
+- **Cookies** — `moods-user-id`, `moods-token`, `moods-email`. Read on
+  init into re-frame app-db; set on login, cleared on switch-user.
+- **re-frame app-db** — current user, users list, unified mood entries
+  list, tags, login-email, modal open/close state.
 - **re-graph** — GraphQL queries and mutations dispatched as re-frame
   events.
-- **Navigation** — reitit HTML5 history router. Routes: `/` (user
-  select or redirect), `/timeline`, `/tags`, `/settings`, `/summary`.
-  Current route stored in app-db as `:current-route`.
+- **Navigation** — reitit HTML5 history router. Routes: `/` (login or
+  redirect), `/timeline`, `/tags`, `/settings`, `/summary`. Current
+  route stored in app-db as `:current-route`.
+
+### State Management (Android)
+
+- **AsyncStorage** — `moods_auth_token`, `moods_current_user`,
+  `moods_email`. Restored on app startup via Zustand store actions.
+- **Zustand store** — `authToken`, `currentUserId`, `loginEmail`,
+  `users`, `moodModalOpen`, plus async actions for persist/restore.
+- **urql** — GraphQL client configured with auth token header.
 
 ---
 
@@ -409,7 +441,7 @@ These are inherited from the cursor rules and apply project-wide.
 
 ## 10. Open Questions
 
-- **Auth**: Full auth (JWT, OAuth) or simple shared-secret for a two-person app?
+- ~~**Auth**: Full auth (JWT, OAuth) or simple shared-secret for a two-person app?~~ → **Decided: Email-based login codes.** Backend `sendLoginCode` emails a 6-digit code; `verifyLoginCode` returns a JWT. No user list is exposed on the login screen.
 - **Hosting**: Self-hosted (VPS, home server) or managed (Fly.io, Railway)?
 - ~~**Mood scale**: 1–10 numeric? Emoji picker? Both?~~ → **Decided: 1-10 ButtonGroup.**
 - **Privacy**: Any entries the partner should *not* see?
