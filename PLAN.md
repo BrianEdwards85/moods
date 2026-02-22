@@ -418,3 +418,8 @@ These are inherited from the cursor rules and apply project-wide.
 
 *This document is the living reference for the Moods project. Update it as
 decisions are made and phases are completed.*
+
+## Todos:
+
+ - User settings
+ - mood delta

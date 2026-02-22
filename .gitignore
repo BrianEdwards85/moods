@@ -225,3 +225,18 @@ web/resources/public/css/vendor/
 web/resources/public/css/app.css
 
 prompts/
+
+# React Native / Expo (android/)
+android/.expo/
+android/dist/
+android/web-build/
+android/expo-env.d.ts
+android/.metro-health-check*
+android/*.tsbuildinfo
+android/.kotlin/
+android/ios/
+android/android/
+
+.idea
+.vscode
+.DS_Store
