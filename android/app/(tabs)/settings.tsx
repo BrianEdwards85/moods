@@ -49,12 +49,15 @@ export default function SettingsScreen() {
   const [searchText, setSearchText] = useState('');
   const [searchResults, setSearchResults] = useState<SearchUser[]>([]);
   const [searching, setSearching] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [, updateSettings] = useMutation(UPDATE_USER_SETTINGS_MUTATION);
   const [, updateSharing] = useMutation(UPDATE_SHARING_MUTATION);
   const [savingSettings, setSavingSettings] = useState(false);
   const [savingSharing, setSavingSharing] = useState(false);
+
+  // Track the server-synced shares state to avoid saving on initial load
+  const serverSharesRef = useRef('{}');
 
   useEffect(() => {
     if (currentUser) {
@@ -73,19 +76,43 @@ export default function SettingsScreen() {
           name: rule.user.name,
         };
       }
+      serverSharesRef.current = JSON.stringify(shareMap);
       setShares(shareMap);
     }
   }, [currentUser?.id]);
 
+  // Auto-save shares when they change (debounced, skips server-synced state)
+  useEffect(() => {
+    const current = JSON.stringify(shares);
+    if (current === serverSharesRef.current) return;
+
+    const timer = setTimeout(async () => {
+      setSavingSharing(true);
+      const rules = Object.entries(shares)
+        .filter(([, cfg]) => cfg.shared)
+        .map(([userId, cfg]) => ({
+          userId,
+          filters: cfg.filters,
+        }));
+      const result = await updateSharing({ input: { rules } });
+      setSavingSharing(false);
+      if (!result.error) {
+        serverSharesRef.current = current;
+      }
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [shares]);
+
   const handleSearch = useCallback(
     (text: string) => {
       setSearchText(text);
-      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
       if (!text.trim()) {
         setSearchResults([]);
         return;
       }
-      debounceRef.current = setTimeout(async () => {
+      searchDebounceRef.current = setTimeout(async () => {
         setSearching(true);
         const result = await urqlClient.query(SEARCH_USERS_QUERY, { search: text }).toPromise();
         setSearchResults(result.data?.searchUsers ?? []);
@@ -104,18 +131,6 @@ export default function SettingsScreen() {
     await updateSettings({ input: { id: currentUserId, settings } });
     setSavingSettings(false);
   }, [currentUserId, avatarUrl, selectedColor]);
-
-  const handleSaveSharing = useCallback(async () => {
-    setSavingSharing(true);
-    const rules = Object.entries(shares)
-      .filter(([, cfg]) => cfg.shared)
-      .map(([userId, cfg]) => ({
-        userId,
-        filters: cfg.filters,
-      }));
-    await updateSharing({ input: { rules } });
-    setSavingSharing(false);
-  }, [shares]);
 
   const toggleShare = (userId: string) => {
     setShares((prev) => ({
@@ -235,10 +250,14 @@ export default function SettingsScreen() {
       <View style={styles.divider} />
 
       <Text style={styles.heading}>Sharing</Text>
-      <Text style={styles.description}>
-        Choose who can see your mood entries. You can add tag filters to control which entries are
-        visible.
-      </Text>
+      <View style={styles.sharingDescRow}>
+        <Text style={styles.description}>
+          Choose who can see your mood entries. Changes save automatically.
+        </Text>
+        {savingSharing && (
+          <ActivityIndicator color={colors.blue} size="small" style={{ marginLeft: 8 }} />
+        )}
+      </View>
 
       {activeShares.map(([uid, cfg]) => (
         <View key={uid} style={styles.shareCard}>
@@ -307,14 +326,6 @@ export default function SettingsScreen() {
           <Text style={styles.addText}>+</Text>
         </Pressable>
       ))}
-
-      <Pressable style={styles.saveButton} onPress={handleSaveSharing} disabled={savingSharing}>
-        {savingSharing ? (
-          <ActivityIndicator color={colors.fg} size="small" />
-        ) : (
-          <Text style={styles.saveButtonText}>Save Sharing</Text>
-        )}
-      </Pressable>
 
       <View style={styles.divider} />
 
@@ -399,6 +410,11 @@ const styles = StyleSheet.create({
   description: {
     fontSize: 13,
     color: colors.fgDim,
+    flex: 1,
+  },
+  sharingDescRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 12,
   },
   shareCard: {

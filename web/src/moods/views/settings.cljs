@@ -91,6 +91,13 @@
            [:span {:class "text-sm text-tn-fg-muted ml-2"} (:email u)]]
           [bp/icon {:icon "plus" :size 14}]])])))
 
+(defn- shares->rules [shares]
+  (->> shares
+       (filter (fn [[_ v]] (:shared? v)))
+       (mapv (fn [[uid v]]
+               {:userId  uid
+                :filters (vec (:filters v))}))))
+
 (defn settings-screen []
   (let [current-user @(rf/subscribe [::subs/current-user])
         saving-settings? @(rf/subscribe [::subs/loading? :save-settings])
@@ -108,7 +115,20 @@
                                                          :filters  (mapv #(select-keys % [:pattern :isInclude])
                                                                          (:filters rule))
                                                          :name     (get-in rule [:user :name])}])
-                                                     (:sharedWith current-user)))})]
+                                                     (:sharedWith current-user)))})
+        save-debounce (atom nil)]
+
+    ;; Auto-save sharing on changes (watch only fires on swap!/reset!, not initial value)
+    (add-watch local-state ::auto-save-shares
+      (fn [_ _ old-state new-state]
+        (when (not= (:shares old-state) (:shares new-state))
+          (when-let [h @save-debounce]
+            (js/clearTimeout h))
+          (reset! save-debounce
+            (js/setTimeout
+              #(rf/dispatch [::events/save-sharing (shares->rules (:shares new-state))])
+              1000)))))
+
     (fn []
       (let [state        @local-state
             active-shares (->> (:shares state)
@@ -159,9 +179,12 @@
             "Failed to save profile settings."])
 
          ;; Sharing section
-         [:h3 {:class "bp6-heading mb-4"} "Sharing"]
-         [:p {:class "text-sm text-tn-fg-muted mb-4"}
-          "Choose who can see your mood entries. You can add tag filters to control which entries are visible."]
+         [:h3 {:class "bp6-heading mb-2"} "Sharing"]
+         [:div {:class "flex items-center gap-2 mb-4"}
+          [:p {:class "text-sm text-tn-fg-muted"}
+           "Choose who can see your mood entries. Changes save automatically."]
+          (when saving-sharing?
+            [:span {:class "text-xs text-tn-fg-muted italic"} "Saving..."])]
 
          ;; Active shares
          (for [[uid share-cfg] active-shares]
@@ -187,19 +210,6 @@
          ;; User search
          [user-search-input]
          [search-results-list local-state]
-
-         [bp/button {:text     "Save Sharing"
-                     :intent   "primary"
-                     :icon     "tick"
-                     :loading  saving-sharing?
-                     :class    "mb-6"
-                     :on-click (fn []
-                                 (let [rules (->> (:shares state)
-                                                  (filter (fn [[_ v]] (:shared? v)))
-                                                  (mapv (fn [[uid v]]
-                                                          {:userId  uid
-                                                           :filters (vec (:filters v))})))]
-                                   (rf/dispatch [::events/save-sharing rules])))}]
 
          (when sharing-error
            [:div {:class "mb-4 p-3 rounded bg-tn-red/10 text-tn-red text-sm"}
