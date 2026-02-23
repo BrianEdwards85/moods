@@ -1,4 +1,6 @@
-from tests.conftest import gql
+from tests.conftest import auth_header, gql
+
+H = auth_header("00000000-0000-0000-0000-000000000000")
 
 CREATE_USER = """
 mutation CreateUser($input: CreateUserInput!) {
@@ -26,14 +28,14 @@ query UserEntries($id: ID!, $first: Int, $after: String, $includeArchived: Boole
 
 
 async def _create_user(client, name="Alice", email="alice@test.com"):
-    body = await gql(client, CREATE_USER, {"input": {"name": name, "email": email}})
+    body = await gql(client, CREATE_USER, {"input": {"name": name, "email": email}}, headers=H)
     return body["data"]["createUser"]["id"]
 
 
 async def _log_mood(client, user_id, mood=7, notes="ok"):
     await gql(client, LOG_MOOD, {
         "input": {"userId": user_id, "mood": mood, "notes": notes, "tags": []}
-    })
+    }, headers=H)
 
 
 async def test_user_entries_connection(client):

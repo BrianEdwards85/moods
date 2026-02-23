@@ -1,0 +1,13 @@
+type SendCodeResult {
+  success: Boolean!
+}
+
+type AuthPayload {
+  token: String!
+  user: User!
+}
+
+extend type Mutation {
+  sendLoginCode(email: String!): SendCodeResult!
+  verifyLoginCode(email: String!, code: String!): AuthPayload!
+}

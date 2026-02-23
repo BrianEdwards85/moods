@@ -31,7 +31,13 @@
                   :minimal  true
                   :active   (= route-name :route/summary)
                   :class    "mobile-icon-only"
-                  :on-click #(routes/navigate! :route/summary)}]]
+                  :on-click #(routes/navigate! :route/summary)}]
+      [bp/button {:icon     "cog"
+                  :text     "Settings"
+                  :minimal  true
+                  :active   (= route-name :route/settings)
+                  :class    "mobile-icon-only"
+                  :on-click #(routes/navigate! :route/settings)}]]
      [bp/navbar-group {:align "right"}
       (when user
         [:<>

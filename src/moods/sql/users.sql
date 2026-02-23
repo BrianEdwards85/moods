@@ -25,3 +25,11 @@ update users
 set archived_at = now()
 where id = :id::uuid
 returning id, name, email, settings, archived_at;
+
+-- name: search_users(query, page_limit)
+select id, name, email, settings, archived_at
+from users
+where (name % :query or email % :query)
+  and archived_at is null
+order by greatest(similarity(name, :query), similarity(email, :query)) desc, name
+limit :page_limit;

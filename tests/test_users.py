@@ -1,4 +1,6 @@
-from tests.conftest import gql
+from tests.conftest import auth_header, gql
+
+H = auth_header("00000000-0000-0000-0000-000000000000")
 
 CREATE_USER = """
 mutation CreateUser($input: CreateUserInput!) {
@@ -42,7 +44,7 @@ mutation ArchiveUser($id: ID!) {
 
 
 async def _create_user(client, name="Alice", email="alice@example.com"):
-    body = await gql(client, CREATE_USER, {"input": {"name": name, "email": email}})
+    body = await gql(client, CREATE_USER, {"input": {"name": name, "email": email}}, headers=H)
     return body["data"]["createUser"]
 
 
@@ -80,6 +82,7 @@ async def test_update_user_settings(client):
     body = await gql(
         client, UPDATE_SETTINGS,
         {"input": {"id": created["id"], "settings": new_settings}},
+        headers=H,
     )
     updated = body["data"]["updateUserSettings"]
     assert updated["settings"] == new_settings
@@ -90,7 +93,7 @@ async def test_update_user_settings(client):
 
 async def test_archive_user(client):
     created = await _create_user(client)
-    body = await gql(client, ARCHIVE_USER, {"id": created["id"]})
+    body = await gql(client, ARCHIVE_USER, {"id": created["id"]}, headers=H)
     archived = body["data"]["archiveUser"]
     assert archived["archivedAt"] is not None
 
@@ -98,7 +101,7 @@ async def test_archive_user(client):
 async def test_list_users_excludes_archived(client):
     alice = await _create_user(client, "Alice", "alice@example.com")
     await _create_user(client, "Bob", "bob@example.com")
-    await gql(client, ARCHIVE_USER, {"id": alice["id"]})
+    await gql(client, ARCHIVE_USER, {"id": alice["id"]}, headers=H)
 
     body = await gql(client, USERS_QUERY)
     users = body["data"]["users"]

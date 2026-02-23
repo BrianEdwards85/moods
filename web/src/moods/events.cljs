@@ -13,15 +13,25 @@
 (rf/reg-event-fx
  ::initialize-db
  (fn [_ _]
-   (let [user-id (cookies/get-cookie "moods-user-id")]
-     {:db (assoc db/default-db :current-user-id user-id)})))
+   (let [user-id (cookies/get-cookie "moods-user-id")
+         token   (cookies/get-cookie "moods-token")
+         email   (cookies/get-cookie "moods-email")]
+     {:db (assoc db/default-db
+                 :current-user-id user-id
+                 :auth-token token
+                 :login-email (or email ""))})))
+
+(defn- re-graph-http-opts [db]
+  (let [token (:auth-token db)]
+    (cond-> {:url "/graphql"}
+      token (assoc :impl {:headers {"Authorization" (str "Bearer " token)}}))))
 
 (rf/reg-event-fx
  ::boot
- (fn [_ _]
-   {:dispatch-n [[::re-graph/init {:ws   nil
-                                   :http {:url "/graphql"}}]
-                 [::fetch-users]]}))
+ (fn [{:keys [db]} _]
+   (cond-> {:dispatch-n [[::re-graph/init {:ws   nil
+                                            :http (re-graph-http-opts db)}]]}
+     (:auth-token db) (update :dispatch-n conj [::fetch-users]))))
 
 ;; ---------------------------------------------------------------------------
 ;; Users
@@ -378,29 +388,89 @@
        {:dispatch [::fetch-entries]}))))
 
 ;; ---------------------------------------------------------------------------
-;; User selection / switching
+;; Authentication
 ;; ---------------------------------------------------------------------------
 
 (rf/reg-event-fx
- ::select-user
- (fn [{:keys [db]} [_ user]]
-   (cookies/set-cookie! "moods-user-id" (:id user))
-   (routes/navigate! :route/timeline)
-   {:db         (assoc db
-                       :current-user-id (:id user)
-                       :current-user user
-                       :entries (:entries db/default-db))
-    :dispatch   [::fetch-entries]
-    :start-poll true}))
+ ::send-login-code
+ (fn [{:keys [db]} [_ email]]
+   {:db       (-> db
+                  (update :loading conj :login)
+                  (assoc :login-email email)
+                  (assoc :login-error nil))
+    :dispatch [::re-graph/mutate
+               {:query     gql/send-login-code-mutation
+                :variables {:email email}
+                :callback  [::on-login-code-sent]}]}))
+
+(rf/reg-event-fx
+ ::on-login-code-sent
+ [rf/unwrap]
+ (fn [{:keys [db]} {:keys [response]}]
+   (let [{:keys [errors]} response]
+     {:db (-> db
+              (update :loading disj :login)
+              (assoc :login-code-sent true)
+              (assoc :login-error (when errors (first errors))))})))
+
+(rf/reg-event-fx
+ ::verify-login-code
+ (fn [{:keys [db]} [_ code]]
+   (let [email (:login-email db)]
+     {:db       (update db :loading conj :login)
+      :dispatch [::re-graph/mutate
+                 {:query     gql/verify-login-code-mutation
+                  :variables {:email email :code code}
+                  :callback  [::on-login-verified]}]})))
+
+(rf/reg-event-fx
+ ::on-login-verified
+ [rf/unwrap]
+ (fn [{:keys [db]} {:keys [response]}]
+   (let [{:keys [data errors]} response]
+     (if errors
+       {:db (-> db
+                (update :loading disj :login)
+                (assoc :login-error (first errors)))}
+       (let [{:keys [token user]} (:verifyLoginCode data)]
+         (cookies/set-cookie! "moods-token" token)
+         (cookies/set-cookie! "moods-user-id" (:id user))
+         (cookies/set-cookie! "moods-email" (:login-email db))
+         (routes/navigate! :route/timeline)
+         {:db         (-> db
+                          (update :loading disj :login)
+                          (assoc :auth-token token)
+                          (assoc :current-user-id (:id user))
+                          (assoc :current-user user)
+                          (assoc :login-code-sent false)
+                          (assoc :login-error nil)
+                          (assoc :entries (:entries db/default-db)))
+          :dispatch-n [[::re-graph/re-init {:http {:impl {:headers {"Authorization" (str "Bearer " token)}}}}]
+                       [::fetch-users]
+                       [::fetch-entries]]
+          :start-poll true})))))
+
+(rf/reg-event-db
+ ::cancel-login
+ (fn [db _]
+   (-> db
+       (assoc :login-code-sent false)
+       (assoc :login-error nil))))
+
+;; ---------------------------------------------------------------------------
+;; User selection / switching
+;; ---------------------------------------------------------------------------
 
 (rf/reg-event-fx
  ::switch-user
  (fn [{:keys [db]} _]
    (cookies/clear-cookie! "moods-user-id")
+   (cookies/clear-cookie! "moods-token")
    (routes/navigate! :route/user-select)
    {:db        (assoc db
                       :current-user-id nil
                       :current-user nil
+                      :auth-token nil
                       :entries (:entries db/default-db))
     :stop-poll true}))
 
@@ -456,3 +526,89 @@
  (fn [db [_ tag-name]]
    (update-in db [:mood-modal :tags]
               (fn [tags] (vec (remove #(= (:name %) tag-name) tags))))))
+
+;; ---------------------------------------------------------------------------
+;; User Settings
+;; ---------------------------------------------------------------------------
+
+(rf/reg-event-fx
+ ::save-user-settings
+ (fn [{:keys [db]} [_ settings]]
+   (let [user-id (:current-user-id db)]
+     {:db       (update db :loading conj :save-settings)
+      :dispatch [::re-graph/mutate
+                 {:query     gql/update-user-settings-mutation
+                  :variables {:input {:id user-id :settings settings}}
+                  :callback  [::on-settings-saved]}]})))
+
+(rf/reg-event-fx
+ ::on-settings-saved
+ [rf/unwrap]
+ (fn [{:keys [db]} {:keys [response]}]
+   (let [{:keys [data errors]} response]
+     (if errors
+       {:db (-> db
+                (update :loading disj :save-settings)
+                (assoc-in [:errors :save-settings] errors))}
+       {:db (-> db
+                (update :loading disj :save-settings)
+                (assoc-in [:current-user :settings] (get-in data [:updateUserSettings :settings]))
+                (assoc-in [:errors :save-settings] nil))}))))
+
+;; ---------------------------------------------------------------------------
+;; Share User Search
+;; ---------------------------------------------------------------------------
+
+(rf/reg-event-fx
+ ::search-share-users
+ (fn [{:keys [db]} [_ query]]
+   (if (seq query)
+     {:db       (-> db
+                    (assoc :share-user-search query)
+                    (update :loading conj :share-user-search))
+      :dispatch [::re-graph/query
+                 {:query     gql/search-users-query
+                  :variables {:search query}
+                  :callback  [::on-share-users]}]}
+     {:db (-> db
+              (assoc :share-user-search "")
+              (assoc :share-user-results []))})))
+
+(rf/reg-event-fx
+ ::on-share-users
+ [rf/unwrap]
+ (fn [{:keys [db]} {:keys [response]}]
+   (let [{:keys [data errors]} response]
+     {:db (-> db
+              (assoc :share-user-results (:searchUsers data))
+              (update :loading disj :share-user-search)
+              (assoc-in [:errors :share-user-search] errors))})))
+
+;; ---------------------------------------------------------------------------
+;; Sharing
+;; ---------------------------------------------------------------------------
+
+(rf/reg-event-fx
+ ::save-sharing
+ (fn [{:keys [db]} [_ rules]]
+   {:db       (update db :loading conj :save-sharing)
+    :dispatch [::re-graph/mutate
+               {:query     gql/update-sharing-mutation
+                :variables {:input {:rules rules}}
+                :callback  [::on-sharing-saved]}]}))
+
+(rf/reg-event-fx
+ ::on-sharing-saved
+ [rf/unwrap]
+ (fn [{:keys [db]} {:keys [response]}]
+   (let [{:keys [data errors]} response]
+     (if errors
+       {:db (-> db
+                (update :loading disj :save-sharing)
+                (assoc-in [:errors :save-sharing] errors))}
+       {:db       (-> db
+                      (update :loading disj :save-sharing)
+                      (assoc-in [:current-user :sharedWith]
+                                (get-in data [:updateSharing :sharedWith]))
+                      (assoc-in [:errors :save-sharing] nil))
+        :dispatch [::fetch-entries]}))))

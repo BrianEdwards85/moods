@@ -4,6 +4,8 @@ type MoodEntry {
   user: User!
   """Numeric mood value."""
   mood: Int!
+  """Change from this user's previous mood entry, null for their first entry."""
+  delta: Int
   notes: String!
   tags: [Tag!]!
   createdAt: DateTime!

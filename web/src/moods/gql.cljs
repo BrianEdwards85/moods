@@ -2,7 +2,7 @@
   "GraphQL query and mutation strings, plus re-graph initialization.")
 
 (def users-query
-  "{ users { id name email settings } }")
+  "{ users { id name email settings sharedWith { id user { id name } filters { id pattern isInclude } } } }")
 
 (def user-query
   "query User($id: ID!) { user(id: $id) { id name email settings } }")
@@ -12,7 +12,7 @@
      moodEntries(userIds: $userIds, first: $first, after: $after) {
        edges {
          cursor
-         node { id mood notes createdAt archivedAt user { id name } tags { name metadata } }
+         node { id mood delta notes createdAt archivedAt user { id name } tags { name metadata } }
        }
        pageInfo { hasNextPage endCursor }
      }
@@ -51,4 +51,33 @@
 (def unarchive-tag-mutation
   "mutation UnarchiveTag($name: String!) {
      unarchiveTag(name: $name) { name metadata archivedAt }
+   }")
+
+(def send-login-code-mutation
+  "mutation SendLoginCode($email: String!) {
+     sendLoginCode(email: $email) { success }
+   }")
+
+(def verify-login-code-mutation
+  "mutation VerifyLoginCode($email: String!, $code: String!) {
+     verifyLoginCode(email: $email, code: $code) {
+       token user { id name email settings }
+     }
+   }")
+
+(def update-user-settings-mutation
+  "mutation UpdateUserSettings($input: UpdateUserSettingsInput!) {
+     updateUserSettings(input: $input) { id settings }
+   }")
+
+(def update-sharing-mutation
+  "mutation UpdateSharing($input: UpdateSharingInput!) {
+     updateSharing(input: $input) {
+       id sharedWith { id user { id name } filters { id pattern isInclude } }
+     }
+   }")
+
+(def search-users-query
+  "query SearchUsers($search: String!) {
+     searchUsers(search: $search) { id name email }
    }")
