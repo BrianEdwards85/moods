@@ -9,6 +9,21 @@ type User {
     first: Int
     after: String
   ): MoodEntryConnection!
+  sharedWith: [ShareRule!]!
+}
+
+type ShareFilter {
+  id: ID!
+  pattern: String!
+  isInclude: Boolean!
+  archivedAt: DateTime
+}
+
+type ShareRule {
+  id: ID!
+  user: User!
+  filters: [ShareFilter!]!
+  archivedAt: DateTime
 }
 
 # --- Queries ---
@@ -16,6 +31,7 @@ type User {
 extend type Query {
   users(includeArchived: Boolean = false): [User!]!
   user(id: ID!): User
+  searchUsers(search: String!): [User!]!
 }
 
 # --- Mutations ---
@@ -30,8 +46,23 @@ input UpdateUserSettingsInput {
   settings: JSON!
 }
 
+input ShareFilterInput {
+  pattern: String!
+  isInclude: Boolean!
+}
+
+input ShareRuleInput {
+  userId: ID!
+  filters: [ShareFilterInput!]!
+}
+
+input UpdateSharingInput {
+  rules: [ShareRuleInput!]!
+}
+
 extend type Mutation {
   createUser(input: CreateUserInput!): User!
   updateUserSettings(input: UpdateUserSettingsInput!): User!
   archiveUser(id: ID!): User!
+  updateSharing(input: UpdateSharingInput!): User!
 }

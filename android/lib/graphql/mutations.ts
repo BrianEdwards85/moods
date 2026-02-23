@@ -37,3 +37,17 @@ export const VERIFY_LOGIN_CODE_MUTATION = `
     }
   }
 `;
+
+export const UPDATE_USER_SETTINGS_MUTATION = `
+  mutation UpdateUserSettings($input: UpdateUserSettingsInput!) {
+    updateUserSettings(input: $input) { id settings }
+  }
+`;
+
+export const UPDATE_SHARING_MUTATION = `
+  mutation UpdateSharing($input: UpdateSharingInput!) {
+    updateSharing(input: $input) {
+      id sharedWith { id user { id name } filters { id pattern isInclude } }
+    }
+  }
+`;

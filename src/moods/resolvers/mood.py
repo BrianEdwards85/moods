@@ -19,6 +19,7 @@ async def resolve_mood_entries(
         include_archived=include_archived,
         first=first,
         after=after,
+        viewer_id=info.context["auth_user_id"],
     )
 
 

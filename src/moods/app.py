@@ -23,7 +23,7 @@ from moods.resolvers.tag import mutation as tag_mutation
 from moods.resolvers.tag import query as tag_query
 from moods.resolvers.user import mutation as user_mutation
 from moods.resolvers.user import query as user_query
-from moods.resolvers.user import user_obj
+from moods.resolvers.user import share_rule_obj, user_obj
 
 SCHEMA_DIR = Path(__file__).parent / "schema"
 WEB_PUBLIC = Path(__file__).parent.parent.parent / "web" / "resources" / "public"
@@ -42,6 +42,7 @@ def create_app() -> Starlette:
         auth_mutation,
         mood_entry,
         user_obj,
+        share_rule_obj,
         datetime_scalar,
         json_scalar,
         convert_names_case=True,

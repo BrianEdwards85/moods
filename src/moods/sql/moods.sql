@@ -1,10 +1,43 @@
--- name: get_mood_entries(user_ids, include_archived, after_id, page_limit)
+-- name: get_mood_entries(user_ids, include_archived, after_id, page_limit, viewer_id)
 with entries as (
   select me.id, me.user_id, me.mood, me.notes, me.created_at, me.archived_at,
          me.mood - lag(me.mood) over (partition by me.user_id order by me.id) as delta
   from mood_entries me
   where (:user_ids::uuid[] IS NULL OR me.user_id = ANY(:user_ids::uuid[]))
     and (:include_archived::boolean OR me.archived_at IS NULL)
+    and (
+        :viewer_id::uuid IS NULL
+        OR me.user_id = :viewer_id::uuid
+        OR EXISTS (
+            SELECT 1 FROM mood_shares ms
+            WHERE ms.user_id = me.user_id
+              AND ms.shared_with = :viewer_id::uuid
+              AND ms.archived_at IS NULL
+              AND (
+                  NOT EXISTS (
+                      SELECT 1 FROM mood_share_filters f
+                      WHERE f.mood_share_id = ms.id AND f.is_include = true
+                        AND f.archived_at IS NULL
+                  )
+                  OR EXISTS (
+                      SELECT 1 FROM mood_share_filters f
+                      JOIN mood_entry_tags met ON met.mood_entry_id = me.id
+                      WHERE f.mood_share_id = ms.id
+                        AND f.is_include = true
+                        AND f.archived_at IS NULL
+                        AND met.tag_name ~ f.pattern
+                  )
+              )
+              AND NOT EXISTS (
+                  SELECT 1 FROM mood_share_filters f
+                  JOIN mood_entry_tags met ON met.mood_entry_id = me.id
+                  WHERE f.mood_share_id = ms.id
+                    AND f.is_include = false
+                    AND f.archived_at IS NULL
+                    AND met.tag_name ~ f.pattern
+              )
+        )
+    )
 )
 select id, user_id, mood, notes, created_at, archived_at, delta
 from entries

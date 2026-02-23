@@ -21,7 +21,7 @@ from moods.app import create_app
 from moods.config import settings
 from moods.db import apply_migrations, create_pool
 
-TABLES = ["mood_entry_tags", "mood_entries", "tags", "auth_codes", "users"]
+TABLES = ["mood_share_filters", "mood_shares", "mood_entry_tags", "mood_entries", "tags", "auth_codes", "users"]
 
 apply_migrations()
 _app = create_app()

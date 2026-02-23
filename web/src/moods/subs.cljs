@@ -38,3 +38,16 @@
 (rf/reg-sub ::login-code-sent   (fn [db _] (:login-code-sent db)))
 (rf/reg-sub ::login-error       (fn [db _] (:login-error db)))
 (rf/reg-sub ::auth-token        (fn [db _] (:auth-token db)))
+
+(rf/reg-sub
+ ::user-settings
+ :<- [::current-user]
+ (fn [user _] (:settings user)))
+
+(rf/reg-sub
+ ::shared-with
+ :<- [::current-user]
+ (fn [user _] (:sharedWith user)))
+
+(rf/reg-sub ::share-user-search   (fn [db _] (:share-user-search db)))
+(rf/reg-sub ::share-user-results  (fn [db _] (:share-user-results db)))

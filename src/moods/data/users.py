@@ -22,3 +22,10 @@ async def update_user_settings(pool: Pool, id: str, settings: dict) -> dict:
 async def archive_user(pool: Pool, id: str) -> dict:
     row = await queries.archive_user(pool, id=id)
     return dict(row)
+
+
+async def search_users(pool: Pool, query: str, page_limit: int = 20) -> list[dict]:
+    return [
+        dict(r)
+        async for r in queries.search_users(pool, query=query, page_limit=page_limit)
+    ]

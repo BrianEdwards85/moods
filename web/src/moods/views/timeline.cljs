@@ -36,27 +36,31 @@
    (str value)])
 
 (defn entry-card [entry user-detail mine?]
-  [:div {:class (str "mb-3 " (if mine? "mr-8 md:mr-16" "ml-8 md:ml-16"))}
-   [:div {:class (str "rounded p-4 text-tn-bg-dark "
-                      (if mine? "entry-card-mine " "entry-card-partner ")
-                      (util/mood-bg (:mood entry)))
-          :title (util/format-full-datetime (:createdAt entry))}
-    [:div {:class "flex flex-col items-center mb-3"}
-     [:img {:src   (util/gravatar-url (:email user-detail) 48)
-            :alt   (:name user-detail)
-            :class "w-8 h-8 rounded-full mb-1"}]
-     [:span {:class "font-bold text-base inline-flex items-center"}
-      (str (:name user-detail) " is at " (:mood entry))
-      [delta-indicator (:delta entry)]]
-     [:span {:class "text-xs opacity-60 mt-0.5"}
-      (util/format-relative-time (:createdAt entry))]]
-    (when-let [notes (not-empty (:notes entry))]
-      [:p {:class "text-sm opacity-90"} notes])
-    (when-let [tags (seq (:tags entry))]
-      [:div {:class "mt-2 flex flex-wrap gap-1"}
-       (for [t tags]
-         ^{:key (:name t)}
-         [comp/mood-tag t])])]])
+  (let [avatar-url   (let [custom (get-in user-detail [:settings :avatarUrl])]
+                       (if (seq custom) custom (util/gravatar-url (:email user-detail) 48)))
+        user-color   (get-in user-detail [:settings :color])]
+    [:div {:class (str "mb-3 " (if mine? "mr-8 md:mr-16" "ml-8 md:ml-16"))}
+     [:div {:class (str "rounded p-4 text-tn-bg-dark "
+                        (if mine? "entry-card-mine " "entry-card-partner ")
+                        (util/mood-bg (:mood entry)))
+            :style (when user-color {:border-left (str "4px solid " user-color)})
+            :title (util/format-full-datetime (:createdAt entry))}
+      [:div {:class "flex flex-col items-center mb-3"}
+       [:img {:src   avatar-url
+              :alt   (:name user-detail)
+              :class "w-8 h-8 rounded-full mb-1"}]
+       [:span {:class "font-bold text-base inline-flex items-center"}
+        (str (:name user-detail) " is at " (:mood entry))
+        [delta-indicator (:delta entry)]]
+       [:span {:class "text-xs opacity-60 mt-0.5"}
+        (util/format-relative-time (:createdAt entry))]]
+      (when-let [notes (not-empty (:notes entry))]
+        [:p {:class "text-sm opacity-90"} notes])
+      (when-let [tags (seq (:tags entry))]
+        [:div {:class "mt-2 flex flex-wrap gap-1"}
+         (for [t tags]
+           ^{:key (:name t)}
+           [comp/mood-tag t])])]]))
 
 (defn date-divider [label]
   [:div {:class "flex items-center gap-3 my-5"}

@@ -2,7 +2,7 @@ from ariadne import MutationType
 from graphql import GraphQLError
 
 from moods.config import settings
-from moods.data import auth as auth_data
+from moods.orchestration import auth as auth_ops
 
 mutation = MutationType()
 
@@ -14,7 +14,7 @@ def require_auth(info):
 
 @mutation.field("sendLoginCode")
 async def resolve_send_login_code(_obj, info, *, email):
-    success = await auth_data.send_login_code(
+    success = await auth_ops.send_login_code(
         info.context["pool"], email, settings
     )
     return {"success": success}
@@ -22,7 +22,7 @@ async def resolve_send_login_code(_obj, info, *, email):
 
 @mutation.field("verifyLoginCode")
 async def resolve_verify_login_code(_obj, info, *, email, code):
-    result = await auth_data.verify_login_code(
+    result = await auth_ops.verify_login_code(
         info.context["pool"],
         email,
         code,

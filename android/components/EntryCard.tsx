@@ -32,12 +32,15 @@ export default function EntryCard({ entry, user, mine }: Props) {
   const bg = moodColor(entry.mood);
   const email = user?.email ?? '';
   const name = user?.name ?? entry.user?.name ?? '?';
+  const customAvatar = (user?.settings as Record<string, unknown>)?.avatarUrl as string | undefined;
+  const avatarUri = customAvatar || gravatarUrl(email, 48);
+  const userColor = (user?.settings as Record<string, unknown>)?.color as string | undefined;
 
   return (
     <View style={[styles.outer, mine ? styles.mine : styles.partner]}>
-      <View style={[styles.card, { backgroundColor: bg }]}>
+      <View style={[styles.card, { backgroundColor: bg }, userColor ? { borderLeftWidth: 4, borderLeftColor: userColor } : null]}>
         <View style={styles.header}>
-          <Image source={{ uri: gravatarUrl(email, 48) }} style={styles.avatar} />
+          <Image source={{ uri: avatarUri }} style={styles.avatar} />
           <View style={styles.nameRow}>
             <Text style={styles.nameText}>
               {name} is at {entry.mood}

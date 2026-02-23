@@ -15,6 +15,7 @@ async def get_mood_entries(
     include_archived: bool = False,
     first: int | None = None,
     after: str | None = None,
+    viewer_id: str | None = None,
 ) -> dict:
     limit = first or DEFAULT_PAGE_SIZE
     after_id = decode_cursor(after) if after else None
@@ -26,6 +27,7 @@ async def get_mood_entries(
             include_archived=include_archived,
             after_id=after_id,
             page_limit=limit + 1,
+            viewer_id=viewer_id,
         )
     ]
     return build_connection(rows, "id", limit)

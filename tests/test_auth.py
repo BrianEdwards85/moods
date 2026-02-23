@@ -39,7 +39,7 @@ async def _create_user(client, name="Alice", email="alice@test.com"):
     return body["data"]["createUser"]
 
 
-@patch("moods.data.auth.send_code_email", new_callable=AsyncMock)
+@patch("moods.orchestration.auth.send_code_email", new_callable=AsyncMock)
 async def test_send_login_code(mock_send, client, pool):
     user = await _create_user(client)
     body = await gql(client, SEND_LOGIN_CODE, {"email": user["email"]})
@@ -58,7 +58,7 @@ async def test_send_login_code(mock_send, client, pool):
     mock_send.assert_called_once()
 
 
-@patch("moods.data.auth.send_code_email", new_callable=AsyncMock)
+@patch("moods.orchestration.auth.send_code_email", new_callable=AsyncMock)
 async def test_verify_login_code(mock_send, client, pool):
     user = await _create_user(client)
     await gql(client, SEND_LOGIN_CODE, {"email": user["email"]})
@@ -79,7 +79,7 @@ async def test_verify_login_code(mock_send, client, pool):
     assert result["user"]["email"] == user["email"]
 
 
-@patch("moods.data.auth.send_code_email", new_callable=AsyncMock)
+@patch("moods.orchestration.auth.send_code_email", new_callable=AsyncMock)
 async def test_verify_expired_code(mock_send, client, pool):
     user = await _create_user(client)
     await gql(client, SEND_LOGIN_CODE, {"email": user["email"]})
@@ -102,7 +102,7 @@ async def test_verify_expired_code(mock_send, client, pool):
     assert "errors" in body
 
 
-@patch("moods.data.auth.send_code_email", new_callable=AsyncMock)
+@patch("moods.orchestration.auth.send_code_email", new_callable=AsyncMock)
 async def test_verify_wrong_code(mock_send, client):
     user = await _create_user(client)
     await gql(client, SEND_LOGIN_CODE, {"email": user["email"]})
