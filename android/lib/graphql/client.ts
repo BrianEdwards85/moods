@@ -1,7 +1,7 @@
 import { Client, cacheExchange, fetchExchange } from "urql";
 import { useStore } from "@/lib/store";
 
-const API_URL = `http://192.168.129.137:8000/graphql`;
+const API_URL = `https://moods-dev.free-side.us/graphql`;
 
 export const urqlClient = new Client({
   url: API_URL,

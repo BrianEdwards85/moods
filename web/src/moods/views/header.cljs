@@ -3,11 +3,15 @@
             [moods.events :as events]
             [moods.routes :as routes]
             [moods.subs :as subs]
+            [moods.util :as util]
             [re-frame.core :as rf]))
 
 (defn header []
   (let [user       @(rf/subscribe [::subs/current-user])
-        route-name @(rf/subscribe [::subs/current-route-name])]
+        route-name @(rf/subscribe [::subs/current-route-name])
+        avatar-url (when user
+                     (let [custom (get-in user [:settings :avatarUrl])]
+                       (if (seq custom) custom (util/gravatar-url (:email user) 28))))]
     [bp/navbar {:class "mb-4"}
      [bp/navbar-group {:align "left"}
       [:a {:href (routes/href :route/timeline) :class "flex items-center no-underline"}
@@ -31,23 +35,18 @@
                   :minimal  true
                   :active   (= route-name :route/summary)
                   :class    "mobile-icon-only"
-                  :on-click #(routes/navigate! :route/summary)}]
-      [bp/button {:icon     "cog"
-                  :text     "Settings"
-                  :minimal  true
-                  :active   (= route-name :route/settings)
-                  :class    "mobile-icon-only"
-                  :on-click #(routes/navigate! :route/settings)}]]
+                  :on-click #(routes/navigate! :route/summary)}]]
      [bp/navbar-group {:align "right"}
       (when user
         [:<>
-         [:span {:class "bp6-text-muted mr-2 hidden md:inline"} (:name user)]
-         [bp/navbar-divider {:class "hidden md:block"}]
-         [bp/button {:icon     "swap-horizontal"
-                     :text     "Switch User"
-                     :minimal  true
-                     :class    "mobile-icon-only"
-                     :on-click #(rf/dispatch [::events/switch-user])}]
+         [:button {:class    (str "flex items-center gap-2 bg-transparent border-0 cursor-pointer px-2 py-1 rounded "
+                                  "hover:bg-white/5 transition-colors "
+                                  (when (= route-name :route/settings) "bg-white/10"))
+                   :on-click #(routes/navigate! :route/settings)}
+          [:img {:src   avatar-url
+                 :class "w-6 h-6 rounded-full"
+                 :alt   (:name user)}]
+          [:span {:class "bp6-text-muted hidden md:inline"} (:name user)]]
          [bp/navbar-divider]
          [bp/button {:icon     "plus"
                      :intent   "primary"
