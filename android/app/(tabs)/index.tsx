@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -8,7 +8,6 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
 import { useQuery } from 'urql';
 import { useStore, type MoodEntry, type User } from '@/lib/store';
 import { USERS_QUERY, MOOD_ENTRIES_QUERY } from '@/lib/graphql/queries';
@@ -27,20 +26,12 @@ type ListItem =
   | { type: 'entry'; key: string; entry: MoodEntry; mine: boolean; user?: User };
 
 export default function TimelineScreen() {
-  const router = useRouter();
   const currentUserId = useStore((s) => s.currentUserId);
+  const authToken = useStore((s) => s.authToken);
   const users = useStore((s) => s.users);
   const setUsers = useStore((s) => s.setUsers);
-  const restoreUser = useStore((s) => s.restoreUser);
   const openMoodModal = useStore((s) => s.openMoodModal);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    restoreUser().then((id) => {
-      setReady(true);
-      if (!id) router.replace('/user-select');
-    });
-  }, []);
+  const ready = !!authToken;
 
   const [usersResult] = useQuery({ query: USERS_QUERY, pause: !ready });
   useEffect(() => {

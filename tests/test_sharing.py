@@ -320,6 +320,58 @@ async def test_archived_share_hides_entries(client):
     assert len(entries) == 0
 
 
+async def test_re_add_archived_share(client):
+    """Re-adding a previously archived share should unarchive the existing row."""
+    alice = await _create_user(client, "Alice", "alice@example.com")
+    bob = await _create_user(client, "Bob", "bob@example.com")
+
+    await _log_mood(client, alice["id"], 7, "feeling good")
+
+    # Alice shares with Bob
+    await gql(
+        client, UPDATE_SHARING,
+        {"input": {"rules": [{"userId": bob["id"], "filters": []}]}},
+        headers=auth_header(alice["id"]),
+    )
+    entries = await _query_entries(client, headers=auth_header(bob["id"]))
+    assert len(entries) == 1
+
+    # Alice removes the share (archives it)
+    await gql(
+        client, UPDATE_SHARING,
+        {"input": {"rules": []}},
+        headers=auth_header(alice["id"]),
+    )
+    entries = await _query_entries(client, headers=auth_header(bob["id"]))
+    assert len(entries) == 0
+
+    # Alice re-adds the share with Bob
+    body = await gql(
+        client, UPDATE_SHARING,
+        {"input": {"rules": [{"userId": bob["id"], "filters": [
+            {"pattern": "happy", "isInclude": True}
+        ]}]}},
+        headers=auth_header(alice["id"]),
+    )
+    user = body["data"]["updateSharing"]
+    assert len(user["sharedWith"]) == 1
+    assert user["sharedWith"][0]["user"]["id"] == bob["id"]
+    assert len(user["sharedWith"][0]["filters"]) == 1
+
+    # Bob can see Alice's entries again (entry has no tags, include filter hides it)
+    entries = await _query_entries(client, headers=auth_header(bob["id"]))
+    assert len(entries) == 0
+
+    # Re-add without filters — Bob sees everything
+    body = await gql(
+        client, UPDATE_SHARING,
+        {"input": {"rules": [{"userId": bob["id"], "filters": []}]}},
+        headers=auth_header(alice["id"]),
+    )
+    entries = await _query_entries(client, headers=auth_header(bob["id"]))
+    assert len(entries) == 1
+
+
 async def test_entries_with_no_tags_visible_with_exclude_only(client):
     alice = await _create_user(client, "Alice", "alice@example.com")
     bob = await _create_user(client, "Bob", "bob@example.com")

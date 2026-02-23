@@ -26,6 +26,8 @@ where mood_share_id = ANY(:share_ids::uuid[])
 -- name: create_share(user_id, shared_with)^
 insert into mood_shares (user_id, shared_with)
 values (:user_id::uuid, :shared_with::uuid)
+on conflict (user_id, shared_with) do update
+  set archived_at = null
 returning id, user_id, shared_with, created_at, archived_at;
 
 -- name: create_share_filter(mood_share_id, pattern, is_include)^
