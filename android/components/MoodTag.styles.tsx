@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { colors } from '@/lib/theme';
 
 export const styles = StyleSheet.create({
   pill: {
@@ -18,6 +19,6 @@ export const styles = StyleSheet.create({
   name: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#1f2335',
+    color: colors.darkText,
   },
 });

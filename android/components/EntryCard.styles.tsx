@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { colors } from '@/lib/theme';
 
 export const styles = StyleSheet.create({
   outer: {
@@ -31,20 +32,20 @@ export const styles = StyleSheet.create({
   nameText: {
     fontWeight: '700',
     fontSize: 15,
-    color: '#1f2335',
+    color: colors.darkText,
   },
   deltaIcon: {
     marginLeft: 5,
   },
   time: {
     fontSize: 11,
-    color: '#1f2335',
+    color: colors.darkText,
     opacity: 0.6,
     marginTop: 2,
   },
   notes: {
     fontSize: 13,
-    color: '#1f2335',
+    color: colors.darkText,
     opacity: 0.9,
   },
   tags: {

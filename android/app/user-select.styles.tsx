@@ -44,14 +44,14 @@ export const styles = StyleSheet.create({
   sendBtnText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1f2335',
+    color: colors.darkText,
   },
   btnDisabled: {
     opacity: 0.5,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: colors.overlay,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -116,6 +116,6 @@ export const styles = StyleSheet.create({
   verifyBtnText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1f2335',
+    color: colors.darkText,
   },
 });

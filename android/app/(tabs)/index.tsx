@@ -161,7 +161,7 @@ export default function TimelineScreen() {
       />
 
       <Pressable style={styles.fab} onPress={openMoodModal}>
-        <FontAwesome name="plus" size={22} color="#1f2335" />
+        <FontAwesome name="plus" size={22} color={colors.darkText} />
       </Pressable>
 
       <MoodModal onSaved={onRefresh} />

@@ -1,45 +1,13 @@
 import { StyleSheet } from 'react-native';
 import { colors } from '@/lib/theme';
+import { sharedStyles } from '@/lib/shared-styles';
 
-export const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'flex-end',
-  },
+const local = StyleSheet.create({
   sheet: {
     backgroundColor: colors.bg,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     maxHeight: '90%',
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.fg,
-  },
-  closeBtn: {
-    fontSize: 20,
-    color: colors.fgDim,
-    padding: 4,
-  },
-  body: {
-    padding: 16,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.fgMuted,
-    marginBottom: 8,
-    marginTop: 12,
   },
   moodGrid: {
     flexDirection: 'row',
@@ -60,17 +28,7 @@ export const styles = StyleSheet.create({
   moodBtnText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1f2335',
-  },
-  input: {
-    backgroundColor: colors.bgFloat,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-    color: colors.fg,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
+    color: colors.darkText,
   },
   selectedTags: {
     flexDirection: 'row',
@@ -95,7 +53,7 @@ export const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   createTagText: {
-    color: '#1f2335',
+    color: colors.darkText,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -107,12 +65,21 @@ export const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 24,
   },
-  submitDisabled: {
-    opacity: 0.5,
-  },
   submitText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1f2335',
+    color: colors.darkText,
   },
 });
+
+export const styles = {
+  overlay: sharedStyles.overlay,
+  headerRow: sharedStyles.headerRow,
+  title: sharedStyles.modalTitle,
+  closeBtn: sharedStyles.closeBtn,
+  body: sharedStyles.body,
+  label: sharedStyles.label,
+  input: sharedStyles.input,
+  submitDisabled: sharedStyles.disabled,
+  ...local,
+};

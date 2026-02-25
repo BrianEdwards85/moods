@@ -185,7 +185,7 @@ export default function MoodModal({ onSaved }: { onSaved: () => void }) {
               disabled={!mood || logResult.fetching}
             >
               {logResult.fetching ? (
-                <ActivityIndicator color="#1f2335" />
+                <ActivityIndicator color={colors.darkText} />
               ) : (
                 <Text style={styles.submitText}>Log Mood</Text>
               )}

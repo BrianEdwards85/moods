@@ -63,7 +63,7 @@ export const styles = StyleSheet.create({
     marginTop: 16,
   },
   saveButtonText: {
-    color: '#1f2335',
+    color: colors.darkText,
     fontWeight: '700',
     fontSize: 14,
   },

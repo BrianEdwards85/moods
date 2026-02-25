@@ -104,7 +104,7 @@ export default function UserSelectScreen() {
           disabled={!email.trim() || loading}
         >
           {loading && !codeSent ? (
-            <ActivityIndicator size="small" color="#1f2335" />
+            <ActivityIndicator size="small" color={colors.darkText} />
           ) : (
             <Text style={styles.sendBtnText}>Send Code</Text>
           )}

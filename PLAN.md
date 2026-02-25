@@ -831,7 +831,7 @@ Work through these one at a time.
   - `android/app/(tabs)/index.tsx` — extract `renderItem` into a
     `useCallback`.
 
-- [ ] **Fix Zustand selector patterns** —
+- [x] **Fix Zustand selector patterns** —
   `android/app/(tabs)/settings.tsx:43` destructures the entire store,
   causing re-renders on any store change. Use individual selectors:
   `const currentUserId = useStore(s => s.currentUserId)`.

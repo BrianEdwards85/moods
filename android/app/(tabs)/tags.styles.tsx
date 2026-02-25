@@ -60,7 +60,7 @@ export const styles = StyleSheet.create({
   tagName: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1f2335',
+    color: colors.darkText,
   },
   tagArchived: {
     textDecorationLine: 'line-through',
@@ -68,7 +68,7 @@ export const styles = StyleSheet.create({
   },
   archivedBadge: {
     fontSize: 10,
-    color: '#1f2335',
+    color: colors.darkText,
     opacity: 0.5,
     fontStyle: 'italic',
   },

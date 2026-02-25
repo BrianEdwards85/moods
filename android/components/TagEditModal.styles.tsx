@@ -1,38 +1,13 @@
 import { StyleSheet } from 'react-native';
 import { colors } from '@/lib/theme';
+import { sharedStyles } from '@/lib/shared-styles';
 
-export const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'flex-end',
-  },
+const local = StyleSheet.create({
   sheet: {
     backgroundColor: colors.bg,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     maxHeight: '85%',
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.fg,
-  },
-  closeBtn: {
-    fontSize: 20,
-    color: colors.fgDim,
-    padding: 4,
-  },
-  body: {
-    padding: 16,
   },
   archivedBanner: {
     backgroundColor: colors.orange,
@@ -41,20 +16,13 @@ export const styles = StyleSheet.create({
     marginBottom: 12,
   },
   archivedBannerText: {
-    color: '#1f2335',
+    color: colors.darkText,
     fontSize: 13,
     fontWeight: '600',
     textAlign: 'center',
   },
   disabled: {
     opacity: 0.4,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.fgMuted,
-    marginBottom: 8,
-    marginTop: 12,
   },
   swatches: {
     flexDirection: 'row',
@@ -88,7 +56,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
   colorPreviewText: {
-    color: '#1f2335',
+    color: colors.darkText,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -134,7 +102,7 @@ export const styles = StyleSheet.create({
   saveBtnText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1f2335',
+    color: colors.darkText,
   },
   archiveBtn: {
     flex: 1,
@@ -146,7 +114,7 @@ export const styles = StyleSheet.create({
   archiveBtnText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1f2335',
+    color: colors.darkText,
   },
   unarchiveBtn: {
     flex: 1,
@@ -158,6 +126,16 @@ export const styles = StyleSheet.create({
   unarchiveBtnText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1f2335',
+    color: colors.darkText,
   },
 });
+
+export const styles = {
+  overlay: sharedStyles.overlay,
+  headerRow: sharedStyles.headerRow,
+  title: sharedStyles.modalTitle,
+  closeBtn: sharedStyles.closeBtn,
+  body: sharedStyles.body,
+  label: sharedStyles.label,
+  ...local,
+};

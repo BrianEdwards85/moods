@@ -179,7 +179,7 @@ export default function TagEditModal({ tag, onClose, onSaved }: Props) {
                     disabled={saving}
                   >
                     {saving ? (
-                      <ActivityIndicator color="#1f2335" />
+                      <ActivityIndicator color={colors.darkText} />
                     ) : (
                       <Text style={styles.saveBtnText}>Save</Text>
                     )}
