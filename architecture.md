@@ -47,6 +47,7 @@ Moods is a shared mood-tracking app for partners. Both users log how they're fee
 | State management | [Zustand](https://zustand.docs.pmnd.rs/) v5 | Minimal store |
 | Persistence | [AsyncStorage](https://react-native-async-storage.github.io/async-storage/) | Token & user storage |
 | Notifications | [expo-notifications](https://docs.expo.dev/versions/latest/sdk/notifications/) | Local reminder scheduling |
+| GraphQL devtools | [@urql/devtools](https://github.com/urql-graphql/urql-devtools) | Enabled in local & dev builds |
 | Icons | [Expo Vector Icons](https://icons.expo.fyi/) | MaterialCommunityIcons |
 
 ### Database
@@ -122,6 +123,7 @@ moods/
         user_select.cljs       Login / user selection
         components.cljs        Shared UI components
   android/
+    app.config.ts            Dynamic Expo config (variant-based name, package, cleartext)
     app/
       _layout.tsx            Root layout (urql provider, theme)
       user-select.tsx        Login screen
@@ -132,12 +134,13 @@ moods/
         settings.tsx           Settings & sharing tab
     components/              EntryCard, DateDivider, MoodModal, MoodTag, etc.
     lib/
+      config.ts              Build variant config (API URL, devtools flag)
       graphql/
-        client.ts              urql client configuration
+        client.ts              urql client (variant-aware URL, conditional devtools)
         queries.ts             GraphQL query strings
         mutations.ts           GraphQL mutation strings
       store.ts               Zustand store (auth, users, UI state)
-      useNotifications.ts    Local reminder scheduling (18h after last mood log)
+      useNotifications.ts    Local reminder scheduling
       theme.ts               Color tokens
       utils.ts               Gravatar, date formatting
   tests/
@@ -150,6 +153,20 @@ moods/
     test_edge_cases.py       Edge cases
     test_sharing.py          Sharing visibility & filter tests
 ```
+
+---
+
+## Build Variants (Android)
+
+The Android app uses `EXPO_PUBLIC_APP_VARIANT` to select between three build configurations:
+
+| Variant | API URL | Devtools | Command |
+|---------|---------|----------|---------|
+| `local` | `http://localhost:8000` | Yes | `npm start` |
+| `dev` | `https://moods-dev.free-side.us` | Yes | `npm run start:dev` |
+| `release` | `https://moods.free-side.us` | No | EAS production build |
+
+Each variant installs as a separate app (`com.moods.app.local`, `com.moods.app.dev`, `com.moods.app`) so they can coexist on the same device. The variant is set via inline env var in npm scripts (local dev) or `eas.json` env blocks (EAS builds). `app.config.ts` reads the variant to configure the package name, app name suffix, and cleartext traffic. `lib/config.ts` maps the variant to the API URL and devtools flag, consumed by the urql client.
 
 ---
 
