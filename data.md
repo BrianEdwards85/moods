@@ -18,6 +18,7 @@
 |-----------------|----------|------------------------------------------------------|
 | `avatarUrl`     | string   | URL for the user's avatar image                      |
 | `color`         | string   | Hex color used in the timeline                       |
+| `notifications` | string[] | Enabled notification types: `"reminder"`             |
 
 ---
 

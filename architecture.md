@@ -46,6 +46,7 @@ Moods is a shared mood-tracking app for partners. Both users log how they're fee
 | GraphQL client | [urql](https://urql.dev/) v5 | Lightweight |
 | State management | [Zustand](https://zustand.docs.pmnd.rs/) v5 | Minimal store |
 | Persistence | [AsyncStorage](https://react-native-async-storage.github.io/async-storage/) | Token & user storage |
+| Notifications | [expo-notifications](https://docs.expo.dev/versions/latest/sdk/notifications/) | Local reminder scheduling |
 | Icons | [Expo Vector Icons](https://icons.expo.fyi/) | MaterialCommunityIcons |
 
 ### Database
@@ -136,6 +137,7 @@ moods/
         queries.ts             GraphQL query strings
         mutations.ts           GraphQL mutation strings
       store.ts               Zustand store (auth, users, UI state)
+      useNotifications.ts    Local reminder scheduling (18h after last mood log)
       theme.ts               Color tokens
       utils.ts               Gravatar, date formatting
   tests/
