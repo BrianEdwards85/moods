@@ -321,6 +321,8 @@ Path-filtered to only run when `android/**` or the workflow file itself changes.
 
 **Build pipeline:** Checkout → Node 20 + npm ci → Java 17 (Temurin) → `expo prebuild --platform android --clean` → `./gradlew assembleRelease --no-daemon` → upload APK artifact.
 
+**Auto-release:** On pushes to `main`, after the APK is built the workflow reads `version` from `android/package.json` and checks if a `v{version}` git tag already exists. If not, it creates a GitHub Release (which also creates the tag) with the APK attached and auto-generated release notes. To trigger a release, bump the `version` field in your PR before merging. If the version wasn't bumped, the step is skipped.
+
 **Notes:**
 - APKs use debug signing (installable via sideloading, not signed for Play Store)
 - Gradle caches are persisted between runs for faster rebuilds

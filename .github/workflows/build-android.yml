@@ -67,3 +67,28 @@ jobs:
         with:
           name: ${{ steps.variant.outputs.apk_name }}
           path: android/android/app/build/outputs/apk/release/*.apk
+
+      - name: Get version
+        if: github.ref == 'refs/heads/main'
+        id: version
+        run: echo "tag=v$(jq -r .version android/package.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Check if tag exists
+        if: github.ref == 'refs/heads/main'
+        id: tag_check
+        run: |
+          if git ls-remote --tags origin "${{ steps.version.outputs.tag }}" | grep -q .; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create GitHub Release
+        if: github.ref == 'refs/heads/main' && steps.tag_check.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.version.outputs.tag }}" \
+            android/android/app/build/outputs/apk/release/*.apk \
+            --title "Moods ${{ steps.version.outputs.tag }}" \
+            --generate-notes
