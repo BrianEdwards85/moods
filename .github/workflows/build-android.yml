@@ -5,12 +5,17 @@ on:
     branches: [main]
     paths:
       - "android/**"
+      - "pyproject.toml"
       - ".github/workflows/build-android.yml"
   pull_request:
     branches: [main]
     paths:
       - "android/**"
+      - "pyproject.toml"
       - ".github/workflows/build-android.yml"
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -71,7 +76,9 @@ jobs:
       - name: Get version
         if: github.ref == 'refs/heads/main'
         id: version
-        run: echo "tag=v$(jq -r .version android/package.json)" >> "$GITHUB_OUTPUT"
+        run: |
+          VERSION=$(python3 -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Check if tag exists
         if: github.ref == 'refs/heads/main'
@@ -91,4 +98,6 @@ jobs:
           gh release create "${{ steps.version.outputs.tag }}" \
             android/android/app/build/outputs/apk/release/*.apk \
             --title "Moods ${{ steps.version.outputs.tag }}" \
-            --generate-notes
+            --generate-notes \
+          || gh release upload "${{ steps.version.outputs.tag }}" \
+            android/android/app/build/outputs/apk/release/*.apk --clobber

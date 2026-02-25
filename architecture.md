@@ -306,6 +306,22 @@ The `pattern` field uses PostgreSQL POSIX regex (`~` operator) matched against `
 
 ## CI/CD
 
+### Versioning
+
+`pyproject.toml` `[project].version` is the **single source of truth** for the project version. Both the backend and Android workflows read from it. To trigger a release, bump the `version` field in your PR before merging.
+
+### Backend Docker Image (GitHub Actions)
+
+The workflow at `.github/workflows/build-backend.yml` builds the Docker image and pushes it to GitHub Container Registry (GHCR).
+
+**Triggers:** Pushes and PRs to `main` when backend-related files change (`src/`, `web/`, `migrations/`, `pyproject.toml`, `uv.lock`, `Dockerfile`, `settings.toml`, or the workflow file).
+
+**Build pipeline:** Checkout → Login to GHCR → Read version from `pyproject.toml` → `docker build` (tagged with version + `latest`) → Push to `ghcr.io/<owner>/moods`.
+
+**On PRs:** The Docker image is built to validate it compiles, but not pushed.
+
+**Auto-release:** On pushes to `main`, if the `v{version}` tag doesn't exist yet, a GitHub Release is created with auto-generated notes.
+
 ### Android APK Builds (GitHub Actions)
 
 The workflow at `.github/workflows/build-android.yml` builds APKs using `expo prebuild` + Gradle directly on GitHub runners, with no Expo account or EAS dependency.
@@ -317,11 +333,11 @@ The workflow at `.github/workflows/build-android.yml` builds APKs using `expo pr
 | Push to branch with open PR to `main` | `dev` | `moods-dev.apk` |
 | Push/merge to `main` | `release` | `moods-release.apk` |
 
-Path-filtered to only run when `android/**` or the workflow file itself changes.
+Path-filtered to only run when `android/**`, `pyproject.toml`, or the workflow file changes.
 
 **Build pipeline:** Checkout → Node 20 + npm ci → Java 17 (Temurin) → `expo prebuild --platform android --clean` → `./gradlew assembleRelease --no-daemon` → upload APK artifact.
 
-**Auto-release:** On pushes to `main`, after the APK is built the workflow reads `version` from `android/package.json` and checks if a `v{version}` git tag already exists. If not, it creates a GitHub Release (which also creates the tag) with the APK attached and auto-generated release notes. To trigger a release, bump the `version` field in your PR before merging. If the version wasn't bumped, the step is skipped.
+**Auto-release:** On pushes to `main`, after the APK is built the workflow reads `version` from `pyproject.toml` and checks if a `v{version}` git tag already exists. If not, it creates a GitHub Release (which also creates the tag) with the APK attached and auto-generated release notes. If the backend workflow already created the release (race condition), the APK is uploaded to the existing release.
 
 **Notes:**
 - APKs use debug signing (installable via sideloading, not signed for Play Store)

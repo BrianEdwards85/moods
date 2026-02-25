@@ -1,0 +1,85 @@
+name: Build Backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "web/**"
+      - "migrations/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "Dockerfile"
+      - "settings.toml"
+      - ".github/workflows/build-backend.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "web/**"
+      - "migrations/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "Dockerfile"
+      - "settings.toml"
+      - ".github/workflows/build-backend.yml"
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        if: github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(python3 -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Build Docker image
+        run: |
+          IMAGE=ghcr.io/${{ github.repository }}
+          IMAGE=${IMAGE,,}
+          docker build -t $IMAGE:${{ steps.version.outputs.version }} -t $IMAGE:latest .
+
+      - name: Push Docker image
+        if: github.ref == 'refs/heads/main'
+        run: |
+          IMAGE=ghcr.io/${{ github.repository }}
+          IMAGE=${IMAGE,,}
+          docker push $IMAGE:${{ steps.version.outputs.version }}
+          docker push $IMAGE:latest
+
+      - name: Check if tag exists
+        if: github.ref == 'refs/heads/main'
+        id: tag_check
+        run: |
+          if git ls-remote --tags origin "${{ steps.version.outputs.tag }}" | grep -q .; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create GitHub Release
+        if: github.ref == 'refs/heads/main' && steps.tag_check.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.version.outputs.tag }}" \
+            --title "Moods ${{ steps.version.outputs.tag }}" \
+            --generate-notes \
+          || true
