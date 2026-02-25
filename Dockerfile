@@ -19,7 +19,9 @@ RUN npm run css:build && npm run cljs:release
 # Stage 2: Python runtime
 FROM python:3.12-slim AS runtime
 
-RUN pip install --no-cache-dir uv
+RUN pip install --no-cache-dir uv \
+    && apt-get update && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -33,5 +35,8 @@ COPY settings.toml ./
 COPY --from=frontend /app/web/resources/public/ web/resources/public/
 
 EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:8000/health || exit 1
 
 CMD ["uv", "run", "uvicorn", "moods.app:app", "--host", "0.0.0.0", "--port", "8000"]

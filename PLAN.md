@@ -791,7 +791,7 @@ Work through these one at a time.
   :entries]`, etc., but these are almost never surfaced in the UI. Add error
   display components to timeline and other views.
 
-- [ ] **Add token refresh / expiration handling** — Neither platform detects
+- [x] **Add token refresh / expiration handling** — Neither platform detects
   expired JWTs. When a GraphQL response returns an auth error, redirect the
   user to re-authenticate. Consider:
   - Android: add an `errorExchange` to the urql client that catches 401s.
