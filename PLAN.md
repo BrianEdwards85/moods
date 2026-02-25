@@ -814,7 +814,7 @@ Work through these one at a time.
   - Web: consider adding `clj-kondo` for ClojureScript linting.
   - Add a `.pre-commit-config.yaml` to run these automatically.
 
-- [ ] **Reduce GraphQL query duplication** — All 12 queries/mutations are
+- [x] **Reduce GraphQL query duplication** — All 12 queries/mutations are
   duplicated between `web/src/moods/gql.cljs` and
   `android/lib/graphql/queries.ts` + `mutations.ts`. Schema changes require
   updates in two places. Options:
@@ -843,6 +843,14 @@ Work through these one at a time.
 - [x] **Add `android/` to `.dockerignore`** — The entire mobile project
   (including `node_modules` if present) gets sent in the Docker build context
   unnecessarily.
+
+- [ ] **Smaller source files ** —
+  - android/app/(tabs)/settings.tsx
+  - android/components/MoodModal.tsx
+  - android/components/TagEditModal.ts
+  - android/app/(tabs)/index.tsx
+  - web/src/moods/views/settings.cljs
+  - web/src/moods/views/tags.cljs
 
 ### 13.4 Medium Priority — Infrastructure
 

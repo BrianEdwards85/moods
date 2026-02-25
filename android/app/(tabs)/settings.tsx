@@ -41,7 +41,8 @@ interface SearchUser {
 export default function SettingsScreen() {
   const router = useRouter();
   const urqlClient = useClient();
-  const { currentUserId, clearAuth } = useStore();
+  const currentUserId = useStore((s) => s.currentUserId);
+  const clearAuth = useStore((s) => s.clearAuth);
 
   const [usersResult] = useQuery({ query: USERS_QUERY });
   const users = usersResult.data?.users ?? [];
