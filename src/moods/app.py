@@ -86,8 +86,8 @@ def create_app() -> Starlette:
         middleware=[
             Middleware(
                 CORSMiddleware,
-                allow_origins=["*"],
-                allow_credentials=True,
+                allow_origins=settings.cors.allow_origins,
+                allow_credentials=settings.cors.allow_credentials,
                 allow_methods=["GET", "POST", "OPTIONS"],
                 allow_headers=["*"],
             ),
