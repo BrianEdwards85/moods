@@ -1,0 +1,1 @@
+{ users { id name email icon settings sharedWith { id user { id name } filters { id pattern isInclude } } } }

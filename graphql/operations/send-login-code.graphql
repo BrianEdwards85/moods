@@ -1,0 +1,3 @@
+mutation SendLoginCode($email: String!) {
+  sendLoginCode(email: $email) { success }
+}

@@ -5,6 +5,9 @@
 __pycache__/
 *.pyc
 
+# Android / Expo
+android/
+
 # Node
 node_modules/
 web/node_modules/

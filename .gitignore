@@ -216,6 +216,11 @@ web/.shadow-cljs/
 web/resources/public/js/
 web/.cpcache/
 
+# Generated GraphQL client files (run: python3 graphql/generate.py)
+web/src/moods/gql.cljs
+android/lib/graphql/queries.ts
+android/lib/graphql/mutations.ts
+
 # Blueprint vendor CSS (copied by postinstall)
 web/resources/public/css/vendor/
 

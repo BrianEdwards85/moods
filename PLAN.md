@@ -756,7 +756,7 @@ Work through these one at a time.
   actual frontend domains (e.g. `https://moods.free-side.us`,
   `http://localhost:3000` for dev).
 
-- [ ] **Store Android auth token securely** — `android/lib/store.ts` uses
+- [x] **Store Android auth token securely** — `android/lib/store.ts` uses
   `AsyncStorage` (unencrypted plaintext). Switch to `expo-secure-store` which
   uses the Android Keystore.
 
@@ -797,7 +797,7 @@ Work through these one at a time.
   - Android: add an `errorExchange` to the urql client that catches 401s.
   - Web: handle auth errors in re-frame event handlers.
 
-- [ ] **Add a health check endpoint** — `src/moods/app.py` has no `/health`
+- [x] **Add a health check endpoint** — `src/moods/app.py` has no `/health`
   route. The SPA fallback returns `index.html` for any unknown path, so
   there's no way to distinguish healthy from broken. Add a `/health` route
   that checks database connectivity. Also add a `HEALTHCHECK` instruction to
@@ -840,7 +840,7 @@ Work through these one at a time.
   `web/src/moods/events.cljs:436-438` performs cookie writes as direct side
   effects inside event handlers. Move to re-frame effects (`:fx`).
 
-- [ ] **Add `android/` to `.dockerignore`** — The entire mobile project
+- [x] **Add `android/` to `.dockerignore`** — The entire mobile project
   (including `node_modules` if present) gets sent in the Docker build context
   unnecessarily.
 

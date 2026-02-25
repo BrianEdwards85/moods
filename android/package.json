@@ -3,12 +3,14 @@
   "main": "expo-router/entry",
   "version": "2.0.0",
   "scripts": {
+    "gql:generate": "python3 ../graphql/generate.py",
+    "prestart": "npm run gql:generate",
     "start": "EXPO_PUBLIC_APP_VARIANT=local expo start",
     "start:dev": "EXPO_PUBLIC_APP_VARIANT=dev expo start",
-    "android": "EXPO_PUBLIC_APP_VARIANT=local expo run:android",
-    "android:dev": "EXPO_PUBLIC_APP_VARIANT=dev expo run:android",
-    "build:dev": "eas build --profile preview --platform android",
-    "build:release": "eas build --profile production --platform android",
+    "android": "npm run gql:generate && EXPO_PUBLIC_APP_VARIANT=local expo run:android",
+    "android:dev": "npm run gql:generate && EXPO_PUBLIC_APP_VARIANT=dev expo run:android",
+    "build:dev": "npm run gql:generate && eas build --profile preview --platform android",
+    "build:release": "npm run gql:generate && eas build --profile production --platform android",
     "ios": "expo run:ios",
     "web": "expo start --web"
   },

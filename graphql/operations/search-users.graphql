@@ -1,0 +1,3 @@
+query SearchUsers($search: String!) {
+  searchUsers(search: $search) { id name email icon }
+}
