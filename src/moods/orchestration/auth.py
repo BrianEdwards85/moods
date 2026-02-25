@@ -30,6 +30,21 @@ async def send_login_code(pool: Pool, email: str, settings) -> bool:
     return True
 
 
+def _create_token(user_id: str, jwt_secret: str, jwt_expiry_days: int) -> str:
+    now = datetime.now(timezone.utc)
+    return jwt.encode(
+        {
+            "sub": str(user_id),
+            "exp": now + timedelta(days=jwt_expiry_days),
+            "refresh_after": int(
+                (now + timedelta(days=jwt_expiry_days / 2)).timestamp()
+            ),
+        },
+        jwt_secret,
+        algorithm="HS256",
+    )
+
+
 async def verify_login_code(
     pool: Pool, email: str, code: str, jwt_secret: str, jwt_expiry_days: int
 ) -> dict | None:
@@ -45,9 +60,17 @@ async def verify_login_code(
     if not verified:
         return None
 
-    token = jwt.encode(
-        {"sub": str(user["id"]), "exp": now + timedelta(days=jwt_expiry_days)},
-        jwt_secret,
-        algorithm="HS256",
-    )
+    token = _create_token(str(user["id"]), jwt_secret, jwt_expiry_days)
     return {"token": token, "user": user}
+
+
+def refresh_token(
+    current_token: str, jwt_secret: str, jwt_expiry_days: int
+) -> str | None:
+    try:
+        payload = jwt.decode(current_token, jwt_secret, algorithms=["HS256"])
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
+    return _create_token(payload["sub"], jwt_secret, jwt_expiry_days)

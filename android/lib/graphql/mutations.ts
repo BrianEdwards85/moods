@@ -51,3 +51,9 @@ export const UPDATE_SHARING_MUTATION = `
     }
   }
 `;
+
+export const REFRESH_TOKEN_MUTATION = `
+  mutation RefreshToken {
+    refreshToken { token }
+  }
+`;

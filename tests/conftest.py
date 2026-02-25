@@ -52,10 +52,12 @@ async def _clean_db(pool):
 
 def auth_header(user_id: str) -> dict:
     """Mint a JWT for test use and return an Authorization header dict."""
+    now = datetime.now(timezone.utc)
     token = jwt.encode(
         {
             "sub": str(user_id),
-            "exp": datetime.now(timezone.utc) + timedelta(days=1),
+            "exp": now + timedelta(days=1),
+            "refresh_after": int((now + timedelta(hours=12)).timestamp()),
         },
         settings.jwt_secret,
         algorithm="HS256",

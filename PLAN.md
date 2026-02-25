@@ -778,7 +778,7 @@ Work through these one at a time.
   - For Android workflow: add `npx tsc --noEmit` (type check)
   - Requires adding `ruff` to dev dependencies in `pyproject.toml`.
 
-- [ ] **Handle mutation errors in Android** — Several mutations silently
+- [x] **Handle mutation errors in Android** — Several mutations silently
   swallow errors:
   - `android/components/MoodModal.tsx:59-76` — `logMood()` result never
     checked; modal closes regardless of success/failure (data loss risk).
@@ -786,7 +786,7 @@ Work through these one at a time.
     not checked.
   - Check `result.error` and show user feedback (toast/alert) on failure.
 
-- [ ] **Handle mutation errors in web** — `web/src/moods/events.cljs` stores
+- [x] **Handle mutation errors in web** — `web/src/moods/events.cljs` stores
   GraphQL errors in the db at paths like `[:errors :users]`, `[:errors
   :entries]`, etc., but these are almost never surfaced in the UI. Add error
   display components to timeline and other views.

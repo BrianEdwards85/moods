@@ -2,6 +2,7 @@
   (:require [moods.db :as db]
             [moods.gql :as gql]
             [moods.routes :as routes]
+            [moods.util :as util]
             [re-frame.core :as rf]
             [moods.storage :as storage]
             [re-graph.core :as re-graph]))
@@ -26,12 +27,70 @@
     (cond-> {:url "/graphql"}
       token (assoc :impl {:headers {"Authorization" (str "Bearer " token)}}))))
 
+(rf/reg-fx
+ :clear-auth-storage
+ (fn [_]
+   (storage/remove-item! "moods-user-id")
+   (storage/remove-item! "moods-token")))
+
 (rf/reg-event-fx
  ::boot
  (fn [{:keys [db]} _]
-   (cond-> {:dispatch-n [[::re-graph/init {:ws   nil
-                                            :http (re-graph-http-opts db)}]]}
-     (:auth-token db) (update :dispatch-n conj [::fetch-users]))))
+   (let [token (:auth-token db)]
+     (cond
+       ;; Expired token — clear everything, send to login
+       (and token (util/token-expired? token))
+       {:db                (assoc db :auth-token nil :current-user-id nil)
+        :clear-auth-storage true}
+
+       ;; Token needs refresh — init re-graph then refresh before fetching
+       (and token (util/token-needs-refresh? token))
+       {:dispatch-n [[::re-graph/init {:ws nil :http (re-graph-http-opts db)}]
+                     [::refresh-token]]}
+
+       ;; Normal boot
+       :else
+       (cond-> {:dispatch-n [[::re-graph/init {:ws   nil
+                                                :http (re-graph-http-opts db)}]]}
+         token (update :dispatch-n conj [::fetch-users]))))))
+
+(rf/reg-event-fx
+ ::refresh-token
+ (fn [_ _]
+   {:dispatch [::re-graph/mutate
+               {:query    gql/refresh-token-mutation
+                :variables {}
+                :callback [::on-token-refreshed]}]}))
+
+(rf/reg-event-fx
+ ::on-token-refreshed
+ [rf/unwrap]
+ (fn [{:keys [db]} {:keys [response]}]
+   (let [{:keys [data errors]} response
+         new-token (get-in data [:refreshToken :token])]
+     (if (and (nil? errors) new-token)
+       (do
+         (storage/set-item! "moods-token" new-token)
+         {:db         (assoc db :auth-token new-token)
+          :dispatch-n [[::re-graph/re-init {:http {:impl {:headers {"Authorization" (str "Bearer " new-token)}}}}]
+                       [::fetch-users]]})
+       {:db                (assoc db :auth-token nil :current-user-id nil :current-user nil)
+        :clear-auth-storage true
+        :dispatch          [::re-graph/re-init {:http {:impl {:headers {}}}}]}))))
+
+(rf/reg-event-fx
+ ::tick
+ (fn [{:keys [db]} _]
+   (let [token (:auth-token db)]
+     (cond
+       (or (nil? token) (util/token-expired? token))
+       {:dispatch [::switch-user]}
+
+       (util/token-needs-refresh? token)
+       {:dispatch-n [[::refresh-token] [::fetch-entries]]}
+
+       :else
+       {:dispatch [::fetch-entries]}))))
 
 ;; ---------------------------------------------------------------------------
 ;; Users
@@ -76,7 +135,7 @@
    (when-let [h @poll-handle]
      (js/clearInterval h))
    (reset! poll-handle
-           (js/setInterval #(rf/dispatch [::fetch-entries]) poll-interval-ms))))
+           (js/setInterval #(rf/dispatch [::tick]) poll-interval-ms))))
 
 (rf/reg-fx
  :stop-poll

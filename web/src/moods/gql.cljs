@@ -77,6 +77,11 @@
      }
    }")
 
+(def refresh-token-mutation
+  "mutation RefreshToken {
+     refreshToken { token }
+   }")
+
 (def search-users-query
   "query SearchUsers($search: String!) {
      searchUsers(search: $search) { id name email icon }
