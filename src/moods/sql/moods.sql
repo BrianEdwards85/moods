@@ -50,10 +50,11 @@ insert into mood_entries (user_id, mood, notes)
 values (:user_id, :mood, :notes)
 returning id, user_id, mood, notes, created_at, archived_at;
 
--- name: archive_mood_entry(id)^
+-- name: archive_mood_entry(id, user_id)^
 update mood_entries
 set archived_at = now()
 where id = :id
+  and user_id = :user_id::uuid
   and archived_at is null
 returning id, user_id, mood, notes, created_at, archived_at;
 

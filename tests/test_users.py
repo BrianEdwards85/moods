@@ -81,8 +81,8 @@ async def test_update_user_settings(client):
     new_settings = {"theme": "dark", "notifications": True}
     body = await gql(
         client, UPDATE_SETTINGS,
-        {"input": {"id": created["id"], "settings": new_settings}},
-        headers=H,
+        {"input": {"settings": new_settings}},
+        headers=auth_header(created["id"]),
     )
     updated = body["data"]["updateUserSettings"]
     assert updated["settings"] == new_settings

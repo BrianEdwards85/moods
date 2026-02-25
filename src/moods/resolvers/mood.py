@@ -28,7 +28,7 @@ async def resolve_log_mood(_obj, info, *, input):
     require_auth(info)
     return await mood_data.create_mood_entry(
         info.context["pool"],
-        user_id=input["user_id"],
+        user_id=info.context["auth_user_id"],
         mood=input["mood"],
         notes=input["notes"],
         tags=input.get("tags"),
@@ -38,7 +38,9 @@ async def resolve_log_mood(_obj, info, *, input):
 @mutation.field("archiveMoodEntry")
 async def resolve_archive_mood_entry(_obj, info, *, id):
     require_auth(info)
-    return await mood_data.archive_mood_entry(info.context["pool"], id)
+    return await mood_data.archive_mood_entry(
+        info.context["pool"], entry_id=id, user_id=info.context["auth_user_id"]
+    )
 
 
 @mood_entry.field("user")

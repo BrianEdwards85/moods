@@ -43,7 +43,6 @@ input CreateUserInput {
 }
 
 input UpdateUserSettingsInput {
-  id: ID!
   settings: JSON!
 }
 

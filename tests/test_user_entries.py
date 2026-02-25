@@ -34,8 +34,8 @@ async def _create_user(client, name="Alice", email="alice@test.com"):
 
 async def _log_mood(client, user_id, mood=7, notes="ok"):
     await gql(client, LOG_MOOD, {
-        "input": {"userId": user_id, "mood": mood, "notes": notes, "tags": []}
-    }, headers=H)
+        "input": {"mood": mood, "notes": notes, "tags": []}
+    }, headers=auth_header(user_id))
 
 
 async def test_user_entries_connection(client):

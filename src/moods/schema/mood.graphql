@@ -36,7 +36,6 @@ extend type Query {
 # --- Mutations ---
 
 input LogMoodInput {
-  userId: ID!
   mood: Int!
   notes: String!
   tags: [String!]

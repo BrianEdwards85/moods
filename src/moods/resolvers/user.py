@@ -39,7 +39,7 @@ async def resolve_create_user(_obj, info, *, input):
 async def resolve_update_user_settings(_obj, info, *, input):
     require_auth(info)
     return await user_data.update_user_settings(
-        info.context["pool"], id=input["id"], settings=input["settings"]
+        info.context["pool"], id=info.context["auth_user_id"], settings=input["settings"]
     )
 
 
