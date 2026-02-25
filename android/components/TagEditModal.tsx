@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -50,24 +51,36 @@ export default function TagEditModal({ tag, onClose, onSaved }: Props) {
     const metadata: Record<string, string> = {};
     if (color) metadata.color = color;
     if (face) metadata.face = face;
-    await updateMeta({ input: { name: tag.name, metadata } });
+    const result = await updateMeta({ input: { name: tag.name, metadata } });
     setSaving(false);
+    if (result.error) {
+      Alert.alert('Error', 'Failed to save tag. Please try again.');
+      return;
+    }
     onSaved();
   };
 
   const onArchive = async () => {
     if (!tag) return;
     setSaving(true);
-    await archiveTag({ name: tag.name });
+    const result = await archiveTag({ name: tag.name });
     setSaving(false);
+    if (result.error) {
+      Alert.alert('Error', 'Failed to archive tag.');
+      return;
+    }
     onSaved();
   };
 
   const onUnarchive = async () => {
     if (!tag) return;
     setSaving(true);
-    await unarchiveTag({ name: tag.name });
+    const result = await unarchiveTag({ name: tag.name });
     setSaving(false);
+    if (result.error) {
+      Alert.alert('Error', 'Failed to unarchive tag.');
+      return;
+    }
     onSaved();
   };
 

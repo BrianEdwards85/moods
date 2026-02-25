@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -58,7 +59,7 @@ export default function MoodModal({ onSaved }: { onSaved: () => void }) {
 
   const submit = async () => {
     if (!mood || !userId) return;
-    await logMood({
+    const result = await logMood({
       input: {
         userId,
         mood,
@@ -66,6 +67,10 @@ export default function MoodModal({ onSaved }: { onSaved: () => void }) {
         tags: selectedTags.length ? selectedTags : null,
       },
     });
+    if (result.error) {
+      Alert.alert('Error', 'Failed to save mood. Please try again.');
+      return;
+    }
     scheduleReminder();
     setMood(null);
     setNotes('');

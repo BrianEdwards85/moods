@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -103,7 +104,9 @@ export default function SettingsScreen() {
         }));
       const result = await updateSharing({ input: { rules } });
       setSavingSharing(false);
-      if (!result.error) {
+      if (result.error) {
+        Alert.alert('Error', 'Failed to save sharing settings.');
+      } else {
         serverSharesRef.current = current;
       }
     }, 1000);
@@ -138,8 +141,11 @@ export default function SettingsScreen() {
     const notifications: string[] = [];
     if (reminderEnabled) notifications.push('reminder');
     settings.notifications = notifications;
-    await updateSettings({ input: { id: currentUserId, settings } });
+    const result = await updateSettings({ input: { id: currentUserId, settings } });
     setSavingSettings(false);
+    if (result.error) {
+      Alert.alert('Error', 'Failed to save profile settings.');
+    }
   }, [currentUserId, avatarUrl, selectedColor, reminderEnabled]);
 
   const handleToggleReminder = useCallback((value: boolean) => {

@@ -52,12 +52,17 @@
 (defn user-select-screen []
   (let [email-input (r/atom (or @(rf/subscribe [::subs/login-email]) ""))]
     (fn []
-      (let [loading? @(rf/subscribe [::subs/loading? :login])]
+      (let [loading? @(rf/subscribe [::subs/loading? :login])
+            error    @(rf/subscribe [::subs/login-error])
+            code-sent? @(rf/subscribe [::subs/login-code-sent])]
         [:div.flex.items-center.justify-center.min-h-screen
          [:div.text-center {:class "max-w-sm w-full px-4"}
           [bp/icon {:icon "heart" :size 48 :class "mb-4" :intent "primary"}]
           [:h1.bp6-heading.mb-2 {:style {:font-size "2.5rem"}} "Moods"]
           [:p {:class "text-tn-fg-muted text-lg mb-8"} "Sign in with your email"]
+          (when (and error (not code-sent?))
+            [bp/callout {:intent "danger" :class "mb-4"}
+             (or (:message error) "Failed to send login code. Please try again.")])
           [:div {:class "flex gap-2"}
            [bp/input-group {:placeholder "you@example.com"
                             :value       @email-input

@@ -163,8 +163,12 @@
       (reset! initial-load false))
     (fn []
       (let [{:keys [search show-archived edges page-info]} @(rf/subscribe [::subs/tags-page])
-            loading? @(rf/subscribe [::subs/loading? :tags-page])]
+            loading?   @(rf/subscribe [::subs/loading? :tags-page])
+            page-error @(rf/subscribe [::subs/error :tags-page])]
         [:div {:class "max-w-2xl mx-auto px-4 py-4"}
+         (when page-error
+           [:div {:class "mb-4 p-3 rounded bg-tn-red/10 text-tn-red text-sm"}
+            "Failed to load tags. Please try refreshing."])
          [:div.flex.items-center.justify-between.mb-4
           [:h3.bp6-heading "Tags"]
           [bp/button {:icon     "refresh"

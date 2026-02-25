@@ -1,9 +1,9 @@
 (ns moods.events
-  (:require [moods.cookies :as cookies]
-            [moods.db :as db]
+  (:require [moods.db :as db]
             [moods.gql :as gql]
             [moods.routes :as routes]
             [re-frame.core :as rf]
+            [moods.storage :as storage]
             [re-graph.core :as re-graph]))
 
 ;; ---------------------------------------------------------------------------
@@ -13,9 +13,9 @@
 (rf/reg-event-fx
  ::initialize-db
  (fn [_ _]
-   (let [user-id (cookies/get-cookie "moods-user-id")
-         token   (cookies/get-cookie "moods-token")
-         email   (cookies/get-cookie "moods-email")]
+   (let [user-id (storage/get-item "moods-user-id")
+         token   (storage/get-item "moods-token")
+         email   (storage/get-item "moods-email")]
      {:db (assoc db/default-db
                  :current-user-id user-id
                  :auth-token token
@@ -410,7 +410,7 @@
    (let [{:keys [errors]} response]
      {:db (-> db
               (update :loading disj :login)
-              (assoc :login-code-sent true)
+              (assoc :login-code-sent (not errors))
               (assoc :login-error (when errors (first errors))))})))
 
 (rf/reg-event-fx
@@ -433,9 +433,9 @@
                 (update :loading disj :login)
                 (assoc :login-error (first errors)))}
        (let [{:keys [token user]} (:verifyLoginCode data)]
-         (cookies/set-cookie! "moods-token" token)
-         (cookies/set-cookie! "moods-user-id" (:id user))
-         (cookies/set-cookie! "moods-email" (:login-email db))
+         (storage/set-item! "moods-token" token)
+         (storage/set-item! "moods-user-id" (:id user))
+         (storage/set-item! "moods-email" (:login-email db))
          (routes/navigate! :route/timeline)
          {:db         (-> db
                           (update :loading disj :login)
@@ -464,8 +464,8 @@
 (rf/reg-event-fx
  ::switch-user
  (fn [{:keys [db]} _]
-   (cookies/clear-cookie! "moods-user-id")
-   (cookies/clear-cookie! "moods-token")
+   (storage/remove-item! "moods-user-id")
+   (storage/remove-item! "moods-token")
    (routes/navigate! :route/user-select)
    {:db        (assoc db
                       :current-user-id nil

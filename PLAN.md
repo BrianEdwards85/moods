@@ -708,6 +708,7 @@ decisions are made and phases are completed.*
 
  - User settings
  - ~~mood delta~~ ✅
+ ✅
 
 ---
 
@@ -750,7 +751,7 @@ Work through these one at a time.
   key. Rotate the key in Mailgun, scrub the old value from git history with
   `git filter-repo`, and verify `.secrets.toml` stays gitignored going forward.
 
-- [ ] **Lock down CORS origins** — `src/moods/app.py:87-93` uses
+- [x] **Lock down CORS origins** — `src/moods/app.py:87-93` uses
   `allow_origins=["*"]` with `allow_credentials=True`. Replace `"*"` with the
   actual frontend domains (e.g. `https://moods.free-side.us`,
   `http://localhost:3000` for dev).
@@ -759,7 +760,7 @@ Work through these one at a time.
   `AsyncStorage` (unencrypted plaintext). Switch to `expo-secure-store` which
   uses the Android Keystore.
 
-- [ ] **Add `Secure` flag to web cookies** — `web/src/moods/cookies.cljs:10-13`
+- [x] **Add `Secure` flag to web cookies** — `web/src/moods/cookies.cljs:10-13`
   sets auth cookies without the `Secure` flag, exposing tokens over HTTP. Add
   `; Secure` to the cookie string. Longer term, consider setting auth cookies
   from the server with `HttpOnly; Secure` headers.
