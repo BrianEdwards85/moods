@@ -38,7 +38,13 @@ export default function EntryCard({ entry, user, mine }: Props) {
 
   return (
     <View style={[styles.outer, mine ? styles.mine : styles.partner]}>
-      <View style={[styles.card, { backgroundColor: bg }, userColor ? { borderLeftWidth: 4, borderLeftColor: userColor } : null]}>
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: bg },
+          userColor ? { borderLeftWidth: 4, borderLeftColor: userColor } : null,
+        ]}
+      >
         <View style={styles.header}>
           <Image source={{ uri: avatarUri }} style={styles.avatar} />
           <View style={styles.nameRow}>

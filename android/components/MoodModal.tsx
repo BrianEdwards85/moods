@@ -40,12 +40,12 @@ export default function MoodModal({ onSaved }: { onSaved: () => void }) {
   const [logResult, logMood] = useMutation(LOG_MOOD_MUTATION);
 
   const allTags = (tagsResult.data?.tags?.edges ?? []).map(
-    (e: { node: { name: string; metadata: Record<string, string> } }) => e.node
+    (e: { node: { name: string; metadata: Record<string, string> } }) => e.node,
   );
 
   const toggleTag = (name: string) => {
     setSelectedTags((prev) =>
-      prev.includes(name) ? prev.filter((t) => t !== name) : [...prev, name]
+      prev.includes(name) ? prev.filter((t) => t !== name) : [...prev, name],
     );
   };
 
@@ -157,9 +157,7 @@ export default function MoodModal({ onSaved }: { onSaved: () => void }) {
             </View>
             <View style={styles.tagList}>
               {allTags
-                .filter(
-                  (t: { name: string }) => !selectedTags.includes(t.name)
-                )
+                .filter((t: { name: string }) => !selectedTags.includes(t.name))
                 .map((t: { name: string; metadata: Record<string, string> }) => (
                   <Pressable key={t.name} onPress={() => toggleTag(t.name)}>
                     <MoodTag name={t.name} metadata={t.metadata} />
@@ -167,12 +165,12 @@ export default function MoodModal({ onSaved }: { onSaved: () => void }) {
                 ))}
               {tagSearch.trim() &&
                 !allTags.some(
-                  (t: { name: string }) => t.name === tagSearch.trim().toLowerCase()
+                  (t: { name: string }) => t.name === tagSearch.trim().toLowerCase(),
                 ) && (
                   <Pressable onPress={addCustomTag}>
                     <View style={styles.createTag}>
                       <Text style={styles.createTagText}>
-                        Create "{tagSearch.trim().toLowerCase()}"
+                        Create &quot;{tagSearch.trim().toLowerCase()}&quot;
                       </Text>
                     </View>
                   </Pressable>

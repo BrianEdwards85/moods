@@ -40,13 +40,16 @@ mutation LogMood($input: LogMoodInput!) {
 
 
 async def _create_user(client, name, email):
-    body = await gql(client, CREATE_USER, {"input": {"name": name, "email": email}}, headers=H)
+    body = await gql(
+        client, CREATE_USER, {"input": {"name": name, "email": email}}, headers=H
+    )
     return body["data"]["createUser"]
 
 
 async def _log_mood(client, user_id, mood, notes="", tags=None, headers=None):
     body = await gql(
-        client, LOG_MOOD,
+        client,
+        LOG_MOOD,
         {"input": {"mood": mood, "notes": notes, "tags": tags or []}},
         headers=headers or auth_header(user_id),
     )
@@ -55,7 +58,8 @@ async def _log_mood(client, user_id, mood, notes="", tags=None, headers=None):
 
 async def _query_entries(client, user_ids=None, headers=None):
     body = await gql(
-        client, MOOD_ENTRIES,
+        client,
+        MOOD_ENTRIES,
         {"userIds": user_ids, "first": 50},
         headers=headers,
     )
@@ -67,7 +71,8 @@ async def test_create_sharing_rule(client):
     bob = await _create_user(client, "Bob", "bob@example.com")
 
     body = await gql(
-        client, UPDATE_SHARING,
+        client,
+        UPDATE_SHARING,
         {"input": {"rules": [{"userId": bob["id"], "filters": []}]}},
         headers=auth_header(alice["id"]),
     )
@@ -84,14 +89,16 @@ async def test_update_sharing_replaces_rules(client):
 
     # Share with Bob
     await gql(
-        client, UPDATE_SHARING,
+        client,
+        UPDATE_SHARING,
         {"input": {"rules": [{"userId": bob["id"], "filters": []}]}},
         headers=auth_header(alice["id"]),
     )
 
     # Replace: now share with Carol only
     body = await gql(
-        client, UPDATE_SHARING,
+        client,
+        UPDATE_SHARING,
         {"input": {"rules": [{"userId": carol["id"], "filters": []}]}},
         headers=auth_header(alice["id"]),
     )
@@ -112,7 +119,8 @@ async def test_shared_entries_visible(client):
 
     # Alice shares with Bob
     await gql(
-        client, UPDATE_SHARING,
+        client,
+        UPDATE_SHARING,
         {"input": {"rules": [{"userId": bob["id"], "filters": []}]}},
         headers=auth_header(alice["id"]),
     )
@@ -152,10 +160,18 @@ async def test_include_filter(client):
 
     # Alice shares with Bob, include only "happy"
     await gql(
-        client, UPDATE_SHARING,
-        {"input": {"rules": [{"userId": bob["id"], "filters": [
-            {"pattern": "happy", "isInclude": True}
-        ]}]}},
+        client,
+        UPDATE_SHARING,
+        {
+            "input": {
+                "rules": [
+                    {
+                        "userId": bob["id"],
+                        "filters": [{"pattern": "happy", "isInclude": True}],
+                    }
+                ]
+            }
+        },
         headers=auth_header(alice["id"]),
     )
 
@@ -173,10 +189,18 @@ async def test_exclude_filter(client):
 
     # Alice shares with Bob, exclude "private"
     await gql(
-        client, UPDATE_SHARING,
-        {"input": {"rules": [{"userId": bob["id"], "filters": [
-            {"pattern": "private", "isInclude": False}
-        ]}]}},
+        client,
+        UPDATE_SHARING,
+        {
+            "input": {
+                "rules": [
+                    {
+                        "userId": bob["id"],
+                        "filters": [{"pattern": "private", "isInclude": False}],
+                    }
+                ]
+            }
+        },
         headers=auth_header(alice["id"]),
     )
 
@@ -196,11 +220,21 @@ async def test_mixed_filters_exclude_takes_precedence(client):
 
     # Include "happy" but exclude "private"
     await gql(
-        client, UPDATE_SHARING,
-        {"input": {"rules": [{"userId": bob["id"], "filters": [
-            {"pattern": "happy", "isInclude": True},
-            {"pattern": "private", "isInclude": False},
-        ]}]}},
+        client,
+        UPDATE_SHARING,
+        {
+            "input": {
+                "rules": [
+                    {
+                        "userId": bob["id"],
+                        "filters": [
+                            {"pattern": "happy", "isInclude": True},
+                            {"pattern": "private", "isInclude": False},
+                        ],
+                    }
+                ]
+            }
+        },
         headers=auth_header(alice["id"]),
     )
 
@@ -219,11 +253,21 @@ async def test_multiple_include_filters_or_semantics(client):
 
     # Include "happy" OR "calm"
     await gql(
-        client, UPDATE_SHARING,
-        {"input": {"rules": [{"userId": bob["id"], "filters": [
-            {"pattern": "happy", "isInclude": True},
-            {"pattern": "calm", "isInclude": True},
-        ]}]}},
+        client,
+        UPDATE_SHARING,
+        {
+            "input": {
+                "rules": [
+                    {
+                        "userId": bob["id"],
+                        "filters": [
+                            {"pattern": "happy", "isInclude": True},
+                            {"pattern": "calm", "isInclude": True},
+                        ],
+                    }
+                ]
+            }
+        },
         headers=auth_header(alice["id"]),
     )
 
@@ -244,10 +288,18 @@ async def test_entries_with_no_tags_hidden_by_include_filter(client):
 
     # Include only "happy"
     await gql(
-        client, UPDATE_SHARING,
-        {"input": {"rules": [{"userId": bob["id"], "filters": [
-            {"pattern": "happy", "isInclude": True}
-        ]}]}},
+        client,
+        UPDATE_SHARING,
+        {
+            "input": {
+                "rules": [
+                    {
+                        "userId": bob["id"],
+                        "filters": [{"pattern": "happy", "isInclude": True}],
+                    }
+                ]
+            }
+        },
         headers=auth_header(alice["id"]),
     )
 
@@ -264,14 +316,16 @@ async def test_soft_delete_shares(client):
 
     # Share with Bob
     await gql(
-        client, UPDATE_SHARING,
+        client,
+        UPDATE_SHARING,
         {"input": {"rules": [{"userId": bob["id"], "filters": []}]}},
         headers=auth_header(alice["id"]),
     )
 
     # Replace: now share with Carol only (Bob's share should be archived, not deleted)
     body = await gql(
-        client, UPDATE_SHARING,
+        client,
+        UPDATE_SHARING,
         {"input": {"rules": [{"userId": carol["id"], "filters": []}]}},
         headers=auth_header(alice["id"]),
     )
@@ -281,7 +335,8 @@ async def test_soft_delete_shares(client):
 
     # Verify the old share still exists in the database (archived)
     body = await gql(
-        client, USER_SHARED_WITH,
+        client,
+        USER_SHARED_WITH,
         {"id": alice["id"]},
         headers=auth_header(alice["id"]),
     )
@@ -299,7 +354,8 @@ async def test_archived_share_hides_entries(client):
 
     # Alice shares with Bob
     await gql(
-        client, UPDATE_SHARING,
+        client,
+        UPDATE_SHARING,
         {"input": {"rules": [{"userId": bob["id"], "filters": []}]}},
         headers=auth_header(alice["id"]),
     )
@@ -310,7 +366,8 @@ async def test_archived_share_hides_entries(client):
 
     # Alice removes the share (archives it)
     await gql(
-        client, UPDATE_SHARING,
+        client,
+        UPDATE_SHARING,
         {"input": {"rules": []}},
         headers=auth_header(alice["id"]),
     )
@@ -329,7 +386,8 @@ async def test_re_add_archived_share(client):
 
     # Alice shares with Bob
     await gql(
-        client, UPDATE_SHARING,
+        client,
+        UPDATE_SHARING,
         {"input": {"rules": [{"userId": bob["id"], "filters": []}]}},
         headers=auth_header(alice["id"]),
     )
@@ -338,7 +396,8 @@ async def test_re_add_archived_share(client):
 
     # Alice removes the share (archives it)
     await gql(
-        client, UPDATE_SHARING,
+        client,
+        UPDATE_SHARING,
         {"input": {"rules": []}},
         headers=auth_header(alice["id"]),
     )
@@ -347,10 +406,18 @@ async def test_re_add_archived_share(client):
 
     # Alice re-adds the share with Bob
     body = await gql(
-        client, UPDATE_SHARING,
-        {"input": {"rules": [{"userId": bob["id"], "filters": [
-            {"pattern": "happy", "isInclude": True}
-        ]}]}},
+        client,
+        UPDATE_SHARING,
+        {
+            "input": {
+                "rules": [
+                    {
+                        "userId": bob["id"],
+                        "filters": [{"pattern": "happy", "isInclude": True}],
+                    }
+                ]
+            }
+        },
         headers=auth_header(alice["id"]),
     )
     user = body["data"]["updateSharing"]
@@ -364,7 +431,8 @@ async def test_re_add_archived_share(client):
 
     # Re-add without filters — Bob sees everything
     body = await gql(
-        client, UPDATE_SHARING,
+        client,
+        UPDATE_SHARING,
         {"input": {"rules": [{"userId": bob["id"], "filters": []}]}},
         headers=auth_header(alice["id"]),
     )
@@ -383,10 +451,18 @@ async def test_entries_with_no_tags_visible_with_exclude_only(client):
 
     # Exclude "private" only (no include filters)
     await gql(
-        client, UPDATE_SHARING,
-        {"input": {"rules": [{"userId": bob["id"], "filters": [
-            {"pattern": "private", "isInclude": False}
-        ]}]}},
+        client,
+        UPDATE_SHARING,
+        {
+            "input": {
+                "rules": [
+                    {
+                        "userId": bob["id"],
+                        "filters": [{"pattern": "private", "isInclude": False}],
+                    }
+                ]
+            }
+        },
         headers=auth_header(alice["id"]),
     )
 

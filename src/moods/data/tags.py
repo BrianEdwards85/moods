@@ -35,9 +35,7 @@ async def get_tags(
 
 
 async def update_tag_metadata(pool: Pool, name: str, metadata: dict) -> dict:
-    row = await queries.update_tag_metadata(
-        pool, name=name, metadata=metadata
-    )
+    row = await queries.update_tag_metadata(pool, name=name, metadata=metadata)
     if not row:
         raise ValueError("Tag not found")
     return dict(row)

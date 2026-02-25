@@ -1,5 +1,5 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Image, Pressable, Text, View } from 'react-native';
+import { Image, Pressable, Text } from 'react-native';
 import { Tabs, useRouter } from 'expo-router';
 import { useQuery } from 'urql';
 import { USERS_QUERY } from '@/lib/graphql/queries';
@@ -28,10 +28,7 @@ function UserHeaderButton() {
       onPress={() => router.push('/(tabs)/settings')}
       style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginRight: 12 }}
     >
-      <Image
-        source={{ uri: avatarUri }}
-        style={{ width: 24, height: 24, borderRadius: 12 }}
-      />
+      <Image source={{ uri: avatarUri }} style={{ width: 24, height: 24, borderRadius: 12 }} />
       <Text style={{ color: colors.fgMuted, fontSize: 14 }}>{currentUser.name}</Text>
     </Pressable>
   );

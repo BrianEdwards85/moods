@@ -44,7 +44,9 @@ mutation ArchiveUser($id: ID!) {
 
 
 async def _create_user(client, name="Alice", email="alice@example.com"):
-    body = await gql(client, CREATE_USER, {"input": {"name": name, "email": email}}, headers=H)
+    body = await gql(
+        client, CREATE_USER, {"input": {"name": name, "email": email}}, headers=H
+    )
     return body["data"]["createUser"]
 
 
@@ -80,7 +82,8 @@ async def test_update_user_settings(client):
     created = await _create_user(client)
     new_settings = {"theme": "dark", "notifications": True}
     body = await gql(
-        client, UPDATE_SETTINGS,
+        client,
+        UPDATE_SETTINGS,
         {"input": {"settings": new_settings}},
         headers=auth_header(created["id"]),
     )

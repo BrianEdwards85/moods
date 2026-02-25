@@ -35,6 +35,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Lint Python
+        run: |
+          uv sync --group dev
+          uv run ruff check src/ tests/
+          uv run ruff format --check src/ tests/
+
       - name: Login to GHCR
         if: github.ref == 'refs/heads/main'
         uses: docker/login-action@v3

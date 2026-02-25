@@ -16,7 +16,20 @@ export function moodColor(value: number): string {
 }
 
 const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const monthNames = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
 
 function pad2(n: number): string {
   return n < 10 ? `0${n}` : `${n}`;
@@ -31,7 +44,11 @@ function formatTime12h(date: Date): string {
 }
 
 function sameDay(a: Date, b: Date): boolean {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
 }
 
 function isYesterday(date: Date, now: Date): boolean {
@@ -57,7 +74,8 @@ export function formatRelativeTime(isoStr: string): string {
   if (sameDay(date, now)) return `Today at ${formatTime12h(date)}`;
   if (isYesterday(date, now)) return `Yesterday at ${formatTime12h(date)}`;
   if (daysAgo(date, now) < 7) return `${dayNames[date.getDay()]} at ${formatTime12h(date)}`;
-  if (date.getFullYear() === now.getFullYear()) return `${monthNames[date.getMonth()]} ${date.getDate()}`;
+  if (date.getFullYear() === now.getFullYear())
+    return `${monthNames[date.getMonth()]} ${date.getDate()}`;
   return `${monthNames[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
 }
 

@@ -38,4 +38,15 @@ testpaths = ["tests"]
 [dependency-groups]
 dev = [
     "pytest-cov>=7.0.0",
+    "ruff>=0.9",
 ]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["moods"]

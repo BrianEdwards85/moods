@@ -13,7 +13,9 @@ share_rule_obj = ObjectType("ShareRule")
 
 @query.field("users")
 async def resolve_users(_obj, info, *, include_archived=False):
-    return await user_data.get_users(info.context["pool"], include_archived=include_archived)
+    return await user_data.get_users(
+        info.context["pool"], include_archived=include_archived
+    )
 
 
 @query.field("user")
@@ -39,7 +41,9 @@ async def resolve_create_user(_obj, info, *, input):
 async def resolve_update_user_settings(_obj, info, *, input):
     require_auth(info)
     return await user_data.update_user_settings(
-        info.context["pool"], id=info.context["auth_user_id"], settings=input["settings"]
+        info.context["pool"],
+        id=info.context["auth_user_id"],
+        settings=input["settings"],
     )
 
 

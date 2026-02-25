@@ -19,8 +19,13 @@ mutation LogMood($input: LogMoodInput!) {
 """
 
 MOOD_ENTRIES_QUERY = """
-query MoodEntries($userIds: [ID!], $includeArchived: Boolean, $first: Int, $after: String) {
-  moodEntries(userIds: $userIds, includeArchived: $includeArchived, first: $first, after: $after) {
+query MoodEntries(
+  $userIds: [ID!], $includeArchived: Boolean, $first: Int, $after: String
+) {
+  moodEntries(
+    userIds: $userIds, includeArchived: $includeArchived,
+    first: $first, after: $after
+  ) {
     edges {
       cursor
       node { id mood notes createdAt archivedAt user { id name } tags { name } }
@@ -40,20 +45,27 @@ mutation ArchiveMoodEntry($id: ID!) {
 
 
 async def _create_user(client, name="Alice", email="alice@test.com"):
-    body = await gql(client, CREATE_USER, {"input": {"name": name, "email": email}}, headers=H)
+    body = await gql(
+        client, CREATE_USER, {"input": {"name": name, "email": email}}, headers=H
+    )
     return body["data"]["createUser"]
 
 
 async def _log_mood(client, user_id, mood=7, notes="feeling good", tags=None):
-    body = await gql(client, LOG_MOOD, {
-        "input": {"mood": mood, "notes": notes, "tags": tags or []}
-    }, headers=auth_header(user_id))
+    body = await gql(
+        client,
+        LOG_MOOD,
+        {"input": {"mood": mood, "notes": notes, "tags": tags or []}},
+        headers=auth_header(user_id),
+    )
     return body["data"]["logMood"]
 
 
 async def test_log_mood(client):
     user = await _create_user(client)
-    entry = await _log_mood(client, user["id"], mood=8, notes="great day", tags=["happy", "sunny"])
+    entry = await _log_mood(
+        client, user["id"], mood=8, notes="great day", tags=["happy", "sunny"]
+    )
 
     assert entry["mood"] == 8
     assert entry["notes"] == "great day"
@@ -82,7 +94,12 @@ async def test_query_mood_entries_by_user(client):
     await _log_mood(client, alice["id"], mood=5, notes="meh")
     await _log_mood(client, bob["id"], mood=9, notes="great")
 
-    body = await gql(client, MOOD_ENTRIES_QUERY, {"userIds": [alice["id"]]}, headers=auth_header(alice["id"]))
+    body = await gql(
+        client,
+        MOOD_ENTRIES_QUERY,
+        {"userIds": [alice["id"]]},
+        headers=auth_header(alice["id"]),
+    )
     edges = body["data"]["moodEntries"]["edges"]
     assert len(edges) == 1
     assert edges[0]["node"]["mood"] == 5
@@ -96,10 +113,23 @@ async def test_query_mood_entries_multiple_users(client):
     await _log_mood(client, bob["id"], mood=9, notes="bob entry")
 
     # Alice shares with Bob so Bob can see both
-    SHARE = """mutation UpdateSharing($input: UpdateSharingInput!) { updateSharing(input: $input) { id } }"""
-    await gql(client, SHARE, {"input": {"rules": [{"userId": bob["id"], "filters": []}]}}, headers=auth_header(alice["id"]))
+    SHARE = (
+        "mutation UpdateSharing($input: UpdateSharingInput!)"
+        " { updateSharing(input: $input) { id } }"
+    )
+    await gql(
+        client,
+        SHARE,
+        {"input": {"rules": [{"userId": bob["id"], "filters": []}]}},
+        headers=auth_header(alice["id"]),
+    )
 
-    body = await gql(client, MOOD_ENTRIES_QUERY, {"userIds": [alice["id"], bob["id"]]}, headers=auth_header(bob["id"]))
+    body = await gql(
+        client,
+        MOOD_ENTRIES_QUERY,
+        {"userIds": [alice["id"], bob["id"]]},
+        headers=auth_header(bob["id"]),
+    )
     edges = body["data"]["moodEntries"]["edges"]
     assert len(edges) == 2
     user_ids = {e["node"]["user"]["id"] for e in edges}
@@ -127,8 +157,13 @@ async def test_archive_mood_entry_wrong_user(client):
     entry = await _log_mood(client, alice["id"])
 
     # Bob cannot archive Alice's entry
-    body = await gql(client, ARCHIVE_ENTRY, {"id": entry["id"]},
-                     headers=auth_header(bob["id"]), expect_errors=True)
+    body = await gql(
+        client,
+        ARCHIVE_ENTRY,
+        {"id": entry["id"]},
+        headers=auth_header(bob["id"]),
+        expect_errors=True,
+    )
     assert "errors" in body
 
 
@@ -180,7 +215,7 @@ async def test_mood_entry_delta(client):
     assert edges[0]["node"]["mood"] == 3
     assert edges[0]["node"]["delta"] == -5  # 3 - 8
     assert edges[1]["node"]["mood"] == 8
-    assert edges[1]["node"]["delta"] == 3   # 8 - 5
+    assert edges[1]["node"]["delta"] == 3  # 8 - 5
     assert edges[2]["node"]["mood"] == 5
     assert edges[2]["node"]["delta"] is None  # first entry, no prior
 
@@ -194,16 +229,26 @@ async def test_mood_entry_delta_per_user(client):
     await _log_mood(client, alice["id"], mood=9, notes="a2")
 
     # Alice shares with Bob so Bob can see both users' entries
-    SHARE = """mutation UpdateSharing($input: UpdateSharingInput!) { updateSharing(input: $input) { id } }"""
-    await gql(client, SHARE, {"input": {"rules": [{"userId": bob["id"], "filters": []}]}}, headers=auth_header(alice["id"]))
+    SHARE = (
+        "mutation UpdateSharing($input: UpdateSharingInput!)"
+        " { updateSharing(input: $input) { id } }"
+    )
+    await gql(
+        client,
+        SHARE,
+        {"input": {"rules": [{"userId": bob["id"], "filters": []}]}},
+        headers=auth_header(alice["id"]),
+    )
 
     body = await gql(client, DELTA_QUERY, headers=auth_header(bob["id"]))
     edges = body["data"]["moodEntries"]["edges"]
 
     # Newest-first: alice 9, bob 7, alice 4
-    deltas = {(e["node"]["user"]["id"], e["node"]["mood"]): e["node"]["delta"] for e in edges}
-    assert deltas[(alice["id"], 9)] == 5    # 9 - 4
-    assert deltas[(bob["id"], 7)] is None   # bob's first
+    deltas = {
+        (e["node"]["user"]["id"], e["node"]["mood"]): e["node"]["delta"] for e in edges
+    }
+    assert deltas[(alice["id"], 9)] == 5  # 9 - 4
+    assert deltas[(bob["id"], 7)] is None  # bob's first
     assert deltas[(alice["id"], 4)] is None  # alice's first
 
 
@@ -215,15 +260,20 @@ async def test_mood_entry_delta_across_pages(client):
     await _log_mood(client, user["id"], mood=10, notes="third")
 
     # Page 1: newest two entries
-    body = await gql(client, DELTA_QUERY, {"userIds": [user["id"]], "first": 2}, headers=h)
+    body = await gql(
+        client, DELTA_QUERY, {"userIds": [user["id"]], "first": 2}, headers=h
+    )
     page1 = body["data"]["moodEntries"]
-    assert page1["edges"][0]["node"]["delta"] == 4   # 10 - 6
-    assert page1["edges"][1]["node"]["delta"] == 4   # 6 - 2
+    assert page1["edges"][0]["node"]["delta"] == 4  # 10 - 6
+    assert page1["edges"][1]["node"]["delta"] == 4  # 6 - 2
 
     # Page 2: oldest entry — delta still computed correctly via CTE
-    body = await gql(client, DELTA_QUERY, {
-        "userIds": [user["id"]], "first": 2, "after": page1["pageInfo"]["endCursor"]
-    }, headers=h)
+    body = await gql(
+        client,
+        DELTA_QUERY,
+        {"userIds": [user["id"]], "first": 2, "after": page1["pageInfo"]["endCursor"]},
+        headers=h,
+    )
     page2 = body["data"]["moodEntries"]
     assert len(page2["edges"]) == 1
     assert page2["edges"][0]["node"]["delta"] is None  # first entry
@@ -240,12 +290,22 @@ async def test_mood_entries_pagination(client):
     assert len(page1["edges"]) == 2
     assert page1["pageInfo"]["hasNextPage"] is True
 
-    body = await gql(client, MOOD_ENTRIES_QUERY, {"first": 2, "after": page1["pageInfo"]["endCursor"]}, headers=h)
+    body = await gql(
+        client,
+        MOOD_ENTRIES_QUERY,
+        {"first": 2, "after": page1["pageInfo"]["endCursor"]},
+        headers=h,
+    )
     page2 = body["data"]["moodEntries"]
     assert len(page2["edges"]) == 2
     assert page2["pageInfo"]["hasNextPage"] is True
 
-    body = await gql(client, MOOD_ENTRIES_QUERY, {"first": 2, "after": page2["pageInfo"]["endCursor"]}, headers=h)
+    body = await gql(
+        client,
+        MOOD_ENTRIES_QUERY,
+        {"first": 2, "after": page2["pageInfo"]["endCursor"]},
+        headers=h,
+    )
     page3 = body["data"]["moodEntries"]
     assert len(page3["edges"]) == 1
     assert page3["pageInfo"]["hasNextPage"] is False

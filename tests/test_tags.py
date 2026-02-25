@@ -15,8 +15,13 @@ mutation LogMood($input: LogMoodInput!) {
 """
 
 TAGS_QUERY = """
-query Tags($search: String, $includeArchived: Boolean, $first: Int, $after: String) {
-  tags(search: $search, includeArchived: $includeArchived, first: $first, after: $after) {
+query Tags(
+  $search: String, $includeArchived: Boolean, $first: Int, $after: String
+) {
+  tags(
+    search: $search, includeArchived: $includeArchived,
+    first: $first, after: $after
+  ) {
     edges { cursor node { name metadata archivedAt } }
     pageInfo { hasNextPage endCursor }
   }
@@ -50,11 +55,19 @@ mutation UnarchiveTag($name: String!) {
 
 async def _setup_tags(client, tag_names):
     """Create a user and log a mood with the given tags, returning tag names."""
-    body = await gql(client, CREATE_USER, {"input": {"name": "Tagger", "email": "tag@test.com"}}, headers=H)
+    body = await gql(
+        client,
+        CREATE_USER,
+        {"input": {"name": "Tagger", "email": "tag@test.com"}},
+        headers=H,
+    )
     user_id = body["data"]["createUser"]["id"]
-    await gql(client, LOG_MOOD, {
-        "input": {"mood": 5, "notes": "", "tags": tag_names}
-    }, headers=auth_header(user_id))
+    await gql(
+        client,
+        LOG_MOOD,
+        {"input": {"mood": 5, "notes": "", "tags": tag_names}},
+        headers=auth_header(user_id),
+    )
 
 
 async def test_query_tags_empty(client):
@@ -97,9 +110,12 @@ async def test_tags_stored_lowercase(client):
 async def test_update_tag_metadata(client):
     await _setup_tags(client, ["happy"])
     meta = {"color": "#9ece6a", "emoji": "😊"}
-    body = await gql(client, UPDATE_TAG_METADATA, {
-        "input": {"name": "happy", "metadata": meta}
-    }, headers=H)
+    body = await gql(
+        client,
+        UPDATE_TAG_METADATA,
+        {"input": {"name": "happy", "metadata": meta}},
+        headers=H,
+    )
     updated = body["data"]["updateTagMetadata"]
     assert updated["name"] == "happy"
     assert updated["metadata"] == meta
@@ -146,13 +162,23 @@ async def test_tags_pagination(client):
     names1 = [e["node"]["name"] for e in page1["edges"]]
     assert names1 == ["alpha", "bravo"]
 
-    body = await gql(client, TAGS_QUERY, {"first": 2, "after": page1["pageInfo"]["endCursor"]}, headers=H)
+    body = await gql(
+        client,
+        TAGS_QUERY,
+        {"first": 2, "after": page1["pageInfo"]["endCursor"]},
+        headers=H,
+    )
     page2 = body["data"]["tags"]
     assert len(page2["edges"]) == 2
     names2 = [e["node"]["name"] for e in page2["edges"]]
     assert names2 == ["charlie", "delta"]
 
-    body = await gql(client, TAGS_QUERY, {"first": 2, "after": page2["pageInfo"]["endCursor"]}, headers=H)
+    body = await gql(
+        client,
+        TAGS_QUERY,
+        {"first": 2, "after": page2["pageInfo"]["endCursor"]},
+        headers=H,
+    )
     page3 = body["data"]["tags"]
     assert len(page3["edges"]) == 1
     assert page3["pageInfo"]["hasNextPage"] is False

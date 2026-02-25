@@ -1,12 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  RefreshControl,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
 import { useQuery } from 'urql';
 import { useStore, type MoodEntry, type User } from '@/lib/store';
 import { USERS_QUERY, MOOD_ENTRIES_QUERY } from '@/lib/graphql/queries';
@@ -72,7 +65,11 @@ export default function TimelineScreen() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [moreResult, executeMore] = useQuery({
     query: MOOD_ENTRIES_QUERY,
-    variables: { userIds: userIds.length ? userIds : undefined, first: PAGE_SIZE, after: endCursor },
+    variables: {
+      userIds: userIds.length ? userIds : undefined,
+      first: PAGE_SIZE,
+      after: endCursor,
+    },
     pause: true,
   });
 
@@ -97,7 +94,11 @@ export default function TimelineScreen() {
     const curDate = dateKey(edge.node.createdAt);
     const prevDate = idx > 0 ? dateKey(allEdges[idx - 1].node.createdAt) : null;
     if (idx === 0 || curDate !== prevDate) {
-      listItems.push({ type: 'divider', key: `d-${curDate}`, label: dateLabel(edge.node.createdAt) });
+      listItems.push({
+        type: 'divider',
+        key: `d-${curDate}`,
+        label: dateLabel(edge.node.createdAt),
+      });
     }
     const mine = edge.node.user?.id === currentUserId;
     listItems.push({

@@ -22,8 +22,7 @@ def build_connection(rows: list[dict], cursor_key: str, limit: int) -> dict:
     has_next = len(rows) > limit
     nodes = rows[:limit]
     edges = [
-        {"cursor": encode_cursor(str(row[cursor_key])), "node": row}
-        for row in nodes
+        {"cursor": encode_cursor(str(row[cursor_key])), "node": row} for row in nodes
     ]
     return {
         "edges": edges,

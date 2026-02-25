@@ -1,19 +1,9 @@
 import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Modal, Pressable, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMutation } from 'urql';
 import { useStore } from '@/lib/store';
-import {
-  SEND_LOGIN_CODE_MUTATION,
-  VERIFY_LOGIN_CODE_MUTATION,
-} from '@/lib/graphql/mutations';
+import { SEND_LOGIN_CODE_MUTATION, VERIFY_LOGIN_CODE_MUTATION } from '@/lib/graphql/mutations';
 import { colors } from '@/lib/theme';
 import { styles } from './user-select.styles';
 
@@ -115,9 +105,7 @@ export default function UserSelectScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Enter login code</Text>
-            <Text style={styles.modalSubtext}>
-              A 6-digit code has been sent to {email.trim()}.
-            </Text>
+            <Text style={styles.modalSubtext}>A 6-digit code has been sent to {email.trim()}.</Text>
             <TextInput
               style={styles.codeInput}
               placeholder="000000"
@@ -132,11 +120,7 @@ export default function UserSelectScreen() {
             {error && <Text style={styles.errorMsg}>{error}</Text>}
 
             {loading && (
-              <ActivityIndicator
-                size="small"
-                color={colors.blue}
-                style={{ marginVertical: 12 }}
-              />
+              <ActivityIndicator size="small" color={colors.blue} style={{ marginVertical: 12 }} />
             )}
 
             <View style={styles.modalActions}>
@@ -144,10 +128,7 @@ export default function UserSelectScreen() {
                 <Text style={styles.cancelText}>Cancel</Text>
               </Pressable>
               <Pressable
-                style={[
-                  styles.verifyBtn,
-                  (loading || code.length !== 6) && styles.btnDisabled,
-                ]}
+                style={[styles.verifyBtn, (loading || code.length !== 6) && styles.btnDisabled]}
                 onPress={onVerify}
                 disabled={loading || code.length !== 6}
               >
