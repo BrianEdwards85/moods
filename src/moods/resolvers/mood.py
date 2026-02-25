@@ -1,9 +1,6 @@
-import asyncio
-
 from ariadne import MutationType, ObjectType, QueryType
 
 from moods.data import moods as mood_data
-from moods.orchestration.notifications import notify_shared_mood
 from moods.resolvers.auth import require_auth
 
 query = QueryType()
@@ -29,19 +26,13 @@ async def resolve_mood_entries(
 @mutation.field("logMood")
 async def resolve_log_mood(_obj, info, *, input):
     require_auth(info)
-    entry = await mood_data.create_mood_entry(
+    return await mood_data.create_mood_entry(
         info.context["pool"],
         user_id=input["user_id"],
         mood=input["mood"],
         notes=input["notes"],
         tags=input.get("tags"),
     )
-    pool = info.context["pool"]
-    user = await info.context["user_loader"].load(input["user_id"])
-    asyncio.create_task(
-        notify_shared_mood(pool, input["user_id"], user["name"], str(entry["id"]), input["mood"])
-    )
-    return entry
 
 
 @mutation.field("archiveMoodEntry")

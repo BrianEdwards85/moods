@@ -60,15 +60,9 @@ input UpdateSharingInput {
   rules: [ShareRuleInput!]!
 }
 
-input RegisterDeviceTokenInput {
-  token: String!
-}
-
 extend type Mutation {
   createUser(input: CreateUserInput!): User!
   updateUserSettings(input: UpdateUserSettingsInput!): User!
   archiveUser(id: ID!): User!
   updateSharing(input: UpdateSharingInput!): User!
-  registerDeviceToken(input: RegisterDeviceTokenInput!): Boolean!
-  unregisterDeviceToken(input: RegisterDeviceTokenInput!): Boolean!
 }

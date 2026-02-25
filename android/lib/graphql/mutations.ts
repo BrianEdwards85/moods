@@ -44,18 +44,6 @@ export const UPDATE_USER_SETTINGS_MUTATION = `
   }
 `;
 
-export const REGISTER_DEVICE_TOKEN_MUTATION = `
-  mutation RegisterDeviceToken($input: RegisterDeviceTokenInput!) {
-    registerDeviceToken(input: $input)
-  }
-`;
-
-export const UNREGISTER_DEVICE_TOKEN_MUTATION = `
-  mutation UnregisterDeviceToken($input: RegisterDeviceTokenInput!) {
-    unregisterDeviceToken(input: $input)
-  }
-`;
-
 export const UPDATE_SHARING_MUTATION = `
   mutation UpdateSharing($input: UpdateSharingInput!) {
     updateSharing(input: $input) {

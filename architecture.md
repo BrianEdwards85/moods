@@ -18,7 +18,7 @@ Moods is a shared mood-tracking app for partners. Both users log how they're fee
 | Configuration | [Dynaconf](https://www.dynaconf.com/) | Layered TOML + env vars |
 | Migrations | [yoyo-migrations](https://ollycope.com/software/yoyo/latest/) | Plain-SQL, sequential |
 | JWT | [PyJWT](https://pyjwt.readthedocs.io/) | HS256 tokens |
-| HTTP client | [httpx](https://www.python-httpx.org/) | Mailgun & Expo Push API calls |
+| HTTP client | [httpx](https://www.python-httpx.org/) | Mailgun API calls |
 | ASGI server | [Uvicorn](https://www.uvicorn.org/) | Development & production |
 | Testing | [pytest](https://docs.pytest.org/) + [pytest-asyncio](https://pytest-asyncio.readthedocs.io/) | Async tests against real DB |
 | Package manager | [uv](https://docs.astral.sh/uv/) | Fast, Rust-based |
@@ -46,7 +46,6 @@ Moods is a shared mood-tracking app for partners. Both users log how they're fee
 | GraphQL client | [urql](https://urql.dev/) v5 | Lightweight |
 | State management | [Zustand](https://zustand.docs.pmnd.rs/) v5 | Minimal store |
 | Persistence | [AsyncStorage](https://react-native-async-storage.github.io/async-storage/) | Token & user storage |
-| Notifications | [expo-notifications](https://docs.expo.dev/versions/latest/sdk/notifications/) | Push notifications & local reminders |
 | Icons | [Expo Vector Icons](https://icons.expo.fyi/) | MaterialCommunityIcons |
 
 ### Database
@@ -63,7 +62,7 @@ Moods is a shared mood-tracking app for partners. Both users log how they're fee
 
 ```
 moods/
-  migrations/              Plain-SQL migrations (yoyo), 0000–0011
+  migrations/              Plain-SQL migrations (yoyo), 0000–0010
   src/moods/
     app.py                 Starlette app factory, GraphQL mount, auth context
     config.py              Dynaconf settings loader
@@ -80,8 +79,7 @@ moods/
       users.sql              User CRUD + trigram search
       moods.sql              Mood entries with sharing visibility
       tags.sql               Tag CRUD with trigram search
-      shares.sql             Share rule & filter CRUD, push recipient query
-      device_tokens.sql      Device token upsert/delete/get
+      shares.sql             Share rule & filter CRUD
     data/                  Data access layer (pure DB queries)
       __init__.py            aiosql loader, cursor pagination helpers
       auth.py                JWT decode
@@ -89,20 +87,17 @@ moods/
       moods.py               Mood entry operations
       tags.py                Tag operations
       shares.py              Share rule get/set (soft-delete archival)
-      device_tokens.py       Device token operations
       loaders.py             DataLoaders (User, MoodEntryTags)
     services/              External service integrations
       __init__.py
       email.py               Mailgun integration
-      push.py                Expo Push API integration
     orchestration/         Multi-step business workflows
       __init__.py
       auth.py                Login code generation + email sending, code verification + JWT
-      notifications.py       Push notification dispatch for shared moods
     resolvers/             Ariadne resolver bindings
       auth.py                sendLoginCode, verifyLoginCode
-      user.py                users, user, searchUsers, createUser, updateSharing, registerDeviceToken, etc.
-      mood.py                moodEntries, logMood (+ async notification), archiveMoodEntry
+      user.py                users, user, searchUsers, createUser, updateSharing
+      mood.py                moodEntries, logMood, archiveMoodEntry
       tag.py                 tags, updateTagMetadata, archiveTag
       scalars.py             DateTime & JSON serialization
   web/
@@ -141,7 +136,6 @@ moods/
         queries.ts             GraphQL query strings
         mutations.ts           GraphQL mutation strings
       store.ts               Zustand store (auth, users, UI state)
-      useNotifications.ts    Push token registration, local reminder scheduling
       theme.ts               Color tokens
       utils.ts               Gravatar, date formatting
   tests/
@@ -153,8 +147,6 @@ moods/
     test_user_entries.py     User.entries pagination tests
     test_edge_cases.py       Edge cases
     test_sharing.py          Sharing visibility & filter tests
-    test_notifications.py    Device token CRUD & push notification tests
-    test_push_service.py     Expo Push API service unit tests
 ```
 
 ---
@@ -295,75 +287,3 @@ The `pattern` field uses PostgreSQL POSIX regex (`~` operator) matched against `
 
 Sharing rules are updated atomically via `set_shares`: the entire rule set for a user is deleted and recreated in a single transaction. This avoids partial states and simplifies the client — it sends the complete desired state rather than individual add/remove operations.
 
----
-
-## Notifications (In Progress)
-
-Push notifications are partially implemented. The backend and Android code are written but **not yet deployed or tested end-to-end**. See [plan.md](plan.md) §13 for what remains.
-
-### Current Implementation
-
-Two notification types, both gated by the `notifications` string array in `users.settings`:
-
-1. **Reminder** (`"reminder"`) — local notification scheduled on the device if the user hasn't logged a mood in 18 hours. Scheduled via `expo-notifications` `scheduleNotificationAsync()` with a time interval trigger. Reset after each mood log.
-
-2. **Shared mood** (`"shared_mood"`) — push notification sent from the backend when a user who shares with the current user logs a mood entry. Sent via the Expo Push API.
-
-### Backend Flow
-
-```
-logMood mutation
-  │
-  ├─ Creates mood entry (synchronous)
-  ├─ Returns entry to client
-  │
-  └─ asyncio.create_task(notify_shared_mood(...))  ← fire-and-forget
-       │
-       ├─ Queries get_push_recipients_for_entry
-       │    (joins mood_shares → users → user_device_tokens,
-       │     applies same share filter logic as mood visibility)
-       │
-       ├─ Filters recipients by settings.notifications containing "shared_mood"
-       │
-       ├─ POSTs to Expo Push API (https://exp.host/--/api/v2/push/send)
-       │
-       └─ Cleans up invalid tokens (DeviceNotRegistered)
-```
-
-### Android Flow
-
-```
-App startup (AuthGate)
-  │
-  └─ useNotifications() hook
-       ├─ Request notification permissions
-       ├─ Get Expo push token via getExpoPushTokenAsync()
-       └─ Register token with backend (registerDeviceToken mutation)
-
-Mood logged (MoodModal)
-  └─ scheduleReminder(18h)  ← reschedule local reminder
-
-Settings
-  ├─ Toggle "Mood Reminder" → scheduleReminder() / cancelReminder()
-  ├─ Toggle "Shared Moods" → saved to user settings
-  └─ Sign out → unregisterDeviceToken() + cancelReminder()
-```
-
-### GraphQL
-
-```graphql
-input RegisterDeviceTokenInput { token: String! }
-
-extend type Mutation {
-  registerDeviceToken(input: RegisterDeviceTokenInput!): Boolean!
-  unregisterDeviceToken(input: RegisterDeviceTokenInput!): Boolean!
-}
-```
-
-### What's Not Yet Done
-
-See [plan.md](plan.md) §13 for remaining work. Key items:
-- `expo-notifications` npm package not yet installed
-- No `eas init` / projectId configuration
-- Requires a development build (not Expo Go) to receive pushes
-- No end-to-end testing done

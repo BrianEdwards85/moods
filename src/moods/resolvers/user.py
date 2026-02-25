@@ -1,6 +1,5 @@
 from ariadne import MutationType, ObjectType, QueryType
 
-from moods.data import device_tokens as device_token_data
 from moods.data import moods as mood_data
 from moods.data import shares as share_data
 from moods.data import users as user_data
@@ -58,26 +57,6 @@ async def resolve_update_sharing(_obj, info, *, input):
         info.context["pool"], user_id=user_id, rules=input["rules"]
     )
     return await info.context["user_loader"].load(user_id)
-
-
-@mutation.field("registerDeviceToken")
-async def resolve_register_device_token(_obj, info, *, input):
-    require_auth(info)
-    user_id = info.context["auth_user_id"]
-    await device_token_data.upsert_device_token(
-        info.context["pool"], user_id=user_id, token=input["token"]
-    )
-    return True
-
-
-@mutation.field("unregisterDeviceToken")
-async def resolve_unregister_device_token(_obj, info, *, input):
-    require_auth(info)
-    user_id = info.context["auth_user_id"]
-    await device_token_data.delete_device_token(
-        info.context["pool"], user_id=user_id, token=input["token"]
-    )
-    return True
 
 
 @user_obj.field("entries")

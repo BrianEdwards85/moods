@@ -34,34 +34,3 @@ returning id, user_id, shared_with, created_at, archived_at;
 insert into mood_share_filters (mood_share_id, pattern, is_include)
 values (:mood_share_id::uuid, :pattern, :is_include)
 returning id, mood_share_id, pattern, is_include, created_at, archived_at;
-
--- name: get_push_recipients_for_entry(entry_user_id, mood_entry_id)
-SELECT dt.token, u.id AS user_id, u.name, u.settings
-FROM mood_shares ms
-JOIN users u ON u.id = ms.shared_with AND u.archived_at IS NULL
-JOIN user_device_tokens dt ON dt.user_id = u.id
-WHERE ms.user_id = :entry_user_id::uuid
-  AND ms.archived_at IS NULL
-  AND (
-      NOT EXISTS (
-          SELECT 1 FROM mood_share_filters f
-          WHERE f.mood_share_id = ms.id AND f.is_include = true
-            AND f.archived_at IS NULL
-      )
-      OR EXISTS (
-          SELECT 1 FROM mood_share_filters f
-          JOIN mood_entry_tags met ON met.mood_entry_id = :mood_entry_id::uuid
-          WHERE f.mood_share_id = ms.id
-            AND f.is_include = true
-            AND f.archived_at IS NULL
-            AND met.tag_name ~ f.pattern
-      )
-  )
-  AND NOT EXISTS (
-      SELECT 1 FROM mood_share_filters f
-      JOIN mood_entry_tags met ON met.mood_entry_id = :mood_entry_id::uuid
-      WHERE f.mood_share_id = ms.id
-        AND f.is_include = false
-        AND f.archived_at IS NULL
-        AND met.tag_name ~ f.pattern
-  );
