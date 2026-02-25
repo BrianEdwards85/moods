@@ -2,6 +2,7 @@ type User {
   id: ID!
   name: String!
   email: String!
+  icon: String!
   settings: JSON!
   archivedAt: DateTime
   entries(

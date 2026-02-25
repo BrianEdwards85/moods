@@ -33,7 +33,7 @@ export const SEND_LOGIN_CODE_MUTATION = `
 export const VERIFY_LOGIN_CODE_MUTATION = `
   mutation VerifyLoginCode($email: String!, $code: String!) {
     verifyLoginCode(email: $email, code: $code) {
-      token user { id name email settings }
+      token user { id name email icon settings }
     }
   }
 `;

@@ -1,5 +1,3 @@
-import md5 from 'react-native-md5';
-
 const moodColors: Record<number, string> = {
   1: '#f7768e',
   2: '#ff9e64',
@@ -15,11 +13,6 @@ const moodColors: Record<number, string> = {
 
 export function moodColor(value: number): string {
   return moodColors[value] ?? '#565f89';
-}
-
-export function gravatarUrl(email: string, size = 80): string {
-  const hash = md5.hex_md5(email.trim().toLowerCase());
-  return `https://www.gravatar.com/avatar/${hash}?s=${size}&d=retro`;
 }
 
 const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];

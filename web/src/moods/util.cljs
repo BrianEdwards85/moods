@@ -1,11 +1,4 @@
-(ns moods.util
-  (:require ["md5" :as md5]))
-
-(defn gravatar-url
-  ([email] (gravatar-url email 80))
-  ([email size]
-   (let [hash (md5 (.trim (.toLowerCase email)))]
-     (str "https://www.gravatar.com/avatar/" hash "?s=" size "&d=retro"))))
+(ns moods.util)
 
 (def ^:private mood-bg-classes
   {1  "bg-mood-1"

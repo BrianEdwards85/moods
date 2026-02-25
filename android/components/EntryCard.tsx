@@ -1,7 +1,7 @@
 import { Image, StyleSheet, Text, View } from 'react-native';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import MoodTag from './MoodTag';
-import { moodColor, gravatarUrl, formatRelativeTime } from '@/lib/utils';
+import { moodColor, formatRelativeTime } from '@/lib/utils';
 import type { MoodEntry, User } from '@/lib/store';
 
 interface Props {
@@ -30,10 +30,9 @@ function deltaIconName(delta: number): 'arrow-up' | 'arrow-down' | 'minus' {
 
 export default function EntryCard({ entry, user, mine }: Props) {
   const bg = moodColor(entry.mood);
-  const email = user?.email ?? '';
   const name = user?.name ?? entry.user?.name ?? '?';
   const customAvatar = (user?.settings as Record<string, unknown>)?.avatarUrl as string | undefined;
-  const avatarUri = customAvatar || gravatarUrl(email, 48);
+  const avatarUri = customAvatar || user?.icon || '';
   const userColor = (user?.settings as Record<string, unknown>)?.color as string | undefined;
 
   return (

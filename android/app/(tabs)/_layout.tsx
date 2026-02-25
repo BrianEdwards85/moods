@@ -4,7 +4,6 @@ import { Tabs, useRouter } from 'expo-router';
 import { useQuery } from 'urql';
 import { USERS_QUERY } from '@/lib/graphql/queries';
 import { useStore } from '@/lib/store';
-import { gravatarUrl } from '@/lib/utils';
 import { colors } from '@/lib/theme';
 
 function TabIcon(props: { name: React.ComponentProps<typeof FontAwesome>['name']; color: string }) {
@@ -22,7 +21,7 @@ function UserHeaderButton() {
 
   const settings = currentUser.settings as Record<string, any> | undefined;
   const customAvatar = settings?.avatarUrl as string | undefined;
-  const avatarUri = customAvatar && customAvatar.length > 0 ? customAvatar : gravatarUrl(currentUser.email, 28);
+  const avatarUri = customAvatar && customAvatar.length > 0 ? customAvatar : currentUser.icon;
 
   return (
     <Pressable

@@ -2,10 +2,10 @@
   "GraphQL query and mutation strings, plus re-graph initialization.")
 
 (def users-query
-  "{ users { id name email settings sharedWith { id user { id name } filters { id pattern isInclude } } } }")
+  "{ users { id name email icon settings sharedWith { id user { id name } filters { id pattern isInclude } } } }")
 
 (def user-query
-  "query User($id: ID!) { user(id: $id) { id name email settings } }")
+  "query User($id: ID!) { user(id: $id) { id name email icon settings } }")
 
 (def mood-entries-query
   "query MoodEntries($userIds: [ID!], $first: Int, $after: String) {
@@ -61,7 +61,7 @@
 (def verify-login-code-mutation
   "mutation VerifyLoginCode($email: String!, $code: String!) {
      verifyLoginCode(email: $email, code: $code) {
-       token user { id name email settings }
+       token user { id name email icon settings }
      }
    }")
 
@@ -79,5 +79,5 @@
 
 (def search-users-query
   "query SearchUsers($search: String!) {
-     searchUsers(search: $search) { id name email }
+     searchUsers(search: $search) { id name email icon }
    }")

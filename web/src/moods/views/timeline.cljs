@@ -37,7 +37,7 @@
 
 (defn entry-card [entry user-detail mine?]
   (let [avatar-url   (let [custom (get-in user-detail [:settings :avatarUrl])]
-                       (if (seq custom) custom (util/gravatar-url (:email user-detail) 48)))
+                       (if (seq custom) custom (:icon user-detail)))
         user-color   (get-in user-detail [:settings :color])]
     [:div {:class (str "mb-3 " (if mine? "mr-8 md:mr-16" "ml-8 md:ml-16"))}
      [:div {:class (str "rounded p-4 text-tn-bg-dark "

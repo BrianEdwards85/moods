@@ -3,7 +3,6 @@
             [moods.events :as events]
             [moods.routes :as routes]
             [moods.subs :as subs]
-            [moods.util :as util]
             [re-frame.core :as rf]))
 
 (defn header []
@@ -11,7 +10,7 @@
         route-name @(rf/subscribe [::subs/current-route-name])
         avatar-url (when user
                      (let [custom (get-in user [:settings :avatarUrl])]
-                       (if (seq custom) custom (util/gravatar-url (:email user) 28))))]
+                       (if (seq custom) custom (:icon user))))]
     [bp/navbar {:class "mb-4"}
      [bp/navbar-group {:align "left"}
       [:a {:href (routes/href :route/timeline) :class "flex items-center no-underline"}

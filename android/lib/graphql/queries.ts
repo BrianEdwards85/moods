@@ -1,5 +1,5 @@
 export const USERS_QUERY = `
-  { users { id name email settings sharedWith { id user { id name } filters { id pattern isInclude } } } }
+  { users { id name email icon settings sharedWith { id user { id name } filters { id pattern isInclude } } } }
 `;
 
 export const MOOD_ENTRIES_QUERY = `
@@ -16,7 +16,7 @@ export const MOOD_ENTRIES_QUERY = `
 
 export const SEARCH_USERS_QUERY = `
   query SearchUsers($search: String!) {
-    searchUsers(search: $search) { id name email }
+    searchUsers(search: $search) { id name email icon }
   }
 `;
 
