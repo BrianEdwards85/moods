@@ -302,6 +302,32 @@ When a viewer queries mood entries, the SQL applies this logic for each entry be
 
 The `pattern` field uses PostgreSQL POSIX regex (`~` operator) matched against `tag_name`, allowing patterns like `^personal` or `private`.
 
+---
+
+## CI/CD
+
+### Android APK Builds (GitHub Actions)
+
+The workflow at `.github/workflows/build-android.yml` builds APKs using `expo prebuild` + Gradle directly on GitHub runners, with no Expo account or EAS dependency.
+
+**Triggers:**
+
+| Event | Variant | APK artifact |
+|-------|---------|--------------|
+| Push to branch with open PR to `main` | `dev` | `moods-dev.apk` |
+| Push/merge to `main` | `release` | `moods-release.apk` |
+
+Path-filtered to only run when `android/**` or the workflow file itself changes.
+
+**Build pipeline:** Checkout → Node 20 + npm ci → Java 17 (Temurin) → `expo prebuild --platform android --clean` → `./gradlew assembleRelease --no-daemon` → upload APK artifact.
+
+**Notes:**
+- APKs use debug signing (installable via sideloading, not signed for Play Store)
+- Gradle caches are persisted between runs for faster rebuilds
+- `expo prebuild` generates the native project at `android/android/` (gitignored)
+
+---
+
 ### Atomic Updates
 
 Sharing rules are updated atomically via `set_shares`: the entire rule set for a user is deleted and recreated in a single transaction. This avoids partial states and simplifies the client — it sends the complete desired state rather than individual add/remove operations.
