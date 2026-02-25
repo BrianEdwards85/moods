@@ -10,9 +10,6 @@ export const colors = {
   green: '#9ece6a',
   red: '#f7768e',
   orange: '#ff9e64',
-  yellow: '#e0af68',
-  purple: '#bb9af7',
-  cyan: '#7dcfff',
 };
 
 export const defaultTagColor = '#3b4261';

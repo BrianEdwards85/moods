@@ -35,8 +35,6 @@ interface StoreState {
   moodModalOpen: boolean;
 
   setUsers: (users: User[]) => void;
-  selectUser: (id: string) => Promise<void>;
-  restoreUser: () => Promise<string | null>;
   setAuthToken: (token: string, userId: string) => Promise<void>;
   restoreAuth: () => Promise<string | null>;
   clearAuth: () => Promise<void>;
@@ -58,17 +56,6 @@ export const useStore = create<StoreState>((set) => ({
   moodModalOpen: false,
 
   setUsers: (users) => set({ users }),
-
-  selectUser: async (id) => {
-    await AsyncStorage.setItem(USER_STORAGE_KEY, id);
-    set({ currentUserId: id });
-  },
-
-  restoreUser: async () => {
-    const id = await AsyncStorage.getItem(USER_STORAGE_KEY);
-    if (id) set({ currentUserId: id });
-    return id;
-  },
 
   setAuthToken: async (token, userId) => {
     await SecureStore.setItemAsync(TOKEN_STORAGE_KEY, token);

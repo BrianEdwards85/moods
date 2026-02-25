@@ -22,13 +22,6 @@
  (fn [errors [_ key]] (get errors key)))
 
 (rf/reg-sub
- ::partner-user
- :<- [::current-user-id]
- :<- [::users]
- (fn [[current-id users] _]
-   (first (filter #(not= (:id %) current-id) users))))
-
-(rf/reg-sub
  ::users-by-id
  :<- [::users]
  (fn [users _]
@@ -37,17 +30,5 @@
 (rf/reg-sub ::login-email       (fn [db _] (:login-email db)))
 (rf/reg-sub ::login-code-sent   (fn [db _] (:login-code-sent db)))
 (rf/reg-sub ::login-error       (fn [db _] (:login-error db)))
-(rf/reg-sub ::auth-token        (fn [db _] (:auth-token db)))
 
-(rf/reg-sub
- ::user-settings
- :<- [::current-user]
- (fn [user _] (:settings user)))
-
-(rf/reg-sub
- ::shared-with
- :<- [::current-user]
- (fn [user _] (:sharedWith user)))
-
-(rf/reg-sub ::share-user-search   (fn [db _] (:share-user-search db)))
 (rf/reg-sub ::share-user-results  (fn [db _] (:share-user-results db)))

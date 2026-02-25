@@ -155,9 +155,7 @@
       [bp/icon {:icon "chevron-right" :class "opacity-50"}]]]))
 
 (defn tags-screen []
-  (let [{:keys [search edges page-info]} @(rf/subscribe [::subs/tags-page])
-        loading? @(rf/subscribe [::subs/loading? :tags-page])
-        initial-load (r/atom true)]
+  (let [initial-load (r/atom true)]
     (when @initial-load
       (rf/dispatch [::events/fetch-tags-page])
       (reset! initial-load false))

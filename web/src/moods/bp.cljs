@@ -7,8 +7,7 @@
             [reagent.core :as r]))
 
 (def button         (r/adapt-react-class bp/Button))
-(def button-group   (r/adapt-react-class bp/ButtonGroup))
-(def card           (r/adapt-react-class bp/Card))
+(def callout        (r/adapt-react-class bp/Callout))
 (def dialog         (r/adapt-react-class bp/Dialog))
 (def dialog-body    (r/adapt-react-class bp/DialogBody))
 (def dialog-footer  (r/adapt-react-class bp/DialogFooter))

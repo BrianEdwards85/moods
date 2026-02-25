@@ -22,10 +22,6 @@ export default function TagsScreen() {
   const [showArchived, setShowArchived] = useState(false);
   const [editingTag, setEditingTag] = useState<Tag | null>(null);
 
-  const [allEdges, setAllEdges] = useState<{ cursor: string; node: Tag }[]>([]);
-  const [endCursor, setEndCursor] = useState<string | null>(null);
-  const [hasNextPage, setHasNextPage] = useState(false);
-
   const [result, reexecute] = useQuery({
     query: TAGS_QUERY,
     variables: {
@@ -40,7 +36,7 @@ export default function TagsScreen() {
   const pageInfo = result.data?.tags?.pageInfo;
 
   const [loadingMore, setLoadingMore] = useState(false);
-  const [moreResult, executeMore] = useQuery({
+  const [, executeMore] = useQuery({
     query: TAGS_QUERY,
     variables: {
       search: search || undefined,

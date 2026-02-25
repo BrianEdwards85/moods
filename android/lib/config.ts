@@ -19,4 +19,3 @@ const config = {
 } as const;
 
 export const appConfig = config[variant];
-export const APP_VARIANT = variant;

@@ -30,11 +30,6 @@
                 :style {:margin-left "4px"
                         :vertical-align "middle"}}])))
 
-(defn mood-badge [value]
-  [:div {:class (str "w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-bold text-xs text-tn-bg-dark "
-                     (util/mood-bg value))}
-   (str value)])
-
 (defn entry-card [entry user-detail mine?]
   (let [avatar-url   (let [custom (get-in user-detail [:settings :avatarUrl])]
                        (if (seq custom) custom (:icon user-detail)))
