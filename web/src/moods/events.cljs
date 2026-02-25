@@ -399,9 +399,7 @@
  ::submit-mood
  (fn [{:keys [db]} _]
    (let [{:keys [mood notes tags]} (:mood-modal db)
-         user-id (:current-user-id db)
-         input   {:userId user-id
-                  :mood   mood
+         input   {:mood   mood
                   :notes  (or notes "")
                   :tags   (mapv :name tags)}]
      {:db       (update db :loading conj :submit-mood)
@@ -593,12 +591,11 @@
 (rf/reg-event-fx
  ::save-user-settings
  (fn [{:keys [db]} [_ settings]]
-   (let [user-id (:current-user-id db)]
-     {:db       (update db :loading conj :save-settings)
-      :dispatch [::re-graph/mutate
-                 {:query     gql/update-user-settings-mutation
-                  :variables {:input {:id user-id :settings settings}}
-                  :callback  [::on-settings-saved]}]})))
+   {:db       (update db :loading conj :save-settings)
+    :dispatch [::re-graph/mutate
+               {:query     gql/update-user-settings-mutation
+                :variables {:input {:settings settings}}
+                :callback  [::on-settings-saved]}]}))
 
 (rf/reg-event-fx
  ::on-settings-saved

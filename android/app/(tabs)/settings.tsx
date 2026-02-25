@@ -141,7 +141,7 @@ export default function SettingsScreen() {
     const notifications: string[] = [];
     if (reminderEnabled) notifications.push('reminder');
     settings.notifications = notifications;
-    const result = await updateSettings({ input: { id: currentUserId, settings } });
+    const result = await updateSettings({ input: { settings } });
     setSavingSettings(false);
     if (result.error) {
       Alert.alert('Error', 'Failed to save profile settings.');

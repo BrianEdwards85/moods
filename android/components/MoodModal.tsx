@@ -61,7 +61,6 @@ export default function MoodModal({ onSaved }: { onSaved: () => void }) {
     if (!mood || !userId) return;
     const result = await logMood({
       input: {
-        userId,
         mood,
         notes: notes || null,
         tags: selectedTags.length ? selectedTags : null,
