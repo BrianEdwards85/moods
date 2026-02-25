@@ -11,9 +11,15 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useClient, useMutation, useQuery } from 'urql';
+import * as Notifications from 'expo-notifications';
 import { USERS_QUERY, SEARCH_USERS_QUERY } from '@/lib/graphql/queries';
-import { UPDATE_USER_SETTINGS_MUTATION, UPDATE_SHARING_MUTATION } from '@/lib/graphql/mutations';
+import {
+  UPDATE_USER_SETTINGS_MUTATION,
+  UPDATE_SHARING_MUTATION,
+  UNREGISTER_DEVICE_TOKEN_MUTATION,
+} from '@/lib/graphql/mutations';
 import { useStore } from '@/lib/store';
+import { scheduleReminder, cancelReminder } from '@/lib/useNotifications';
 import { colors, tagPresetColors } from '@/lib/theme';
 
 interface ShareFilter {
@@ -44,6 +50,8 @@ export default function SettingsScreen() {
 
   const [avatarUrl, setAvatarUrl] = useState('');
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [sharedMoodEnabled, setSharedMoodEnabled] = useState(false);
   const [shares, setShares] = useState<Record<string, ShareConfig>>({});
 
   const [searchText, setSearchText] = useState('');
@@ -64,6 +72,9 @@ export default function SettingsScreen() {
       const settings = currentUser.settings as Record<string, any> | undefined;
       setAvatarUrl((settings?.avatarUrl as string) ?? '');
       setSelectedColor((settings?.color as string) ?? null);
+      const notifications = (settings?.notifications as string[]) ?? [];
+      setReminderEnabled(notifications.includes('reminder'));
+      setSharedMoodEnabled(notifications.includes('shared_mood'));
 
       const shareMap: Record<string, ShareConfig> = {};
       for (const rule of currentUser.sharedWith ?? []) {
@@ -128,9 +139,26 @@ export default function SettingsScreen() {
     const settings: Record<string, unknown> = {};
     if (avatarUrl) settings.avatarUrl = avatarUrl;
     if (selectedColor) settings.color = selectedColor;
+    const notifications: string[] = [];
+    if (reminderEnabled) notifications.push('reminder');
+    if (sharedMoodEnabled) notifications.push('shared_mood');
+    settings.notifications = notifications;
     await updateSettings({ input: { id: currentUserId, settings } });
     setSavingSettings(false);
-  }, [currentUserId, avatarUrl, selectedColor]);
+  }, [currentUserId, avatarUrl, selectedColor, reminderEnabled, sharedMoodEnabled]);
+
+  const handleToggleReminder = useCallback((value: boolean) => {
+    setReminderEnabled(value);
+    if (!value) {
+      cancelReminder();
+    } else {
+      scheduleReminder(18 * 3600);
+    }
+  }, []);
+
+  const handleToggleSharedMood = useCallback((value: boolean) => {
+    setSharedMoodEnabled(value);
+  }, []);
 
   const toggleShare = (userId: string) => {
     setShares((prev) => ({
@@ -184,6 +212,15 @@ export default function SettingsScreen() {
   };
 
   const handleSignOut = async () => {
+    try {
+      const tokenData = await Notifications.getExpoPushTokenAsync();
+      await urqlClient
+        .mutation(UNREGISTER_DEVICE_TOKEN_MUTATION, { input: { token: tokenData.data } })
+        .toPromise();
+    } catch {
+      // token may not exist, ignore
+    }
+    await cancelReminder();
     await clearAuth();
     router.replace('/user-select');
   };
@@ -246,6 +283,40 @@ export default function SettingsScreen() {
           <Text style={styles.saveButtonText}>Save Profile</Text>
         )}
       </Pressable>
+
+      <View style={styles.divider} />
+
+      <Text style={styles.heading}>Notifications</Text>
+
+      <View style={styles.shareCard}>
+        <View style={styles.shareHeader}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.shareName}>Mood Reminder</Text>
+            <Text style={styles.description}>Remind me if I haven't logged in 18 hours</Text>
+          </View>
+          <Switch
+            value={reminderEnabled}
+            onValueChange={handleToggleReminder}
+            trackColor={{ false: colors.border, true: colors.blue }}
+            thumbColor={colors.fg}
+          />
+        </View>
+      </View>
+
+      <View style={styles.shareCard}>
+        <View style={styles.shareHeader}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.shareName}>Shared Moods</Text>
+            <Text style={styles.description}>Notify when someone shares a mood with me</Text>
+          </View>
+          <Switch
+            value={sharedMoodEnabled}
+            onValueChange={handleToggleSharedMood}
+            trackColor={{ false: colors.border, true: colors.blue }}
+            thumbColor={colors.fg}
+          />
+        </View>
+      </View>
 
       <View style={styles.divider} />
 

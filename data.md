@@ -14,10 +14,11 @@
 
 `settings` stores user preferences as JSON. Known keys:
 
-| Key         | Type   | Description                      |
-|-------------|--------|----------------------------------|
-| `avatarUrl` | string | URL for the user's avatar image  |
-| `color`     | string | Hex color used in the timeline   |
+| Key             | Type     | Description                                          |
+|-----------------|----------|------------------------------------------------------|
+| `avatarUrl`     | string   | URL for the user's avatar image                      |
+| `color`         | string   | Hex color used in the timeline                       |
+| `notifications` | string[] | Enabled notification types: `"reminder"`, `"shared_mood"` |
 
 ---
 
@@ -129,6 +130,23 @@ When no include filters exist, all entries are visible (subject to excludes). Fi
 
 ---
 
+## user_device_tokens
+
+| Column     | Type        | Constraints                    |
+|------------|-------------|--------------------------------|
+| id         | uuid (v7)   | PK                             |
+| user_id    | uuid        | NOT NULL, FK -> users          |
+| token      | text        | NOT NULL (Expo push token)     |
+| created_at | timestamptz | NOT NULL, DEFAULT now()        |
+
+UNIQUE: (`user_id`, `token`)
+
+Index: `idx_device_tokens_user` on (`user_id`)
+
+Stores Expo push notification tokens. No `archived_at` — tokens are hard-deleted when invalid (DeviceNotRegistered) or on user sign-out.
+
+---
+
 ## Relationships
 
 ```
@@ -136,6 +154,7 @@ users 1──* mood_entries
 users 1──* auth_codes
 users 1──* mood_shares (as owner, via user_id)
 users 1──* mood_shares (as viewer, via shared_with)
+users 1──* user_device_tokens
 
 mood_entries *──* tags  (via mood_entry_tags)
 
@@ -158,4 +177,5 @@ mood_shares 1──* mood_share_filters
 | 0007 | create-auth-codes         | auth_codes table for email login        |
 | 0008 | create-mood-shares        | mood_shares + mood_share_filters tables |
 | 0009 | soft-delete-shares        | archived_at on mood_shares + mood_share_filters |
-| 0010 | users-trgm-search         | Trigram indexes on users name + email    |
+| 0010 | users-trgm-search         | Trigram indexes on users name + email   |
+| 0011 | create-device-tokens      | Push notification device tokens         |

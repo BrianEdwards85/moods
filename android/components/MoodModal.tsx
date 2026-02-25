@@ -18,6 +18,7 @@ import { LOG_MOOD_MUTATION } from '@/lib/graphql/mutations';
 import { moodColor } from '@/lib/utils';
 import { colors } from '@/lib/theme';
 import MoodTag from './MoodTag';
+import { scheduleReminder } from '@/lib/useNotifications';
 
 export default function MoodModal({ onSaved }: { onSaved: () => void }) {
   const open = useStore((s) => s.moodModalOpen);
@@ -65,6 +66,7 @@ export default function MoodModal({ onSaved }: { onSaved: () => void }) {
         tags: selectedTags.length ? selectedTags : null,
       },
     });
+    scheduleReminder(18 * 3600);
     setMood(null);
     setNotes('');
     setSelectedTags([]);

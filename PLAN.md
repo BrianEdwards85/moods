@@ -329,7 +329,8 @@ reload.
    polling, pagination, pull-to-refresh).
 5. ~~Email-based login screen.~~ Done (email input → code verify →
    AsyncStorage persistence).
-6. Push-notification reminders (stretch).
+6. Push notifications — backend + Android code written, not yet
+   deployed. See §13.
 
 ### Phase 4 — Polish & extend
 
@@ -736,3 +737,104 @@ with, instead of listing all users.
   code generation, email sending, and JWT encoding.
 - **`data/auth.py`** — Slimmed down to only `decode_token()` (pure JWT
   decode, used by `app.py` context).
+
+---
+
+## 13. Push Notifications — Status & Remaining Work
+
+### What's Done (code written, tests passing)
+
+**Backend:**
+- Migration 0011: `user_device_tokens` table
+- SQL queries: `device_tokens.sql` (upsert, delete, get, batch delete)
+- SQL query: `get_push_recipients_for_entry` in `shares.sql` (joins shares → users → device tokens with filter logic)
+- Data layer: `data/device_tokens.py`
+- Service: `services/push.py` — POST to Expo Push API, returns invalid tokens
+- Orchestration: `orchestration/notifications.py` — `notify_shared_mood()` filters by user settings, sends pushes, cleans up invalid tokens
+- Resolver: `logMood` fires `notify_shared_mood` via `asyncio.create_task()`
+- Resolvers: `registerDeviceToken` / `unregisterDeviceToken` (auth-gated)
+- GraphQL schema: `RegisterDeviceTokenInput`, both mutations
+- Tests: 7 notification tests + 4 push service tests (all passing)
+
+**Android:**
+- `app.json`: `expo-notifications` plugin configured
+- `mutations.ts`: `REGISTER_DEVICE_TOKEN_MUTATION`, `UNREGISTER_DEVICE_TOKEN_MUTATION`
+- `useNotifications.ts`: hook for permission request, token registration, reminder scheduling, notification tap handling
+- `_layout.tsx`: calls `useNotifications()` in AuthGate
+- `MoodModal.tsx`: calls `scheduleReminder(18h)` after logging a mood
+- `settings.tsx`: Notifications section with Reminder/Shared Mood toggles; sign-out unregisters token and cancels reminders
+
+### What's NOT Done (required before push notifications work)
+
+#### 1. Install expo-notifications package
+
+```bash
+cd android && npx expo install expo-notifications
+```
+
+This installs the npm package and its native dependencies. Without it, the TypeScript imports will fail at build time.
+
+#### 2. Expo project linking (EAS)
+
+The `getExpoPushTokenAsync()` call requires a `projectId` from Expo's servers. This is obtained by linking the project:
+
+```bash
+cd android && npx eas init
+```
+
+This creates/links an Expo project and writes the `projectId` into `app.json` under `expo.extra.eas.projectId`. Without this, push token registration will fail with "No experienceId or projectId found".
+
+#### 3. Development build
+
+Push notifications **do not work in Expo Go**. A development build is required:
+
+```bash
+cd android && npx expo run:android
+# or
+cd android && eas build --platform android --profile preview
+```
+
+Local notifications (reminders) may work in Expo Go, but remote push notifications require the native push module which is only available in custom builds.
+
+#### 4. Deploy backend with migration
+
+The `user_device_tokens` table needs to be created in the production database. The migration runs automatically on app startup (`apply_migrations()` in `db.py`), so deploying the updated backend code is sufficient.
+
+### Decisions to Make Before Proceeding
+
+Before enabling push notifications, consider these options:
+
+#### Push Delivery Service
+
+**Current choice: Expo Push API (managed)**
+- Pros: No Firebase/FCM setup needed, Expo handles FCM credentials, simple HTTP API
+- Cons: Requires Expo project linking (`eas init`), ties the app to Expo's infrastructure, potential vendor lock-in
+- How it works: Backend POSTs to `https://exp.host/--/api/v2/push/send` → Expo forwards to FCM → device
+
+**Alternative: Direct FCM (Firebase Cloud Messaging)**
+- Pros: No Expo dependency for push, industry standard, more control
+- Cons: Requires Firebase project setup, service account credentials, FCM SDK integration on Android
+- How it works: Backend POSTs to FCM HTTP v1 API with device token → Google delivers to device
+
+**Alternative: Self-hosted push relay (e.g. ntfy, Gotify, UnifiedPush)**
+- Pros: Fully self-hosted, no Google/Expo dependency
+- Cons: Requires running another service, less reliable delivery, no iOS support
+- How it works: Backend POSTs to self-hosted server → device polls or uses WebSocket
+
+#### Reminder Strategy
+
+**Current choice: Local scheduling on device**
+- The app schedules a local notification 18h after the last mood log
+- Pros: No backend involvement, works offline
+- Cons: Timer resets only when the app is opened or a mood is logged; if the app is force-killed, the scheduled notification may not fire on all Android versions
+
+**Alternative: Server-side scheduled reminders**
+- Backend tracks last mood time per user and sends push reminders
+- Pros: More reliable, works even if app is killed
+- Cons: Requires a background job scheduler (cron, Celery, etc.), adds backend complexity
+
+#### Token Storage
+
+**Current implementation**: Tokens stored in `user_device_tokens` table. Multiple tokens per user supported (for multiple devices). Tokens cleaned up on sign-out and when Expo reports DeviceNotRegistered.
+
+No changes needed here — this is straightforward regardless of push provider.
