@@ -20,7 +20,7 @@ export default function TimelineScreen() {
   const openMoodModal = useStore((s) => s.openMoodModal);
   const ready = !!authToken;
 
-  const [usersResult] = useQuery({ query: USERS_QUERY, pause: !ready });
+  const [usersResult] = useQuery<{ users: User[] }>({ query: USERS_QUERY, pause: !ready });
   useEffect(() => {
     if (usersResult.data?.users?.length) setUsers(usersResult.data.users);
   }, [usersResult.data]);

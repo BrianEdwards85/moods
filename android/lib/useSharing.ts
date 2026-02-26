@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 import { useMutation } from 'urql';
 import { UPDATE_SHARING_MUTATION } from '@/lib/graphql/mutations';
+import type { User } from '@/lib/store';
 
 export interface ShareFilter {
   pattern: string;
@@ -14,7 +15,7 @@ export interface ShareConfig {
   name: string;
 }
 
-export function useSharing(currentUser: any) {
+export function useSharing(currentUser: User | undefined) {
   const [shares, setShares] = useState<Record<string, ShareConfig>>({});
   const [, updateSharing] = useMutation(UPDATE_SHARING_MUTATION);
   const [savingSharing, setSavingSharing] = useState(false);
@@ -26,7 +27,7 @@ export function useSharing(currentUser: any) {
       for (const rule of currentUser.sharedWith ?? []) {
         shareMap[rule.user.id] = {
           shared: true,
-          filters: rule.filters.map((f: any) => ({
+          filters: rule.filters.map((f) => ({
             pattern: f.pattern,
             isInclude: f.isInclude,
           })),
@@ -95,7 +96,12 @@ export function useSharing(currentUser: any) {
     }));
   };
 
-  const updateFilter = (userId: string, idx: number, field: keyof ShareFilter, value: any) => {
+  const updateFilter = (
+    userId: string,
+    idx: number,
+    field: keyof ShareFilter,
+    value: string | boolean,
+  ) => {
     setShares((prev) => ({
       ...prev,
       [userId]: {

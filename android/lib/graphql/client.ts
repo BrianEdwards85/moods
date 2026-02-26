@@ -61,8 +61,8 @@ const authExchange: Exchange =
 /** Post-response exchange: catch "Authentication required" as defense-in-depth. */
 const authErrorExchange: Exchange = mapExchange({
   onResult(result) {
-    const errors = result.data ? undefined : (result as any).error?.graphQLErrors;
-    if (errors?.some((e: any) => e.message === 'Authentication required')) {
+    const errors = result.error?.graphQLErrors;
+    if (errors?.some((e) => e.message === 'Authentication required')) {
       useStore.getState().clearAuth();
     }
   },

@@ -8,7 +8,7 @@ if [ ! -d node_modules ]; then
   npm install
 fi
 
-export EXPO_PUBLIC_APP_VARIANT="${EXPO_PUBLIC_APP_VARIANT:-local}"
+export EXPO_PUBLIC_APP_VARIANT="${EXPO_PUBLIC_APP_VARIANT:-dev}"
 
 echo "Starting Expo dev server (variant: $EXPO_PUBLIC_APP_VARIANT)..."
 echo ""

@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { useMutation, useQuery } from 'urql';
 import { USERS_QUERY } from '@/lib/graphql/queries';
 import { UPDATE_USER_SETTINGS_MUTATION } from '@/lib/graphql/mutations';
-import { useStore } from '@/lib/store';
+import { useStore, type User } from '@/lib/store';
 import { scheduleReminder, cancelReminder } from '@/lib/useNotifications';
 import { colors } from '@/lib/theme';
 import { styles } from './settings.styles';
@@ -18,9 +18,9 @@ export default function SettingsScreen() {
   const currentUserId = useStore((s) => s.currentUserId);
   const clearAuth = useStore((s) => s.clearAuth);
 
-  const [usersResult] = useQuery({ query: USERS_QUERY });
+  const [usersResult] = useQuery<{ users: User[] }>({ query: USERS_QUERY });
   const users = usersResult.data?.users ?? [];
-  const currentUser = users.find((u: any) => u.id === currentUserId);
+  const currentUser = users.find((u) => u.id === currentUserId);
 
   const [avatarUrl, setAvatarUrl] = useState('');
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
@@ -33,10 +33,9 @@ export default function SettingsScreen() {
 
   useEffect(() => {
     if (currentUser) {
-      const settings = currentUser.settings as Record<string, any> | undefined;
-      setAvatarUrl((settings?.avatarUrl as string) ?? '');
-      setSelectedColor((settings?.color as string) ?? null);
-      const notifications = (settings?.notifications as string[]) ?? [];
+      setAvatarUrl(currentUser.settings?.avatarUrl ?? '');
+      setSelectedColor(currentUser.settings?.color ?? null);
+      const notifications = currentUser.settings?.notifications ?? [];
       setReminderEnabled(notifications.includes('reminder'));
     }
   }, [currentUser?.id]);

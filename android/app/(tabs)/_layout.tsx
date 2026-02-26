@@ -3,7 +3,7 @@ import { Image, Pressable, Text } from 'react-native';
 import { Tabs, useRouter } from 'expo-router';
 import { useQuery } from 'urql';
 import { USERS_QUERY } from '@/lib/graphql/queries';
-import { useStore } from '@/lib/store';
+import { useStore, type User } from '@/lib/store';
 import { colors } from '@/lib/theme';
 
 function TabIcon(props: { name: React.ComponentProps<typeof FontAwesome>['name']; color: string }) {
@@ -13,14 +13,13 @@ function TabIcon(props: { name: React.ComponentProps<typeof FontAwesome>['name']
 function UserHeaderButton() {
   const router = useRouter();
   const currentUserId = useStore((s) => s.currentUserId);
-  const [usersResult] = useQuery({ query: USERS_QUERY });
+  const [usersResult] = useQuery<{ users: User[] }>({ query: USERS_QUERY });
   const users = usersResult.data?.users ?? [];
-  const currentUser = users.find((u: any) => u.id === currentUserId);
+  const currentUser = users.find((u) => u.id === currentUserId);
 
   if (!currentUser) return null;
 
-  const settings = currentUser.settings as Record<string, any> | undefined;
-  const customAvatar = settings?.avatarUrl as string | undefined;
+  const customAvatar = currentUser.settings?.avatarUrl;
   const avatarUri = customAvatar && customAvatar.length > 0 ? customAvatar : currentUser.icon;
 
   return (

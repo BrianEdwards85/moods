@@ -23,10 +23,6 @@ Unchecked items from the original project plan. Work through these one at a time
 
 ## Developer Experience
 
-- [ ] **Clean up `any` types in Android TypeScript** — `strict: true` is
-  enabled (good) but undermined by widespread `any` casts in settings.tsx,
-  queries, etc. Replace with proper types.
-
 - [ ] **Add accessibility labels** — Android: add `accessibilityLabel` and
   `accessibilityRole` to mood buttons, FAB, close button, avatar images. Web:
   add `:aria-label` to icon-only buttons (refresh, mood number buttons).

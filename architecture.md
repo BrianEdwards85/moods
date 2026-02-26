@@ -404,6 +404,12 @@ Sharing rules are updated atomically via `set_shares`: the entire rule set for a
 - Settings accessed via Dynaconf — never hard-coded connection strings.
 - Tests run against a real (disposable) Postgres database, not mocks.
 
+### TypeScript (Android)
+
+- Never use `any` — define interfaces for all data shapes in `lib/store.ts` and use them throughout.
+- Type urql query results with a type parameter: `useQuery<{ users: User[] }>(...)`.
+- `strict: true` is enabled in `tsconfig.json` — keep it that way.
+
 ---
 
 ## Dev Tooling

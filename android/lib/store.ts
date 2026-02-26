@@ -2,12 +2,31 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 
+export interface UserSettings {
+  avatarUrl?: string;
+  color?: string;
+  notifications?: string[];
+}
+
+export interface ShareFilterResponse {
+  id: string;
+  pattern: string;
+  isInclude: boolean;
+}
+
+export interface ShareRuleResponse {
+  id: string;
+  user: { id: string; name: string };
+  filters: ShareFilterResponse[];
+}
+
 export interface User {
   id: string;
   name: string;
   email: string;
   icon: string;
-  settings?: Record<string, unknown>;
+  settings?: UserSettings;
+  sharedWith?: ShareRuleResponse[];
 }
 
 export interface Tag {
