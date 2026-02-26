@@ -1,7 +1,6 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-import httpx
 from ariadne import load_schema_from_path, make_executable_schema
 from ariadne.asgi import GraphQL
 from starlette.applications import Starlette
@@ -84,17 +83,17 @@ def create_app() -> Starlette:
             checks["db"] = str(exc)
 
         # Mailgun
-        try:
-            async with httpx.AsyncClient(timeout=5) as client:
-                resp = await client.get(
-                    f"https://api.mailgun.net/v3/{settings.mailgun.domain}",
-                    auth=("api", settings.mailgun.api_key),
-                )
-                checks["mailgun"] = (
-                    "ok" if resp.status_code == 200 else f"status {resp.status_code}"
-                )
-        except Exception as exc:
-            checks["mailgun"] = str(exc)
+        #        try:
+        #            async with httpx.AsyncClient(timeout=5) as client:
+        #                resp = await client.get(
+        #                    f"https://api.mailgun.net/v3/{settings.mailgun.domain}",
+        #                    auth=("api", settings.mailgun.api_key),
+        #                )
+        #                checks["mailgun"] = (
+        #              "ok" if resp.status_code == 200 else f"status {resp.status_code}"
+        #                )
+        #        except Exception as exc:
+        #            checks["mailgun"] = str(exc)
 
         healthy = all(v == "ok" for v in checks.values())
         return JSONResponse(

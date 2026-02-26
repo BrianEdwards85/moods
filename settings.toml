@@ -13,11 +13,11 @@ domain = "moods.free-side.us"
 from_email = "Moods <noreply@moods.free-side.us>"
 
 [default.db]
-host = "db"
-port = 5432
-name = "moods_dev"
-user = "moods_dev"
-password = "moods_dev"
+host = "localhost"
+port = 5433
+name = "moods"
+user = "moods"
+password = "moods"
 
 [development]
 dynaconf_merge = true

@@ -13,7 +13,7 @@ where user_id = :user_id
 returning id, user_id, code, expires_at, used_at;
 
 -- name: get_user_by_email(email)^
-select id, name, email, settings, archived_at
+select id, name, email, icon, settings, archived_at
 from users
 where email = :email
   and archived_at is null;
