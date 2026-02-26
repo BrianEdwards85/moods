@@ -15,17 +15,20 @@ async def get_mood_entries(
     include_archived: bool = False,
     first: int | None = None,
     after: str | None = None,
+    viewer_id: str | None = None,
 ) -> dict:
     limit = first or DEFAULT_PAGE_SIZE
     after_id = decode_cursor(after) if after else None
 
     rows = [
-        dict(r) async for r in queries.get_mood_entries(
+        dict(r)
+        async for r in queries.get_mood_entries(
             pool,
             user_ids=user_ids,
             include_archived=include_archived,
             after_id=after_id,
             page_limit=limit + 1,
+            viewer_id=viewer_id,
         )
     ]
     return build_connection(rows, "id", limit)
@@ -34,26 +37,23 @@ async def get_mood_entries(
 async def create_mood_entry(
     pool: Pool, *, user_id: str, mood: int, notes: str, tags: list[str] | None = None
 ) -> dict:
-    async with pool.acquire() as conn:
-        async with conn.transaction():
-            row = await queries.create_mood_entry(
-                conn, user_id=user_id, mood=mood, notes=notes
-            )
-            entry = dict(row)
+    async with pool.acquire() as conn, conn.transaction():
+        row = await queries.create_mood_entry(
+            conn, user_id=user_id, mood=mood, notes=notes
+        )
+        entry = dict(row)
 
-            for tag_name in tags or []:
-                await queries.ensure_tag(conn, name=tag_name)
-                await queries.add_mood_entry_tag(
-                    conn, mood_entry_id=entry["id"], tag_name=tag_name
-                )
+        for tag_name in tags or []:
+            await queries.ensure_tag(conn, name=tag_name)
+            await queries.add_mood_entry_tag(
+                conn, mood_entry_id=entry["id"], tag_name=tag_name
+            )
 
     return entry
 
 
-async def archive_mood_entry(pool: Pool, entry_id: str) -> dict:
-    row = await queries.archive_mood_entry(pool, id=entry_id)
+async def archive_mood_entry(pool: Pool, entry_id: str, user_id: str) -> dict:
+    row = await queries.archive_mood_entry(pool, id=entry_id, user_id=user_id)
     if not row:
         raise ValueError("Mood entry not found or already archived")
     return dict(row)
-
-

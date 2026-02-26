@@ -1,0 +1,5 @@
+mutation UpdateSharing($input: UpdateSharingInput!) {
+  updateSharing(input: $input) {
+    id sharedWith { id user { id name } filters { id pattern isInclude } }
+  }
+}

@@ -6,12 +6,15 @@ from ariadne.asgi import GraphQL
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
-from starlette.responses import FileResponse
+from starlette.responses import FileResponse, JSONResponse
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
+from moods.config import settings
+from moods.data.auth import decode_token
 from moods.data.loaders import create_loaders
 from moods.db import apply_migrations, create_pool
+from moods.resolvers.auth import mutation as auth_mutation
 from moods.resolvers.mood import mood_entry
 from moods.resolvers.mood import mutation as mood_mutation
 from moods.resolvers.mood import query as mood_query
@@ -20,7 +23,7 @@ from moods.resolvers.tag import mutation as tag_mutation
 from moods.resolvers.tag import query as tag_query
 from moods.resolvers.user import mutation as user_mutation
 from moods.resolvers.user import query as user_query
-from moods.resolvers.user import user_obj
+from moods.resolvers.user import share_rule_obj, user_obj
 
 SCHEMA_DIR = Path(__file__).parent / "schema"
 WEB_PUBLIC = Path(__file__).parent.parent.parent / "web" / "resources" / "public"
@@ -36,8 +39,10 @@ def create_app() -> Starlette:
         user_mutation,
         mood_mutation,
         tag_mutation,
+        auth_mutation,
         mood_entry,
         user_obj,
+        share_rule_obj,
         datetime_scalar,
         json_scalar,
         convert_names_case=True,
@@ -52,27 +57,78 @@ def create_app() -> Starlette:
 
     async def get_context(request, _data=None):
         pool = request.app.state.pool
-        return {"request": request, "pool": pool, **create_loaders(pool)}
+        auth_user_id = None
+        auth_header = request.headers.get("authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header[7:]
+            auth_user_id = decode_token(token, settings.jwt_secret)
+        return {
+            "request": request,
+            "pool": pool,
+            "auth_user_id": auth_user_id,
+            **create_loaders(pool),
+        }
 
     graphql_app = GraphQL(schema, context_value=get_context)
+
+    async def health(request):
+        checks = {}
+
+        # Database
+        try:
+            async with request.app.state.pool.acquire() as conn:
+                await conn.fetchval("SELECT 1")
+            checks["db"] = "ok"
+        except Exception as exc:
+            checks["db"] = str(exc)
+
+        # Mailgun
+        #        try:
+        #            async with httpx.AsyncClient(timeout=5) as client:
+        #                resp = await client.get(
+        #                    f"https://api.mailgun.net/v3/{settings.mailgun.domain}",
+        #                    auth=("api", settings.mailgun.api_key),
+        #                )
+        #                checks["mailgun"] = (
+        #              "ok" if resp.status_code == 200 else f"status {resp.status_code}"
+        #                )
+        #        except Exception as exc:
+        #            checks["mailgun"] = str(exc)
+
+        healthy = all(v == "ok" for v in checks.values())
+        return JSONResponse(
+            {"status": "healthy" if healthy else "degraded", "checks": checks},
+            status_code=200 if healthy else 503,
+        )
 
     async def spa_fallback(request):
         return FileResponse(WEB_PUBLIC / "index.html")
 
+    routes = [
+        Route("/health", health, methods=["GET"]),
+        Route("/graphql", graphql_app, methods=["GET", "POST"]),
+    ]
+
+    if (WEB_PUBLIC / "js").is_dir():
+        routes.append(Mount("/js", StaticFiles(directory=WEB_PUBLIC / "js"), name="js"))
+    if (WEB_PUBLIC / "css").is_dir():
+        routes.append(
+            Mount("/css", StaticFiles(directory=WEB_PUBLIC / "css"), name="css")
+        )
+
+    routes += [
+        Route("/favicon.svg", spa_fallback),
+        Route("/{path:path}", spa_fallback),
+    ]
+
     return Starlette(
         lifespan=lifespan,
-        routes=[
-            Route("/graphql", graphql_app, methods=["GET", "POST"]),
-            Mount("/js", StaticFiles(directory=WEB_PUBLIC / "js"), name="js"),
-            Mount("/css", StaticFiles(directory=WEB_PUBLIC / "css"), name="css"),
-            Route("/favicon.svg", spa_fallback),
-            Route("/{path:path}", spa_fallback),
-        ],
+        routes=routes,
         middleware=[
             Middleware(
                 CORSMiddleware,
-                allow_origins=["*"],
-                allow_credentials=True,
+                allow_origins=settings.cors.allow_origins,
+                allow_credentials=settings.cors.allow_credentials,
                 allow_methods=["GET", "POST", "OPTIONS"],
                 allow_headers=["*"],
             ),

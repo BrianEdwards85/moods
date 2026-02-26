@@ -1,0 +1,24 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.7
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: eslint
+        name: eslint (android)
+        entry: bash -c 'cd android && f=(); for a in "$@"; do f+=("${a#android/}"); done; npx eslint --fix "${f[@]}"' --
+        language: system
+        files: ^android/.*\.(ts|tsx)$
+        types: [file]
+
+      - id: prettier
+        name: prettier (android)
+        entry: bash -c 'cd android && f=(); for a in "$@"; do f+=("${a#android/}"); done; npx prettier --write "${f[@]}"' --
+        language: system
+        files: ^android/.*\.(ts|tsx|json)$
+        types: [file]
+        exclude: ^android/(node_modules|android|ios|\.expo)/

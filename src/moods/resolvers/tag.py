@@ -1,6 +1,7 @@
 from ariadne import MutationType, QueryType
 
 from moods.data import tags as tag_data
+from moods.resolvers.auth import require_auth
 
 query = QueryType()
 mutation = MutationType()
@@ -10,6 +11,7 @@ mutation = MutationType()
 async def resolve_tags(
     _obj, info, *, search=None, include_archived=False, first=None, after=None
 ):
+    require_auth(info)
     return await tag_data.get_tags(
         info.context["pool"],
         search=search,
@@ -21,6 +23,7 @@ async def resolve_tags(
 
 @mutation.field("updateTagMetadata")
 async def resolve_update_tag_metadata(_obj, info, *, input):
+    require_auth(info)
     return await tag_data.update_tag_metadata(
         info.context["pool"], name=input["name"], metadata=input["metadata"]
     )
@@ -28,9 +31,11 @@ async def resolve_update_tag_metadata(_obj, info, *, input):
 
 @mutation.field("archiveTag")
 async def resolve_archive_tag(_obj, info, *, name):
+    require_auth(info)
     return await tag_data.archive_tag(info.context["pool"], name)
 
 
 @mutation.field("unarchiveTag")
 async def resolve_unarchive_tag(_obj, info, *, name):
+    require_auth(info)
     return await tag_data.unarchive_tag(info.context["pool"], name)

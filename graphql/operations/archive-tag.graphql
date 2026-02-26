@@ -1,0 +1,3 @@
+mutation ArchiveTag($name: String!) {
+  archiveTag(name: $name) { name metadata archivedAt }
+}

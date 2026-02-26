@@ -1,4 +1,6 @@
-from tests.conftest import gql
+from tests.conftest import auth_header, gql
+
+H = auth_header("00000000-0000-0000-0000-000000000000")
 
 CREATE_USER = """
 mutation CreateUser($input: CreateUserInput!) {
@@ -26,14 +28,19 @@ query UserEntries($id: ID!, $first: Int, $after: String, $includeArchived: Boole
 
 
 async def _create_user(client, name="Alice", email="alice@test.com"):
-    body = await gql(client, CREATE_USER, {"input": {"name": name, "email": email}})
+    body = await gql(
+        client, CREATE_USER, {"input": {"name": name, "email": email}}, headers=H
+    )
     return body["data"]["createUser"]["id"]
 
 
 async def _log_mood(client, user_id, mood=7, notes="ok"):
-    await gql(client, LOG_MOOD, {
-        "input": {"userId": user_id, "mood": mood, "notes": notes, "tags": []}
-    })
+    await gql(
+        client,
+        LOG_MOOD,
+        {"input": {"mood": mood, "notes": notes, "tags": []}},
+        headers=auth_header(user_id),
+    )
 
 
 async def test_user_entries_connection(client):
@@ -75,16 +82,20 @@ async def test_user_entries_pagination(client):
     assert len(page1["edges"]) == 2
     assert page1["pageInfo"]["hasNextPage"] is True
 
-    body = await gql(client, USER_WITH_ENTRIES, {
-        "id": uid, "first": 2, "after": page1["pageInfo"]["endCursor"]
-    })
+    body = await gql(
+        client,
+        USER_WITH_ENTRIES,
+        {"id": uid, "first": 2, "after": page1["pageInfo"]["endCursor"]},
+    )
     page2 = body["data"]["user"]["entries"]
     assert len(page2["edges"]) == 2
     assert page2["pageInfo"]["hasNextPage"] is True
 
-    body = await gql(client, USER_WITH_ENTRIES, {
-        "id": uid, "first": 2, "after": page2["pageInfo"]["endCursor"]
-    })
+    body = await gql(
+        client,
+        USER_WITH_ENTRIES,
+        {"id": uid, "first": 2, "after": page2["pageInfo"]["endCursor"]},
+    )
     page3 = body["data"]["user"]["entries"]
     assert len(page3["edges"]) == 1
     assert page3["pageInfo"]["hasNextPage"] is False

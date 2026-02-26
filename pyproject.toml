@@ -1,6 +1,6 @@
 [project]
 name = "moods"
-version = "0.1.0"
+version = "2.0.0"
 description = "Shared mood-tracking app"
 requires-python = ">=3.12"
 dependencies = [
@@ -13,6 +13,8 @@ dependencies = [
     "uvicorn[standard]",
     "aiodataloader>=0.4.3",
     "psycopg2-binary>=2.9.11",
+    "pyjwt>=2.9",
+    "httpx>=0.28",
 ]
 
 [project.optional-dependencies]
@@ -32,3 +34,61 @@ packages = ["src/moods"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "poethepoet>=0.32",
+    "pytest-cov>=7.0.0",
+    "ruff>=0.9",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["moods"]
+
+[tool.poe.tasks.dev]
+cmd = "uvicorn moods.app:app --host 0.0.0.0 --port 8000 --reload"
+help = "Start backend dev server"
+
+[tool.poe.tasks."dev:web"]
+cmd = "npm run dev"
+cwd = "web"
+help = "Start web frontend dev server"
+
+[tool.poe.tasks."dev:android"]
+cmd = "npx expo start"
+cwd = "android"
+help = "Start Android/Expo dev server"
+
+[tool.poe.tasks.test]
+cmd = "pytest --cov"
+help = "Run tests with coverage"
+
+[tool.poe.tasks.lint]
+help = "Check linting and formatting"
+sequence = [
+    { cmd = "ruff check src/ tests/" },
+    { cmd = "ruff format --check src/ tests/" },
+]
+
+[tool.poe.tasks.format]
+cmd = "ruff format src/ tests/"
+help = "Auto-format Python code"
+
+[tool.poe.tasks.migrate]
+cmd = "python -c 'from moods.db import apply_migrations; apply_migrations()'"
+help = "Apply database migrations"
+
+[tool.poe.tasks."docker:build"]
+cmd = "docker compose build"
+help = "Build Docker image"
+
+[tool.poe.tasks."docker:up"]
+cmd = "docker compose up"
+help = "Start Docker services"

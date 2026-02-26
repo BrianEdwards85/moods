@@ -1,0 +1,3 @@
+mutation ArchiveEntry($id: ID!) {
+  archiveMoodEntry(id: $id) { id archivedAt }
+}

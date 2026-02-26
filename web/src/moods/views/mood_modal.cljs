@@ -3,7 +3,6 @@
             [moods.events :as events]
             [moods.subs :as subs]
             [moods.util :as util]
-            [moods.views.components :as comp]
             [re-frame.core :as rf]
             [reagent.core :as r]))
 
@@ -32,11 +31,6 @@
                       :disabled (.-disabled mods)
                       :style    (when color {:border-left (str "3px solid " color)})
                       :on-click (.-handleClick props)}]))))
-
-(defn tag-input-props [tag-query]
-  {:placeholder "Search or create tags..."
-   :value       tag-query
-   :on-change   #(rf/dispatch [::events/set-tag-query (.. % -target -value)])})
 
 (defn create-new-tag-renderer [query active handleClick]
   (r/as-element

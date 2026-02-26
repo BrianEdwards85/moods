@@ -1,6 +1,16 @@
 [default]
 server_host = "0.0.0.0"
 server_port = 8000
+jwt_expiry_days = 90
+auth_code_expiry_minutes = 10
+
+[default.cors]
+allow_origins = ["*"]
+allow_credentials = true
+
+[default.mailgun]
+domain = "moods.free-side.us"
+from_email = "Moods <noreply@moods.free-side.us>"
 
 [default.db]
 host = "localhost"
@@ -10,9 +20,29 @@ user = "moods"
 password = "moods"
 
 [development]
+dynaconf_merge = true
+
+[development.cors]
+allow_origins = ["https://moods-dev.free-side.us"]
+allow_credentials = false
+
+[development.db]
+host = "db"
+port = 5432
+name = "moods_dev"
+user = "moods_dev"
+password = "moods_dev"
+
+[production]
+dynaconf_merge = true
+
+[production.cors]
+allow_origins = ["https://moods.free-side.us"]
+allow_credentials = false
 
 [testing]
 dynaconf_merge = true
+jwt_secret = "test-secret-do-not-use-in-production-minimum-32-bytes-long"
 
 [testing.db]
 name = "moods_test"

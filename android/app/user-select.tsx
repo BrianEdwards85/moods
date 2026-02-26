@@ -1,151 +1,143 @@
 import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Image,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-  ScrollView,
-} from 'react-native';
+import { ActivityIndicator, Modal, Pressable, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useQuery } from 'urql';
+import { useMutation } from 'urql';
 import { useStore } from '@/lib/store';
-import { USERS_QUERY } from '@/lib/graphql/queries';
-import { gravatarUrl } from '@/lib/utils';
+import { SEND_LOGIN_CODE_MUTATION, VERIFY_LOGIN_CODE_MUTATION } from '@/lib/graphql/mutations';
 import { colors } from '@/lib/theme';
+import { styles } from './user-select.styles';
 
 export default function UserSelectScreen() {
   const router = useRouter();
-  const selectUser = useStore((s) => s.selectUser);
-  const setUsers = useStore((s) => s.setUsers);
-  const [result, reexecute] = useQuery({ query: USERS_QUERY });
+  const setAuthToken = useStore((s) => s.setAuthToken);
+  const loginEmail = useStore((s) => s.loginEmail);
+  const setLoginEmail = useStore((s) => s.setLoginEmail);
+  const restoreLoginEmail = useStore((s) => s.restoreLoginEmail);
 
-  const users = result.data?.users ?? [];
+  const [, sendCode] = useMutation(SEND_LOGIN_CODE_MUTATION);
+  const [, verifyCode] = useMutation(VERIFY_LOGIN_CODE_MUTATION);
+
+  const [email, setEmail] = useState('');
+  const [codeSent, setCodeSent] = useState(false);
+  const [code, setCode] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (users.length) setUsers(users);
-  }, [users]);
+    restoreLoginEmail().then((saved) => {
+      if (saved) setEmail(saved);
+    });
+  }, []);
 
-  const onSelect = async (id: string) => {
-    await selectUser(id);
-    router.replace('/(tabs)');
+  const onSendCode = async () => {
+    const trimmed = email.trim();
+    if (!trimmed) return;
+    setCodeSent(false);
+    setCode('');
+    setError(null);
+    setLoading(true);
+
+    const res = await sendCode({ email: trimmed });
+    setLoading(false);
+
+    if (res.error) {
+      setError(res.error.message);
+    } else {
+      setCodeSent(true);
+    }
   };
 
-  if (result.fetching) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.blue} />
-      </View>
-    );
-  }
+  const onVerify = async () => {
+    setLoading(true);
+    setError(null);
 
-  if (result.error) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.errorText}>Failed to load users</Text>
-        <Text style={styles.errorDetail}>{result.error.message}</Text>
-        <Pressable
-          style={styles.retryBtn}
-          onPress={() => reexecute({ requestPolicy: 'network-only' })}
-        >
-          <Text style={styles.retryText}>Retry</Text>
-        </Pressable>
-      </View>
-    );
-  }
+    const res = await verifyCode({ email: email.trim(), code });
+    setLoading(false);
+
+    if (res.error) {
+      setError(res.error.message);
+    } else if (res.data?.verifyLoginCode) {
+      const { token, user } = res.data.verifyLoginCode;
+      await setLoginEmail(email.trim());
+      await setAuthToken(token, user.id);
+      router.replace('/(tabs)');
+    }
+  };
+
+  const closeModal = () => {
+    setCodeSent(false);
+    setCode('');
+    setError(null);
+  };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Who are you?</Text>
-      <View style={styles.cards}>
-        {users.map((u: { id: string; name: string; email: string }) => (
-          <Pressable key={u.id} style={styles.card} onPress={() => onSelect(u.id)}>
-            <Image source={{ uri: gravatarUrl(u.email, 96) }} style={styles.avatar} />
-            <Text style={styles.name}>{u.name}</Text>
-            <Text style={styles.email}>{u.email}</Text>
-          </Pressable>
-        ))}
+    <View style={styles.container}>
+      <View style={styles.content}>
+        <Text style={styles.title}>Moods</Text>
+        <Text style={styles.subtitle}>Sign in with your email</Text>
+
+        <TextInput
+          style={styles.emailInput}
+          placeholder="you@example.com"
+          placeholderTextColor={colors.fgDim}
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoFocus={!loginEmail}
+        />
+
+        <Pressable
+          style={[styles.sendBtn, (!email.trim() || loading) && styles.btnDisabled]}
+          onPress={onSendCode}
+          disabled={!email.trim() || loading}
+        >
+          {loading && !codeSent ? (
+            <ActivityIndicator size="small" color={colors.darkText} />
+          ) : (
+            <Text style={styles.sendBtnText}>Send Code</Text>
+          )}
+        </Pressable>
       </View>
-    </ScrollView>
+
+      <Modal visible={codeSent} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Enter login code</Text>
+            <Text style={styles.modalSubtext}>A 6-digit code has been sent to {email.trim()}.</Text>
+            <TextInput
+              style={styles.codeInput}
+              placeholder="000000"
+              placeholderTextColor={colors.fgDim}
+              value={code}
+              onChangeText={setCode}
+              keyboardType="number-pad"
+              maxLength={6}
+              autoFocus
+            />
+
+            {error && <Text style={styles.errorMsg}>{error}</Text>}
+
+            {loading && (
+              <ActivityIndicator size="small" color={colors.blue} style={{ marginVertical: 12 }} />
+            )}
+
+            <View style={styles.modalActions}>
+              <Pressable style={styles.cancelBtn} onPress={closeModal}>
+                <Text style={styles.cancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.verifyBtn, (loading || code.length !== 6) && styles.btnDisabled]}
+                onPress={onVerify}
+                disabled={loading || code.length !== 6}
+              >
+                <Text style={styles.verifyBtnText}>Verify</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bgDark,
-  },
-  content: {
-    alignItems: 'center',
-    paddingTop: 80,
-    paddingHorizontal: 24,
-  },
-  center: {
-    flex: 1,
-    backgroundColor: colors.bgDark,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.fg,
-    marginBottom: 32,
-  },
-  cards: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 20,
-    justifyContent: 'center',
-  },
-  card: {
-    backgroundColor: colors.bgFloat,
-    borderRadius: 12,
-    padding: 24,
-    alignItems: 'center',
-    width: 160,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    marginBottom: 12,
-  },
-  name: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.fg,
-    marginBottom: 4,
-  },
-  email: {
-    fontSize: 12,
-    color: colors.fgDim,
-  },
-  errorText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.red,
-    marginBottom: 8,
-  },
-  errorDetail: {
-    fontSize: 13,
-    color: colors.fgDim,
-    textAlign: 'center',
-    paddingHorizontal: 32,
-  },
-  retryBtn: {
-    marginTop: 20,
-    backgroundColor: colors.blue,
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 28,
-  },
-  retryText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1f2335',
-  },
-});

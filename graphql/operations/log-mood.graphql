@@ -1,0 +1,5 @@
+mutation LogMood($input: LogMoodInput!) {
+  logMood(input: $input) {
+    id mood notes createdAt tags { name metadata }
+  }
+}
