@@ -52,8 +52,8 @@ async def create_mood_entry(
     return entry
 
 
-async def archive_mood_entry(pool: Pool, entry_id: str) -> dict:
-    row = await queries.archive_mood_entry(pool, id=entry_id)
+async def archive_mood_entry(pool: Pool, entry_id: str, user_id: str) -> dict:
+    row = await queries.archive_mood_entry(pool, id=entry_id, user_id=user_id)
     if not row:
         raise ValueError("Mood entry not found or already archived")
     return dict(row)

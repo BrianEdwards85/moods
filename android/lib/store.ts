@@ -1,10 +1,12 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 
 export interface User {
   id: string;
   name: string;
   email: string;
+  icon: string;
   settings?: Record<string, unknown>;
 }
 
@@ -33,8 +35,6 @@ interface StoreState {
   moodModalOpen: boolean;
 
   setUsers: (users: User[]) => void;
-  selectUser: (id: string) => Promise<void>;
-  restoreUser: () => Promise<string | null>;
   setAuthToken: (token: string, userId: string) => Promise<void>;
   restoreAuth: () => Promise<string | null>;
   clearAuth: () => Promise<void>;
@@ -57,25 +57,14 @@ export const useStore = create<StoreState>((set) => ({
 
   setUsers: (users) => set({ users }),
 
-  selectUser: async (id) => {
-    await AsyncStorage.setItem(USER_STORAGE_KEY, id);
-    set({ currentUserId: id });
-  },
-
-  restoreUser: async () => {
-    const id = await AsyncStorage.getItem(USER_STORAGE_KEY);
-    if (id) set({ currentUserId: id });
-    return id;
-  },
-
   setAuthToken: async (token, userId) => {
-    await AsyncStorage.setItem(TOKEN_STORAGE_KEY, token);
+    await SecureStore.setItemAsync(TOKEN_STORAGE_KEY, token);
     await AsyncStorage.setItem(USER_STORAGE_KEY, userId);
     set({ authToken: token, currentUserId: userId });
   },
 
   restoreAuth: async () => {
-    const token = await AsyncStorage.getItem(TOKEN_STORAGE_KEY);
+    const token = await SecureStore.getItemAsync(TOKEN_STORAGE_KEY);
     const userId = await AsyncStorage.getItem(USER_STORAGE_KEY);
     if (token && userId) {
       set({ authToken: token, currentUserId: userId });
@@ -84,7 +73,7 @@ export const useStore = create<StoreState>((set) => ({
   },
 
   clearAuth: async () => {
-    await AsyncStorage.removeItem(TOKEN_STORAGE_KEY);
+    await SecureStore.deleteItemAsync(TOKEN_STORAGE_KEY);
     await AsyncStorage.removeItem(USER_STORAGE_KEY);
     set({ authToken: null, currentUserId: null });
   },

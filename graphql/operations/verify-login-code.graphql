@@ -1,0 +1,5 @@
+mutation VerifyLoginCode($email: String!, $code: String!) {
+  verifyLoginCode(email: $email, code: $code) {
+    token user { id name email icon settings }
+  }
+}

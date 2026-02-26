@@ -329,7 +329,7 @@ reload.
    polling, pagination, pull-to-refresh).
 5. ~~Email-based login screen.~~ Done (email input → code verify →
    AsyncStorage persistence).
-6. Push-notification reminders (stretch).
+6. Push notifications — deferred for future evaluation.
 
 ### Phase 4 — Polish & extend
 
@@ -708,6 +708,7 @@ decisions are made and phases are completed.*
 
  - User settings
  - ~~mood delta~~ ✅
+ ✅
 
 ---
 
@@ -736,3 +737,183 @@ with, instead of listing all users.
   code generation, email sending, and JWT encoding.
 - **`data/auth.py`** — Slimmed down to only `decode_token()` (pure JWT
   decode, used by `app.py` context).
+
+---
+
+## 13. Best Practices & Improvements
+
+Identified gaps in security, reliability, code quality, and developer experience.
+Work through these one at a time.
+
+### 13.1 Critical / Security
+
+- [ ] **Rotate leaked Mailgun API key** — `.secrets.toml` contains a real API
+  key. Rotate the key in Mailgun, scrub the old value from git history with
+  `git filter-repo`, and verify `.secrets.toml` stays gitignored going forward.
+
+- [x] **Lock down CORS origins** — `src/moods/app.py:87-93` uses
+  `allow_origins=["*"]` with `allow_credentials=True`. Replace `"*"` with the
+  actual frontend domains (e.g. `https://moods.free-side.us`,
+  `http://localhost:3000` for dev).
+
+- [x] **Store Android auth token securely** — `android/lib/store.ts` uses
+  `AsyncStorage` (unencrypted plaintext). Switch to `expo-secure-store` which
+  uses the Android Keystore.
+
+- [x] **Add `Secure` flag to web cookies** — `web/src/moods/cookies.cljs:10-13`
+  sets auth cookies without the `Secure` flag, exposing tokens over HTTP. Add
+  `; Secure` to the cookie string. Longer term, consider setting auth cookies
+  from the server with `HttpOnly; Secure` headers.
+
+- [ ] **Run Docker container as non-root** — The `Dockerfile` never creates or
+  switches to a non-root user. Add `RUN useradd --create-home appuser` and
+  `USER appuser` before the `CMD`.
+
+### 13.2 High Priority — Reliability
+
+- [ ] **Add tests and linting to CI** — `.github/workflows/build-backend.yml`
+  goes straight from checkout to Docker build. Add steps before the build:
+  - `uv run ruff check src/ tests/` (linting)
+  - `uv run pytest --cov` (tests)
+  - For Android workflow: add `npx tsc --noEmit` (type check)
+  - Requires adding `ruff` to dev dependencies in `pyproject.toml`.
+
+- [x] **Handle mutation errors in Android** — Several mutations silently
+  swallow errors:
+  - `android/components/MoodModal.tsx:59-76` — `logMood()` result never
+    checked; modal closes regardless of success/failure (data loss risk).
+  - `android/app/(tabs)/settings.tsx:132-143` — `updateSettings` result
+    not checked.
+  - Check `result.error` and show user feedback (toast/alert) on failure.
+
+- [x] **Handle mutation errors in web** — `web/src/moods/events.cljs` stores
+  GraphQL errors in the db at paths like `[:errors :users]`, `[:errors
+  :entries]`, etc., but these are almost never surfaced in the UI. Add error
+  display components to timeline and other views.
+
+- [x] **Add token refresh / expiration handling** — Neither platform detects
+  expired JWTs. When a GraphQL response returns an auth error, redirect the
+  user to re-authenticate. Consider:
+  - Android: add an `errorExchange` to the urql client that catches 401s.
+  - Web: handle auth errors in re-frame event handlers.
+
+- [x] **Add a health check endpoint** — `src/moods/app.py` has no `/health`
+  route. The SPA fallback returns `index.html` for any unknown path, so
+  there's no way to distinguish healthy from broken. Add a `/health` route
+  that checks database connectivity. Also add a `HEALTHCHECK` instruction to
+  the Dockerfile.
+
+### 13.3 Medium Priority — Code Quality & Performance
+
+- [ ] **Add linting and formatting tools** — No linter or formatter is
+  configured anywhere:
+  - Python: add `ruff` (lint + format) to `pyproject.toml` dev deps, add
+    `[tool.ruff]` config section.
+  - Android: add `eslint` and `prettier` with config files, add `lint`,
+    `format`, and `typecheck` scripts to `package.json`.
+  - Web: consider adding `clj-kondo` for ClojureScript linting.
+  - Add a `.pre-commit-config.yaml` to run these automatically.
+
+- [x] **Reduce GraphQL query duplication** — All 12 queries/mutations are
+  duplicated between `web/src/moods/gql.cljs` and
+  `android/lib/graphql/queries.ts` + `mutations.ts`. Schema changes require
+  updates in two places. Options:
+  - Extract shared `.graphql` files and load from both clients.
+  - Use `graphql-codegen` for the Android client to also get type safety.
+
+- [ ] **Android performance: memoize computed data** —
+  `android/app/(tabs)/index.tsx:41-110` recomputes `usersById` and `listItems`
+  on every render. Wrap in `useMemo` with appropriate dependency arrays.
+
+- [ ] **Android performance: memoize components** —
+  - `android/components/EntryCard.tsx` — wrap in `React.memo` for FlatList
+    performance.
+  - `android/app/(tabs)/index.tsx` — extract `renderItem` into a
+    `useCallback`.
+
+- [x] **Fix Zustand selector patterns** —
+  `android/app/(tabs)/settings.tsx:43` destructures the entire store,
+  causing re-renders on any store change. Use individual selectors:
+  `const currentUserId = useStore(s => s.currentUserId)`.
+
+- [ ] **Fix re-frame purity violations** —
+  `web/src/moods/events.cljs:436-438` performs cookie writes as direct side
+  effects inside event handlers. Move to re-frame effects (`:fx`).
+
+- [x] **Add `android/` to `.dockerignore`** — The entire mobile project
+  (including `node_modules` if present) gets sent in the Docker build context
+  unnecessarily.
+
+- [ ] **Smaller source files ** —
+  - android/app/(tabs)/settings.tsx
+  - android/components/MoodModal.tsx
+  - android/components/TagEditModal.ts
+  - android/app/(tabs)/index.tsx
+  - web/src/moods/views/settings.cljs
+  - web/src/moods/views/tags.cljs
+
+### 13.4 Medium Priority — Infrastructure
+
+- [ ] **Add PostgreSQL to `docker-compose.yml`** — The compose file assumes
+  Postgres is running on the host. Add a `postgres` service with the right
+  version, `pg_trgm` extension, port mapping (5433:5432), and a named volume
+  for persistence. Add `depends_on` to the moods service.
+
+- [ ] **Separate migrations from app startup** — `src/moods/app.py:53` runs
+  migrations in the application lifespan. In a multi-replica deployment this
+  creates a race condition. Move migrations to a separate CLI command or CI
+  step (e.g. an init container, a `make migrate` target, or a pre-deploy
+  script).
+
+- [ ] **Make tests runnable in CI** — `tests/conftest.py` requires an external
+  PostgreSQL on localhost:5433. Add a PostgreSQL service container to the CI
+  workflow (GitHub Actions `services:` block) and run `pytest` as a CI step.
+
+- [ ] **Fix migration 0011 metadata** — `migrations/0011.add-user-icon.sql`
+  is missing the `-- depends:` header that all other migrations have.
+
+### 13.5 Low Priority — Developer Experience
+
+- [ ] **Add a Makefile or task runner** — No `Makefile`, `justfile`, or
+  equivalent exists. Add targets for common operations:
+  - `make dev` — start local development (backend + web)
+  - `make test` — run pytest
+  - `make lint` — run ruff + eslint
+  - `make migrate` — apply migrations
+  - `make docker-build` — build Docker image locally
+
+- [ ] **Expand the README** — `README.md` is a single line. Add:
+  - Project description
+  - Prerequisites (PostgreSQL, Node.js, Python, Java/ClojureScript)
+  - Development setup instructions
+  - How to run tests
+  - Environment variables / configuration
+  - Deployment instructions
+  - Link to `architecture.md`, `data.md`, and `PLAN.md`.
+
+- [ ] **Add `lint`, `format`, `typecheck`, `test` scripts** to both
+  `web/package.json` and `android/package.json`.
+
+- [ ] **Clean up `any` types in Android TypeScript** — `strict: true` is
+  enabled (good) but undermined by widespread `any` casts in settings.tsx,
+  queries, etc. Replace with proper types.
+
+- [ ] **Add accessibility labels** — Android: add `accessibilityLabel` and
+  `accessibilityRole` to mood buttons, FAB, close button, avatar images. Web:
+  add `:aria-label` to icon-only buttons (refresh, mood number buttons).
+
+- [ ] **Validate `EXPO_PUBLIC_APP_VARIANT` at runtime** —
+  `android/lib/config.ts:3-4` silently falls through to `undefined` for
+  unrecognized variants. Add a runtime check that throws for invalid values.
+
+- [ ] **Pin `uv` version in Dockerfile** — `pip install --no-cache-dir uv`
+  installs an unpinned version. Use `pip install --no-cache-dir uv==X.Y.Z`.
+
+- [ ] **Add CI concurrency groups** — Neither workflow uses `concurrency:`
+  to cancel stale runs. Add to both workflows:
+  ```yaml
+  concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+  ```
+

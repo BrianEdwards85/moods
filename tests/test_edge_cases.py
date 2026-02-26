@@ -59,8 +59,8 @@ async def test_archive_nonexistent_mood_entry(client):
 async def test_log_mood_nonexistent_user(client):
     fake_id = str(uuid.uuid4())
     body = await gql(client, LOG_MOOD, {
-        "input": {"userId": fake_id, "mood": 5, "notes": "test", "tags": []}
-    }, expect_errors=True, headers=H)
+        "input": {"mood": 5, "notes": "test", "tags": []}
+    }, expect_errors=True, headers=auth_header(fake_id))
     assert "errors" in body
 
 
@@ -78,8 +78,8 @@ async def test_archive_already_archived_tag(client):
     body = await gql(client, CREATE_USER, {"input": {"name": "T", "email": "t@test.com"}}, headers=H)
     uid = body["data"]["createUser"]["id"]
     await gql(client, LOG_MOOD, {
-        "input": {"userId": uid, "mood": 5, "notes": "", "tags": ["dup"]}
-    }, headers=H)
+        "input": {"mood": 5, "notes": "", "tags": ["dup"]}
+    }, headers=auth_header(uid))
 
     body = await gql(client, ARCHIVE_TAG, {"name": "dup"}, headers=H)
     assert body["data"]["archiveTag"]["archivedAt"] is not None

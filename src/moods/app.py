@@ -1,12 +1,13 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import httpx
 from ariadne import load_schema_from_path, make_executable_schema
 from ariadne.asgi import GraphQL
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
-from starlette.responses import FileResponse
+from starlette.responses import FileResponse, JSONResponse
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
@@ -71,12 +72,41 @@ def create_app() -> Starlette:
 
     graphql_app = GraphQL(schema, context_value=get_context)
 
+    async def health(request):
+        checks = {}
+
+        # Database
+        try:
+            async with request.app.state.pool.acquire() as conn:
+                await conn.fetchval("SELECT 1")
+            checks["db"] = "ok"
+        except Exception as exc:
+            checks["db"] = str(exc)
+
+        # Mailgun
+        try:
+            async with httpx.AsyncClient(timeout=5) as client:
+                resp = await client.get(
+                    f"https://api.mailgun.net/v3/{settings.mailgun.domain}",
+                    auth=("api", settings.mailgun.api_key),
+                )
+                checks["mailgun"] = "ok" if resp.status_code == 200 else f"status {resp.status_code}"
+        except Exception as exc:
+            checks["mailgun"] = str(exc)
+
+        healthy = all(v == "ok" for v in checks.values())
+        return JSONResponse(
+            {"status": "healthy" if healthy else "degraded", "checks": checks},
+            status_code=200 if healthy else 503,
+        )
+
     async def spa_fallback(request):
         return FileResponse(WEB_PUBLIC / "index.html")
 
     return Starlette(
         lifespan=lifespan,
         routes=[
+            Route("/health", health, methods=["GET"]),
             Route("/graphql", graphql_app, methods=["GET", "POST"]),
             Mount("/js", StaticFiles(directory=WEB_PUBLIC / "js"), name="js"),
             Mount("/css", StaticFiles(directory=WEB_PUBLIC / "css"), name="css"),
@@ -86,8 +116,8 @@ def create_app() -> Starlette:
         middleware=[
             Middleware(
                 CORSMiddleware,
-                allow_origins=["*"],
-                allow_credentials=True,
+                allow_origins=settings.cors.allow_origins,
+                allow_credentials=settings.cors.allow_credentials,
                 allow_methods=["GET", "POST", "OPTIONS"],
                 allow_headers=["*"],
             ),

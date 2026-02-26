@@ -4,7 +4,6 @@ import {
   FlatList,
   Pressable,
   RefreshControl,
-  StyleSheet,
   Text,
   View,
 } from 'react-native';
@@ -13,6 +12,7 @@ import { useStore, type MoodEntry, type User } from '@/lib/store';
 import { USERS_QUERY, MOOD_ENTRIES_QUERY } from '@/lib/graphql/queries';
 import { dateKey, dateLabel } from '@/lib/utils';
 import { colors } from '@/lib/theme';
+import { styles } from './index.styles';
 import EntryCard from '@/components/EntryCard';
 import DateDivider from '@/components/DateDivider';
 import MoodModal from '@/components/MoodModal';
@@ -161,53 +161,10 @@ export default function TimelineScreen() {
       />
 
       <Pressable style={styles.fab} onPress={openMoodModal}>
-        <FontAwesome name="plus" size={22} color="#1f2335" />
+        <FontAwesome name="plus" size={22} color={colors.darkText} />
       </Pressable>
 
       <MoodModal onSaved={onRefresh} />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bgDark,
-  },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 80,
-  },
-  listContent: {
-    paddingHorizontal: 12,
-    paddingBottom: 80,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.fgDim,
-    marginBottom: 4,
-  },
-  emptyDetail: {
-    fontSize: 13,
-    color: colors.fgDim,
-  },
-  fab: {
-    position: 'absolute',
-    bottom: 24,
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.blue,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-  },
-});

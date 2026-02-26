@@ -7,6 +7,8 @@ import { useEffect, useState } from 'react';
 import { Provider } from 'urql';
 import { urqlClient } from '@/lib/graphql/client';
 import { useStore } from '@/lib/store';
+import { useNotifications } from '@/lib/useNotifications';
+import { isTokenExpired } from '@/lib/auth';
 import { colors } from '@/lib/theme';
 
 export { ErrorBoundary } from 'expo-router';
@@ -36,8 +38,17 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   const restoreAuth = useStore((s) => s.restoreAuth);
   const [restored, setRestored] = useState(false);
 
+  useNotifications();
+
+  const clearAuth = useStore((s) => s.clearAuth);
+
   useEffect(() => {
-    restoreAuth().then(() => setRestored(true));
+    restoreAuth().then(async (token) => {
+      if (token && isTokenExpired(token)) {
+        await clearAuth();
+      }
+      setRestored(true);
+    });
   }, []);
 
   useEffect(() => {

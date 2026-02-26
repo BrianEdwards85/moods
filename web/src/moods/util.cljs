@@ -1,11 +1,36 @@
-(ns moods.util
-  (:require ["md5" :as md5]))
+(ns moods.util)
 
-(defn gravatar-url
-  ([email] (gravatar-url email 80))
-  ([email size]
-   (let [hash (md5 (.trim (.toLowerCase email)))]
-     (str "https://www.gravatar.com/avatar/" hash "?s=" size "&d=retro"))))
+;; ---------------------------------------------------------------------------
+;; JWT helpers
+;; ---------------------------------------------------------------------------
+
+(defn decode-jwt-payload
+  "Decode the payload (middle segment) of a JWT. Returns a JS object or nil."
+  [token]
+  (try
+    (let [parts (.split token ".")
+          b64   (-> (aget parts 1)
+                    (.replace #"-" "+")
+                    (.replace #"_" "/"))]
+      (js/JSON.parse (js/atob b64)))
+    (catch :default _ nil)))
+
+(defn token-expired?
+  "True when the token's `exp` claim is in the past (or unparseable)."
+  [token]
+  (let [payload (decode-jwt-payload token)]
+    (if-let [exp (and payload (aget payload "exp"))]
+      (< (* exp 1000) (.now js/Date))
+      true)))
+
+(defn token-needs-refresh?
+  "True when the token's `refresh_after` claim is in the past.
+   Returns false when the claim is missing (backward compat with old tokens)."
+  [token]
+  (let [payload (decode-jwt-payload token)]
+    (if-let [ra (and payload (aget payload "refresh_after"))]
+      (< (* ra 1000) (.now js/Date))
+      false)))
 
 (def ^:private mood-bg-classes
   {1  "bg-mood-1"

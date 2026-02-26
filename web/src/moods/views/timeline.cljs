@@ -30,14 +30,9 @@
                 :style {:margin-left "4px"
                         :vertical-align "middle"}}])))
 
-(defn mood-badge [value]
-  [:div {:class (str "w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-bold text-xs text-tn-bg-dark "
-                     (util/mood-bg value))}
-   (str value)])
-
 (defn entry-card [entry user-detail mine?]
   (let [avatar-url   (let [custom (get-in user-detail [:settings :avatarUrl])]
-                       (if (seq custom) custom (util/gravatar-url (:email user-detail) 48)))
+                       (if (seq custom) custom (:icon user-detail)))
         user-color   (get-in user-detail [:settings :color])]
     [:div {:class (str "mb-3 " (if mine? "mr-8 md:mr-16" "ml-8 md:ml-16"))}
      [:div {:class (str "rounded p-4 text-tn-bg-dark "
@@ -69,11 +64,19 @@
    [:div {:class "flex-1 h-px bg-tn-border"}]])
 
 (defn timeline-screen []
-  (let [entries     @(rf/subscribe [::subs/entries])
-        loading?    @(rf/subscribe [::subs/loading? :entries])
-        current-id  @(rf/subscribe [::subs/current-user-id])
-        users-by-id @(rf/subscribe [::subs/users-by-id])]
+  (let [entries       @(rf/subscribe [::subs/entries])
+        loading?      @(rf/subscribe [::subs/loading? :entries])
+        current-id    @(rf/subscribe [::subs/current-user-id])
+        users-by-id   @(rf/subscribe [::subs/users-by-id])
+        entries-error @(rf/subscribe [::subs/error :entries])
+        archive-error @(rf/subscribe [::subs/error :archive])]
     [:div {:class "max-w-2xl mx-auto px-4 py-2 pb-20"}
+     (when entries-error
+       [:div {:class "mb-4 p-3 rounded bg-tn-red/10 text-tn-red text-sm"}
+        "Failed to load entries. Please try refreshing."])
+     (when archive-error
+       [:div {:class "mb-4 p-3 rounded bg-tn-red/10 text-tn-red text-sm"}
+        "Failed to archive entry. Please try again."])
      (cond
        (and loading? (empty? (:edges entries)))
        [:div.py-8.text-center [bp/spinner {:size 40}]]

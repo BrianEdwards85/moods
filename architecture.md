@@ -46,6 +46,8 @@ Moods is a shared mood-tracking app for partners. Both users log how they're fee
 | GraphQL client | [urql](https://urql.dev/) v5 | Lightweight |
 | State management | [Zustand](https://zustand.docs.pmnd.rs/) v5 | Minimal store |
 | Persistence | [AsyncStorage](https://react-native-async-storage.github.io/async-storage/) | Token & user storage |
+| Notifications | [expo-notifications](https://docs.expo.dev/versions/latest/sdk/notifications/) | Local reminder scheduling |
+| GraphQL devtools | [@urql/devtools](https://github.com/urql-graphql/urql-devtools) | Enabled in local & dev builds |
 | Icons | [Expo Vector Icons](https://icons.expo.fyi/) | MaterialCommunityIcons |
 
 ### Database
@@ -79,7 +81,7 @@ moods/
       users.sql              User CRUD + trigram search
       moods.sql              Mood entries with sharing visibility
       tags.sql               Tag CRUD with trigram search
-      shares.sql             Share rule & filter CRUD (soft-delete)
+      shares.sql             Share rule & filter CRUD
     data/                  Data access layer (pure DB queries)
       __init__.py            aiosql loader, cursor pagination helpers
       auth.py                JWT decode
@@ -96,7 +98,7 @@ moods/
       auth.py                Login code generation + email sending, code verification + JWT
     resolvers/             Ariadne resolver bindings
       auth.py                sendLoginCode, verifyLoginCode
-      user.py                users, user, searchUsers, createUser, updateSharing, etc.
+      user.py                users, user, searchUsers, createUser, updateSharing
       mood.py                moodEntries, logMood, archiveMoodEntry
       tag.py                 tags, updateTagMetadata, archiveTag
       scalars.py             DateTime & JSON serialization
@@ -121,6 +123,7 @@ moods/
         user_select.cljs       Login / user selection
         components.cljs        Shared UI components
   android/
+    app.config.ts            Dynamic Expo config (variant-based name, package, cleartext)
     app/
       _layout.tsx            Root layout (urql provider, theme)
       user-select.tsx        Login screen
@@ -131,11 +134,13 @@ moods/
         settings.tsx           Settings & sharing tab
     components/              EntryCard, DateDivider, MoodModal, MoodTag, etc.
     lib/
+      config.ts              Build variant config (API URL, devtools flag)
       graphql/
-        client.ts              urql client configuration
+        client.ts              urql client (variant-aware URL, conditional devtools)
         queries.ts             GraphQL query strings
         mutations.ts           GraphQL mutation strings
       store.ts               Zustand store (auth, users, UI state)
+      useNotifications.ts    Local reminder scheduling
       theme.ts               Color tokens
       utils.ts               Gravatar, date formatting
   tests/
@@ -148,6 +153,20 @@ moods/
     test_edge_cases.py       Edge cases
     test_sharing.py          Sharing visibility & filter tests
 ```
+
+---
+
+## Build Variants (Android)
+
+The Android app uses `EXPO_PUBLIC_APP_VARIANT` to select between three build configurations:
+
+| Variant | API URL | Devtools | Command |
+|---------|---------|----------|---------|
+| `local` | `http://localhost:8000` | Yes | `npm start` |
+| `dev` | `https://moods-dev.free-side.us` | Yes | `npm run start:dev` |
+| `release` | `https://moods.free-side.us` | No | EAS production build |
+
+Each variant installs as a separate app (`com.moods.app.local`, `com.moods.app.dev`, `com.moods.app`) so they can coexist on the same device. The variant is set via inline env var in npm scripts (local dev) or `eas.json` env blocks (EAS builds). `app.config.ts` reads the variant to configure the package name, app name suffix, and cleartext traffic. `lib/config.ts` maps the variant to the API URL and devtools flag, consumed by the urql client.
 
 ---
 
@@ -283,6 +302,51 @@ When a viewer queries mood entries, the SQL applies this logic for each entry be
 
 The `pattern` field uses PostgreSQL POSIX regex (`~` operator) matched against `tag_name`, allowing patterns like `^personal` or `private`.
 
+---
+
+## CI/CD
+
+### Versioning
+
+`pyproject.toml` `[project].version` is the **single source of truth** for the project version. Both the backend and Android workflows read from it. To trigger a release, bump the `version` field in your PR before merging.
+
+### Backend Docker Image (GitHub Actions)
+
+The workflow at `.github/workflows/build-backend.yml` builds the Docker image and pushes it to GitHub Container Registry (GHCR).
+
+**Triggers:** Pushes and PRs to `main` when backend-related files change (`src/`, `web/`, `migrations/`, `pyproject.toml`, `uv.lock`, `Dockerfile`, `settings.toml`, or the workflow file).
+
+**Build pipeline:** Checkout → Login to GHCR → Read version from `pyproject.toml` → `docker build` (tagged with version + `latest`) → Push to `ghcr.io/<owner>/moods`.
+
+**On PRs:** The Docker image is built to validate it compiles, but not pushed.
+
+**Auto-release:** On pushes to `main`, if the `v{version}` tag doesn't exist yet, a GitHub Release is created with auto-generated notes.
+
+### Android APK Builds (GitHub Actions)
+
+The workflow at `.github/workflows/build-android.yml` builds APKs using `expo prebuild` + Gradle directly on GitHub runners, with no Expo account or EAS dependency.
+
+**Triggers:**
+
+| Event | Variant | APK artifact |
+|-------|---------|--------------|
+| Push to branch with open PR to `main` | `dev` | `moods-dev.apk` |
+| Push/merge to `main` | `release` | `moods-release.apk` |
+
+Path-filtered to only run when `android/**`, `pyproject.toml`, or the workflow file changes.
+
+**Build pipeline:** Checkout → Node 20 + npm ci → Java 17 (Temurin) → `expo prebuild --platform android --clean` → `./gradlew assembleRelease --no-daemon` → upload APK artifact.
+
+**Auto-release:** On pushes to `main`, after the APK is built the workflow reads `version` from `pyproject.toml` and checks if a `v{version}` git tag already exists. If not, it creates a GitHub Release (which also creates the tag) with the APK attached and auto-generated release notes. If the backend workflow already created the release (race condition), the APK is uploaded to the existing release.
+
+**Notes:**
+- APKs use debug signing (installable via sideloading, not signed for Play Store)
+- Gradle caches are persisted between runs for faster rebuilds
+- `expo prebuild` generates the native project at `android/android/` (gitignored)
+
+---
+
 ### Atomic Updates
 
 Sharing rules are updated atomically via `set_shares`: the entire rule set for a user is deleted and recreated in a single transaction. This avoids partial states and simplifies the client — it sends the complete desired state rather than individual add/remove operations.
+

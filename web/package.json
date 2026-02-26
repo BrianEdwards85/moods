@@ -1,11 +1,13 @@
 {
   "name": "moods-web",
-  "version": "0.1.0",
+  "version": "2.0.0",
   "private": true,
   "scripts": {
+    "gql:generate": "python3 ../graphql/generate.py",
+    "predev": "npm run gql:generate",
     "dev": "concurrently --names cljs,css -c blue,magenta \"npx shadow-cljs watch app\" \"npx postcss src/css/app.css -o resources/public/css/app.css --watch\"",
     "css:build": "npx postcss src/css/app.css -o resources/public/css/app.css --minify",
-    "cljs:release": "npx shadow-cljs release app",
+    "cljs:release": "npm run gql:generate && npx shadow-cljs release app",
     "postinstall": "mkdir -p resources/public/css/vendor && cp node_modules/@blueprintjs/core/lib/css/blueprint.css resources/public/css/vendor/ && cp node_modules/@blueprintjs/icons/lib/css/blueprint-icons.css node_modules/@blueprintjs/icons/lib/css/blueprint-icons-16.* node_modules/@blueprintjs/icons/lib/css/blueprint-icons-20.* resources/public/css/vendor/"
   },
   "dependencies": {
@@ -14,7 +16,6 @@
     "@blueprintjs/select": "^6.0.0",
     "@emoji-mart/data": "^1.2.1",
     "@emoji-mart/react": "^1.1.1",
-    "md5": "^2.3.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0"
   },

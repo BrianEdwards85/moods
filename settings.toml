@@ -4,6 +4,10 @@ server_port = 8000
 jwt_expiry_days = 90
 auth_code_expiry_minutes = 10
 
+[default.cors]
+allow_origins = ["*"]
+allow_credentials = true
+
 [default.mailgun]
 domain = "moods.free-side.us"
 from_email = "Moods <noreply@moods.free-side.us>"
@@ -16,6 +20,18 @@ user = "moods_dev"
 password = "moods_dev"
 
 [development]
+dynaconf_merge = true
+
+[development.cors]
+allow_origins = ["https://moods-dev.free-side.us"]
+allow_credentials = false
+
+[production]
+dynaconf_merge = true
+
+[production.cors]
+allow_origins = ["https://moods.free-side.us"]
+allow_credentials = false
 
 [testing]
 dynaconf_merge = true

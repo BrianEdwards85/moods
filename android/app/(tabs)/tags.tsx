@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   FlatList,
   Pressable,
-  StyleSheet,
   Switch,
   Text,
   TextInput,
@@ -12,6 +11,7 @@ import {
 import { useQuery } from 'urql';
 import { TAGS_QUERY } from '@/lib/graphql/queries';
 import { colors, defaultTagColor } from '@/lib/theme';
+import { styles } from './tags.styles';
 import type { Tag } from '@/lib/store';
 import TagEditModal from '@/components/TagEditModal';
 
@@ -21,10 +21,6 @@ export default function TagsScreen() {
   const [search, setSearch] = useState('');
   const [showArchived, setShowArchived] = useState(false);
   const [editingTag, setEditingTag] = useState<Tag | null>(null);
-
-  const [allEdges, setAllEdges] = useState<{ cursor: string; node: Tag }[]>([]);
-  const [endCursor, setEndCursor] = useState<string | null>(null);
-  const [hasNextPage, setHasNextPage] = useState(false);
 
   const [result, reexecute] = useQuery({
     query: TAGS_QUERY,
@@ -40,7 +36,7 @@ export default function TagsScreen() {
   const pageInfo = result.data?.tags?.pageInfo;
 
   const [loadingMore, setLoadingMore] = useState(false);
-  const [moreResult, executeMore] = useQuery({
+  const [, executeMore] = useQuery({
     query: TAGS_QUERY,
     variables: {
       search: search || undefined,
@@ -146,84 +142,3 @@ export default function TagsScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bgDark,
-  },
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  searchInput: {
-    flex: 1,
-    backgroundColor: colors.bgFloat,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-    color: colors.fg,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 14,
-  },
-  archivedToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  archivedLabel: {
-    fontSize: 12,
-    color: colors.fgDim,
-  },
-  listContent: {
-    paddingHorizontal: 12,
-    paddingTop: 8,
-    paddingBottom: 24,
-  },
-  tagRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginBottom: 6,
-  },
-  tagContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  face: {
-    fontSize: 18,
-  },
-  tagName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1f2335',
-  },
-  tagArchived: {
-    textDecorationLine: 'line-through',
-    opacity: 0.6,
-  },
-  archivedBadge: {
-    fontSize: 10,
-    color: '#1f2335',
-    opacity: 0.5,
-    fontStyle: 'italic',
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    paddingTop: 40,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: colors.fgDim,
-  },
-});

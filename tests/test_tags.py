@@ -53,8 +53,8 @@ async def _setup_tags(client, tag_names):
     body = await gql(client, CREATE_USER, {"input": {"name": "Tagger", "email": "tag@test.com"}}, headers=H)
     user_id = body["data"]["createUser"]["id"]
     await gql(client, LOG_MOOD, {
-        "input": {"userId": user_id, "mood": 5, "notes": "", "tags": tag_names}
-    }, headers=H)
+        "input": {"mood": 5, "notes": "", "tags": tag_names}
+    }, headers=auth_header(user_id))
 
 
 async def test_query_tags_empty(client):

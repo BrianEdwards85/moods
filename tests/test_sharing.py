@@ -47,7 +47,7 @@ async def _create_user(client, name, email):
 async def _log_mood(client, user_id, mood, notes="", tags=None, headers=None):
     body = await gql(
         client, LOG_MOOD,
-        {"input": {"userId": user_id, "mood": mood, "notes": notes, "tags": tags or []}},
+        {"input": {"mood": mood, "notes": notes, "tags": tags or []}},
         headers=headers or auth_header(user_id),
     )
     return body["data"]["logMood"]

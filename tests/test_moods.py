@@ -46,8 +46,8 @@ async def _create_user(client, name="Alice", email="alice@test.com"):
 
 async def _log_mood(client, user_id, mood=7, notes="feeling good", tags=None):
     body = await gql(client, LOG_MOOD, {
-        "input": {"userId": user_id, "mood": mood, "notes": notes, "tags": tags or []}
-    }, headers=H)
+        "input": {"mood": mood, "notes": notes, "tags": tags or []}
+    }, headers=auth_header(user_id))
     return body["data"]["logMood"]
 
 
@@ -111,7 +111,7 @@ async def test_archive_mood_entry(client):
     user = await _create_user(client)
     h = auth_header(user["id"])
     entry = await _log_mood(client, user["id"])
-    body = await gql(client, ARCHIVE_ENTRY, {"id": entry["id"]}, headers=H)
+    body = await gql(client, ARCHIVE_ENTRY, {"id": entry["id"]}, headers=h)
     assert body["data"]["archiveMoodEntry"]["archivedAt"] is not None
 
     body = await gql(client, MOOD_ENTRIES_QUERY, headers=h)
@@ -119,6 +119,17 @@ async def test_archive_mood_entry(client):
 
     body = await gql(client, MOOD_ENTRIES_QUERY, {"includeArchived": True}, headers=h)
     assert len(body["data"]["moodEntries"]["edges"]) == 1
+
+
+async def test_archive_mood_entry_wrong_user(client):
+    alice = await _create_user(client, "Alice", "alice@test.com")
+    bob = await _create_user(client, "Bob", "bob@test.com")
+    entry = await _log_mood(client, alice["id"])
+
+    # Bob cannot archive Alice's entry
+    body = await gql(client, ARCHIVE_ENTRY, {"id": entry["id"]},
+                     headers=auth_header(bob["id"]), expect_errors=True)
+    assert "errors" in body
 
 
 async def test_mood_entry_has_user(client):

@@ -14,10 +14,11 @@
 
 `settings` stores user preferences as JSON. Known keys:
 
-| Key         | Type   | Description                      |
-|-------------|--------|----------------------------------|
-| `avatarUrl` | string | URL for the user's avatar image  |
-| `color`     | string | Hex color used in the timeline   |
+| Key             | Type     | Description                                          |
+|-----------------|----------|------------------------------------------------------|
+| `avatarUrl`     | string   | URL for the user's avatar image                      |
+| `color`         | string   | Hex color used in the timeline                       |
+| `notifications` | string[] | Enabled notification types: `"reminder"`             |
 
 ---
 
@@ -158,4 +159,4 @@ mood_shares 1──* mood_share_filters
 | 0007 | create-auth-codes         | auth_codes table for email login        |
 | 0008 | create-mood-shares        | mood_shares + mood_share_filters tables |
 | 0009 | soft-delete-shares        | archived_at on mood_shares + mood_share_filters |
-| 0010 | users-trgm-search         | Trigram indexes on users name + email    |
+| 0010 | users-trgm-search         | Trigram indexes on users name + email   |
