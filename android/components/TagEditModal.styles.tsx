@@ -24,42 +24,6 @@ const local = StyleSheet.create({
   disabled: {
     opacity: 0.4,
   },
-  swatches: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  swatch: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-  },
-  swatchActive: {
-    borderWidth: 3,
-    borderColor: '#fff',
-  },
-  clearSwatch: {
-    backgroundColor: colors.bgFloat,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  clearSwatchText: {
-    color: colors.fgDim,
-    fontSize: 14,
-  },
-  colorPreview: {
-    borderRadius: 6,
-    padding: 8,
-    marginTop: 8,
-    alignItems: 'center',
-  },
-  colorPreviewText: {
-    color: colors.darkText,
-    fontSize: 12,
-    fontWeight: '600',
-  },
   faceRow: {
     flexDirection: 'row',
     alignItems: 'center',

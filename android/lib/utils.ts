@@ -1,3 +1,5 @@
+import type { MoodEntry, User } from '@/lib/store';
+
 const moodColors: Record<number, string> = {
   1: '#f7768e',
   2: '#ff9e64',
@@ -95,4 +97,36 @@ export function dateLabel(isoStr: string): string {
   if (date.getFullYear() === now.getFullYear())
     return `${monthNames[date.getMonth()]} ${date.getDate()}`;
   return `${monthNames[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+}
+
+export type ListItem =
+  | { type: 'divider'; key: string; label: string }
+  | { type: 'entry'; key: string; entry: MoodEntry; mine: boolean; user?: User };
+
+export function buildListItems(
+  edges: { cursor: string; node: MoodEntry }[],
+  currentUserId: string | null,
+  usersById: Record<string, User>,
+): ListItem[] {
+  const items: ListItem[] = [];
+  edges.forEach((edge, idx) => {
+    const curDate = dateKey(edge.node.createdAt);
+    const prevDate = idx > 0 ? dateKey(edges[idx - 1].node.createdAt) : null;
+    if (idx === 0 || curDate !== prevDate) {
+      items.push({
+        type: 'divider',
+        key: `d-${curDate}`,
+        label: dateLabel(edge.node.createdAt),
+      });
+    }
+    const mine = edge.node.user?.id === currentUserId;
+    items.push({
+      type: 'entry',
+      key: edge.node.id,
+      entry: edge.node,
+      mine,
+      user: edge.node.user?.id ? usersById[edge.node.user.id] : undefined,
+    });
+  });
+  return items;
 }

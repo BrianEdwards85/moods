@@ -1,0 +1,128 @@
+import { useEffect, useRef, useState } from 'react';
+import { Alert } from 'react-native';
+import { useMutation } from 'urql';
+import { UPDATE_SHARING_MUTATION } from '@/lib/graphql/mutations';
+
+export interface ShareFilter {
+  pattern: string;
+  isInclude: boolean;
+}
+
+export interface ShareConfig {
+  shared: boolean;
+  filters: ShareFilter[];
+  name: string;
+}
+
+export function useSharing(currentUser: any) {
+  const [shares, setShares] = useState<Record<string, ShareConfig>>({});
+  const [, updateSharing] = useMutation(UPDATE_SHARING_MUTATION);
+  const [savingSharing, setSavingSharing] = useState(false);
+  const serverSharesRef = useRef('{}');
+
+  useEffect(() => {
+    if (currentUser) {
+      const shareMap: Record<string, ShareConfig> = {};
+      for (const rule of currentUser.sharedWith ?? []) {
+        shareMap[rule.user.id] = {
+          shared: true,
+          filters: rule.filters.map((f: any) => ({
+            pattern: f.pattern,
+            isInclude: f.isInclude,
+          })),
+          name: rule.user.name,
+        };
+      }
+      serverSharesRef.current = JSON.stringify(shareMap);
+      setShares(shareMap);
+    }
+  }, [currentUser?.id]);
+
+  // Auto-save shares when they change (debounced, skips server-synced state)
+  useEffect(() => {
+    const current = JSON.stringify(shares);
+    if (current === serverSharesRef.current) return;
+
+    const timer = setTimeout(async () => {
+      setSavingSharing(true);
+      const rules = Object.entries(shares)
+        .filter(([, cfg]) => cfg.shared)
+        .map(([userId, cfg]) => ({
+          userId,
+          filters: cfg.filters,
+        }));
+      const result = await updateSharing({ input: { rules } });
+      setSavingSharing(false);
+      if (result.error) {
+        Alert.alert('Error', 'Failed to save sharing settings.');
+      } else {
+        serverSharesRef.current = current;
+      }
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [shares]);
+
+  const toggleShare = (userId: string) => {
+    setShares((prev) => ({
+      ...prev,
+      [userId]: {
+        ...prev[userId],
+        shared: !prev[userId]?.shared,
+        filters: prev[userId]?.filters ?? [],
+        name: prev[userId]?.name ?? '',
+      },
+    }));
+  };
+
+  const addFilter = (userId: string) => {
+    setShares((prev) => ({
+      ...prev,
+      [userId]: {
+        ...prev[userId],
+        filters: [...(prev[userId]?.filters ?? []), { pattern: '', isInclude: true }],
+      },
+    }));
+  };
+
+  const removeFilter = (userId: string, idx: number) => {
+    setShares((prev) => ({
+      ...prev,
+      [userId]: {
+        ...prev[userId],
+        filters: prev[userId].filters.filter((_, i) => i !== idx),
+      },
+    }));
+  };
+
+  const updateFilter = (userId: string, idx: number, field: keyof ShareFilter, value: any) => {
+    setShares((prev) => ({
+      ...prev,
+      [userId]: {
+        ...prev[userId],
+        filters: prev[userId].filters.map((f, i) => (i === idx ? { ...f, [field]: value } : f)),
+      },
+    }));
+  };
+
+  const addShare = (userId: string, name: string) => {
+    setShares((prev) => ({
+      ...prev,
+      [userId]: { shared: true, filters: [], name },
+    }));
+  };
+
+  const activeShares = Object.entries(shares)
+    .filter(([, cfg]) => cfg.shared)
+    .sort(([, a], [, b]) => a.name.localeCompare(b.name));
+
+  return {
+    savingSharing,
+    activeShares,
+    toggleShare,
+    addFilter,
+    removeFilter,
+    updateFilter,
+    addShare,
+  };
+}

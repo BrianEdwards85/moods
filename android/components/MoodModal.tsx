@@ -11,14 +11,13 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useMutation, useQuery } from 'urql';
+import { useMutation } from 'urql';
 import { useStore } from '@/lib/store';
-import { TAGS_QUERY } from '@/lib/graphql/queries';
 import { LOG_MOOD_MUTATION } from '@/lib/graphql/mutations';
-import { moodColor } from '@/lib/utils';
 import { colors } from '@/lib/theme';
 import { styles } from './MoodModal.styles';
-import MoodTag from './MoodTag';
+import MoodPicker from './MoodPicker';
+import TagPicker from './TagPicker';
 import { scheduleReminder } from '@/lib/useNotifications';
 
 export default function MoodModal({ onSaved }: { onSaved: () => void }) {
@@ -29,33 +28,8 @@ export default function MoodModal({ onSaved }: { onSaved: () => void }) {
   const [mood, setMood] = useState<number | null>(null);
   const [notes, setNotes] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [tagSearch, setTagSearch] = useState('');
-
-  const [tagsResult] = useQuery({
-    query: TAGS_QUERY,
-    variables: { search: tagSearch || undefined, first: 50 },
-    pause: !open,
-  });
 
   const [logResult, logMood] = useMutation(LOG_MOOD_MUTATION);
-
-  const allTags = (tagsResult.data?.tags?.edges ?? []).map(
-    (e: { node: { name: string; metadata: Record<string, string> } }) => e.node,
-  );
-
-  const toggleTag = (name: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(name) ? prev.filter((t) => t !== name) : [...prev, name],
-    );
-  };
-
-  const addCustomTag = () => {
-    const trimmed = tagSearch.trim().toLowerCase();
-    if (trimmed && !selectedTags.includes(trimmed)) {
-      setSelectedTags((prev) => [...prev, trimmed]);
-      setTagSearch('');
-    }
-  };
 
   const submit = async () => {
     if (!mood || !userId) return;
@@ -74,7 +48,6 @@ export default function MoodModal({ onSaved }: { onSaved: () => void }) {
     setMood(null);
     setNotes('');
     setSelectedTags([]);
-    setTagSearch('');
     close();
     onSaved();
   };
@@ -84,7 +57,6 @@ export default function MoodModal({ onSaved }: { onSaved: () => void }) {
       setMood(null);
       setNotes('');
       setSelectedTags([]);
-      setTagSearch('');
     }
   }, [open]);
 
@@ -104,21 +76,7 @@ export default function MoodModal({ onSaved }: { onSaved: () => void }) {
 
           <ScrollView style={styles.body} keyboardShouldPersistTaps="handled">
             <Text style={styles.label}>How are you feeling?</Text>
-            <View style={styles.moodGrid}>
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((v) => (
-                <Pressable
-                  key={v}
-                  style={[
-                    styles.moodBtn,
-                    { backgroundColor: moodColor(v) },
-                    mood === v && styles.moodBtnActive,
-                  ]}
-                  onPress={() => setMood(v)}
-                >
-                  <Text style={styles.moodBtnText}>{v}</Text>
-                </Pressable>
-              ))}
-            </View>
+            <MoodPicker value={mood} onChange={setMood} />
 
             <Text style={styles.label}>Notes</Text>
             <TextInput
@@ -132,50 +90,7 @@ export default function MoodModal({ onSaved }: { onSaved: () => void }) {
             />
 
             <Text style={styles.label}>Tags</Text>
-            {selectedTags.length > 0 && (
-              <View style={styles.selectedTags}>
-                {selectedTags.map((name) => {
-                  const meta = allTags.find((t: { name: string }) => t.name === name)?.metadata;
-                  return (
-                    <Pressable key={name} onPress={() => toggleTag(name)}>
-                      <MoodTag name={name} metadata={meta} />
-                    </Pressable>
-                  );
-                })}
-              </View>
-            )}
-            <View style={styles.tagSearchRow}>
-              <TextInput
-                style={[styles.input, { flex: 1 }]}
-                value={tagSearch}
-                onChangeText={setTagSearch}
-                placeholder="Search or create tag..."
-                placeholderTextColor={colors.fgDim}
-                onSubmitEditing={addCustomTag}
-                returnKeyType="done"
-              />
-            </View>
-            <View style={styles.tagList}>
-              {allTags
-                .filter((t: { name: string }) => !selectedTags.includes(t.name))
-                .map((t: { name: string; metadata: Record<string, string> }) => (
-                  <Pressable key={t.name} onPress={() => toggleTag(t.name)}>
-                    <MoodTag name={t.name} metadata={t.metadata} />
-                  </Pressable>
-                ))}
-              {tagSearch.trim() &&
-                !allTags.some(
-                  (t: { name: string }) => t.name === tagSearch.trim().toLowerCase(),
-                ) && (
-                  <Pressable onPress={addCustomTag}>
-                    <View style={styles.createTag}>
-                      <Text style={styles.createTagText}>
-                        Create &quot;{tagSearch.trim().toLowerCase()}&quot;
-                      </Text>
-                    </View>
-                  </Pressable>
-                )}
-            </View>
+            <TagPicker selectedTags={selectedTags} onChange={setSelectedTags} active={open} />
 
             <Pressable
               style={[styles.submitBtn, (!mood || logResult.fetching) && styles.submitDisabled]}

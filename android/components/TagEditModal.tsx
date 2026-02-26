@@ -17,8 +17,9 @@ import {
   ARCHIVE_TAG_MUTATION,
   UNARCHIVE_TAG_MUTATION,
 } from '@/lib/graphql/mutations';
-import { colors, tagPresetColors } from '@/lib/theme';
+import { colors } from '@/lib/theme';
 import { styles } from './TagEditModal.styles';
+import ColorPicker from './ColorPicker';
 import type { Tag } from '@/lib/store';
 
 interface Props {
@@ -28,7 +29,7 @@ interface Props {
 }
 
 export default function TagEditModal({ tag, onClose, onSaved }: Props) {
-  const [color, setColor] = useState('');
+  const [color, setColor] = useState<string | null>(null);
   const [face, setFace] = useState('');
 
   const [, updateMeta] = useMutation(UPDATE_TAG_METADATA_MUTATION);
@@ -40,7 +41,7 @@ export default function TagEditModal({ tag, onClose, onSaved }: Props) {
 
   useEffect(() => {
     if (tag) {
-      setColor(tag.metadata?.color ?? '');
+      setColor(tag.metadata?.color ?? null);
       setFace(tag.metadata?.face ?? '');
     }
   }, [tag]);
@@ -111,32 +112,14 @@ export default function TagEditModal({ tag, onClose, onSaved }: Props) {
 
             <View style={archived ? styles.disabled : undefined}>
               <Text style={styles.label}>Color</Text>
-              <View style={styles.swatches}>
-                {tagPresetColors.map((c) => (
-                  <Pressable
-                    key={c}
-                    style={[
-                      styles.swatch,
-                      { backgroundColor: c },
-                      color === c && styles.swatchActive,
-                    ]}
-                    onPress={() => !archived && setColor(c)}
-                    disabled={archived}
-                  />
-                ))}
-                <Pressable
-                  style={[styles.swatch, styles.clearSwatch]}
-                  onPress={() => !archived && setColor('')}
-                  disabled={archived}
-                >
-                  <Text style={styles.clearSwatchText}>✕</Text>
-                </Pressable>
-              </View>
-              {color ? (
-                <View style={[styles.colorPreview, { backgroundColor: color }]}>
-                  <Text style={styles.colorPreviewText}>{color}</Text>
-                </View>
-              ) : null}
+              <ColorPicker
+                value={color}
+                onChange={setColor}
+                variant="square"
+                size={36}
+                showPreview
+                disabled={archived}
+              />
 
               <Text style={styles.label}>Face (emoji)</Text>
               <View style={styles.faceRow}>

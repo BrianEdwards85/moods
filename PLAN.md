@@ -844,11 +844,20 @@ Work through these one at a time.
   (including `node_modules` if present) gets sent in the Docker build context
   unnecessarily.
 
-- [ ] **Smaller source files ** —
+- [x] **Smaller source files** —
   - android/app/(tabs)/settings.tsx
+    - Extract `ProfileSection` component (avatar URL, color picker, save button)
+    - Extract `SharingSection` component (share cards, filter management, user search)
+    - Extract `useSharing` hook (sharing state, auto-save effect, mutation calls)
+    - Extract `useUserSearch` hook (debounced search logic)
   - android/components/MoodModal.tsx
-  - android/components/TagEditModal.ts
+    - Extract `MoodPicker` component (1-10 mood grid)
+    - Extract `TagPicker` component (tag search, tag list, selected tags, "create tag" UI)
+  - android/components/TagEditModal.tsx
+    - Extract shared `ColorPicker` component (swatch grid — reusable with settings.tsx)
   - android/app/(tabs)/index.tsx
+    - Extract `usePaginatedEntries` hook (queries, pagination state, polling, loadMore)
+    - Extract `buildListItems` as a pure utility function (data transform, easy to unit test)
   - web/src/moods/views/settings.cljs
   - web/src/moods/views/tags.cljs
 
@@ -858,12 +867,6 @@ Work through these one at a time.
   Postgres is running on the host. Add a `postgres` service with the right
   version, `pg_trgm` extension, port mapping (5433:5432), and a named volume
   for persistence. Add `depends_on` to the moods service.
-
-- [ ] **Separate migrations from app startup** — `src/moods/app.py:53` runs
-  migrations in the application lifespan. In a multi-replica deployment this
-  creates a race condition. Move migrations to a separate CLI command or CI
-  step (e.g. an init container, a `make migrate` target, or a pre-deploy
-  script).
 
 - [x] **Make tests runnable in CI** — `tests/conftest.py` requires an external
   PostgreSQL on localhost:5433. Add a PostgreSQL service container to the CI

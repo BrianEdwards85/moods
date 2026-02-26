@@ -33,28 +33,6 @@ export const styles = StyleSheet.create({
     paddingVertical: 8,
     fontSize: 14,
   },
-  colorRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginVertical: 8,
-  },
-  colorSwatch: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  colorSelected: {
-    borderColor: colors.fg,
-    transform: [{ scale: 1.1 }],
-  },
-  clearText: {
-    fontSize: 12,
-    color: colors.fgDim,
-    marginTop: 4,
-  },
   saveButton: {
     backgroundColor: colors.blue,
     borderRadius: 8,
