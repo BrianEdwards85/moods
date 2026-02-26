@@ -2,6 +2,7 @@
   (:require [moods.events :as-alias events]
             [moods.db :as db]
             [moods.gql :as gql]
+            [moods.routes :as routes]
             [moods.util :as util]
             [moods.storage :as storage]
             [re-frame.core :as rf]
@@ -32,6 +33,17 @@
  (fn [_]
    (storage/remove-item! "moods-user-id")
    (storage/remove-item! "moods-token")))
+
+(rf/reg-fx
+ :set-auth-storage
+ (fn [items]
+   (doseq [[k v] items]
+     (storage/set-item! k v))))
+
+(rf/reg-fx
+ :navigate
+ (fn [route-name]
+   (routes/navigate! route-name)))
 
 (rf/reg-event-fx
  ::events/boot
@@ -69,11 +81,10 @@
    (let [{:keys [data errors]} response
          new-token (get-in data [:refreshToken :token])]
      (if (and (nil? errors) new-token)
-       (do
-         (storage/set-item! "moods-token" new-token)
-         {:db         (assoc db :auth-token new-token)
-          :dispatch-n [[::re-graph/re-init {:http {:impl {:headers {"Authorization" (str "Bearer " new-token)}}}}]
-                       [::events/fetch-users]]})
+       {:db               (assoc db :auth-token new-token)
+        :set-auth-storage {"moods-token" new-token}
+        :dispatch-n       [[::re-graph/re-init {:http {:impl {:headers {"Authorization" (str "Bearer " new-token)}}}}]
+                           [::events/fetch-users]]}
        {:db                (assoc db :auth-token nil :current-user-id nil :current-user nil)
         :clear-auth-storage true
         :dispatch          [::re-graph/re-init {:http {:impl {:headers {}}}}]}))))

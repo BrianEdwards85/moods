@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "src/**"
+      - "tests/**"
       - "web/**"
       - "migrations/**"
       - "pyproject.toml"
@@ -16,6 +17,7 @@ on:
     branches: [main]
     paths:
       - "src/**"
+      - "tests/**"
       - "web/**"
       - "migrations/**"
       - "pyproject.toml"
@@ -31,6 +33,22 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: moods
+          POSTGRES_PASSWORD: moods
+          POSTGRES_DB: moods_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U moods"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -40,9 +58,17 @@ jobs:
 
       - name: Lint Python
         run: |
-          uv sync --group dev
+          uv sync --group dev --extra dev
           uv run ruff check src/ tests/
           uv run ruff format --check src/ tests/
+
+      - name: Enable pg_trgm extension
+        run: |
+          PGPASSWORD=moods psql -h localhost -p 5433 -U moods -d moods_test \
+            -c "CREATE EXTENSION IF NOT EXISTS pg_trgm"
+
+      - name: Run tests
+        run: uv run pytest --cov
 
       - name: Login to GHCR
         if: github.ref == 'refs/heads/main'
