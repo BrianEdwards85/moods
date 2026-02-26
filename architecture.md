@@ -64,7 +64,7 @@ Moods is a shared mood-tracking app for partners. Both users log how they're fee
 
 ```
 moods/
-  migrations/              Plain-SQL migrations (yoyo), 0000–0010
+  migrations/              Plain-SQL migrations (yoyo), 0000–0011
   src/moods/
     app.py                 Starlette app factory, GraphQL mount, auth context
     config.py              Dynaconf settings loader
@@ -107,17 +107,27 @@ moods/
     src/moods/
       core.cljs              App init, re-graph setup, routing
       db.cljs                re-frame app-db spec
-      events.cljs            re-frame event handlers
+      events.cljs            re-frame event handlers (core)
+      events/
+        auth.cljs              Login code & token events
+        entries.cljs           Mood entry fetch & mutation events
+        init.cljs              App initialization events
+        mood_modal.cljs        Modal open/close & submit events
+        settings.cljs          Settings & sharing events
+        tags.cljs              Tag fetch & mutation events
       subs.cljs              re-frame subscriptions
       routes.cljs            reitit route definitions
       gql.cljs               GraphQL query & mutation strings
-      cookies.cljs           Auth cookie helpers
+      storage.cljs           localStorage auth helpers
       util.cljs              Date formatting, gravatar
       bp.cljs                Blueprint.js component wrappers
       views/
         header.cljs            Top bar, user info, add-mood button
         timeline.cljs          Unified chronological mood feed
         mood_modal.cljs        Log mood dialog (1–10, notes, tags)
+        color_picker.cljs      Reusable color picker component
+        sharing.cljs           Sharing rule management UI
+        tag_edit_modal.cljs    Tag metadata editing dialog
         settings.cljs          User settings & sharing configuration
         tags.cljs              Tag management
         user_select.cljs       Login / user selection
@@ -126,23 +136,42 @@ moods/
     app.config.ts            Dynamic Expo config (variant-based name, package, cleartext)
     app/
       _layout.tsx            Root layout (urql provider, theme)
-      user-select.tsx        Login screen
+      user-select.tsx        Login screen (+.styles.tsx)
+      +not-found.tsx         404 screen (+.styles.tsx)
       (tabs)/
         _layout.tsx            Tab navigator (Timeline, Tags, Settings)
-        index.tsx              Timeline tab
-        tags.tsx               Tag management tab
-        settings.tsx           Settings & sharing tab
-    components/              EntryCard, DateDivider, MoodModal, MoodTag, etc.
+        index.tsx              Timeline tab (+.styles.tsx)
+        tags.tsx               Tag management tab (+.styles.tsx)
+        settings.tsx           Settings & sharing tab (+.styles.tsx)
+    components/
+      ColorPicker.tsx        Reusable color swatch picker (+.styles.tsx)
+      DateDivider.tsx         Date group header (+.styles.tsx)
+      EntryCard.tsx           Mood entry card (+.styles.tsx)
+      MoodModal.tsx           Log mood dialog (+.styles.tsx)
+      MoodPicker.tsx          1–10 mood grid (+.styles.tsx)
+      MoodTag.tsx             Tag pill component (+.styles.tsx)
+      ProfileSection.tsx      Settings profile section
+      SharingSection.tsx      Settings sharing section
+      TagEditModal.tsx        Tag metadata editor (+.styles.tsx)
+      TagPicker.tsx           Tag search & select (+.styles.tsx)
     lib/
+      auth.ts                Token storage (expo-secure-store)
       config.ts              Build variant config (API URL, devtools flag)
+      shared-styles.ts       Common style constants
       graphql/
         client.ts              urql client (variant-aware URL, conditional devtools)
         queries.ts             GraphQL query strings
         mutations.ts           GraphQL mutation strings
       store.ts               Zustand store (auth, users, UI state)
+      usePaginatedEntries.ts Custom hook for paginated entry queries
       useNotifications.ts    Local reminder scheduling
+      useSharing.ts          Custom hook for sharing state & mutations
+      useUserSearch.ts       Custom hook for debounced user search
       theme.ts               Color tokens
       utils.ts               Gravatar, date formatting
+  graphql/
+    generate.py              Script to generate client query files from operations
+    operations/              Shared .graphql files (14 operations)
   tests/
     conftest.py              Fixtures (DB pool, GraphQL client, auth helpers)
     test_auth.py             Login code & JWT tests
@@ -150,6 +179,7 @@ moods/
     test_moods.py            Mood entry, delta, tags tests
     test_tags.py             Tag CRUD & search tests
     test_user_entries.py     User.entries pagination tests
+    test_health.py           Health endpoint tests
     test_edge_cases.py       Edge cases
     test_sharing.py          Sharing visibility & filter tests
 ```
@@ -268,7 +298,7 @@ Moods uses a passwordless email-based login flow:
      │
      ▼
 7. Client stores the token
-   Web: cookie    Mobile: AsyncStorage
+   Web: localStorage    Mobile: expo-secure-store
      │
      ▼
 8. Subsequent requests send  Authorization: Bearer <token>
@@ -349,4 +379,91 @@ Path-filtered to only run when `android/**`, `pyproject.toml`, or the workflow f
 ### Atomic Updates
 
 Sharing rules are updated atomically via `set_shares`: the entire rule set for a user is deleted and recreated in a single transaction. This avoids partial states and simplifies the client — it sends the complete desired state rather than individual add/remove operations.
+
+---
+
+## Conventions
+
+### SQL
+
+- Plural table names, snake_case columns.
+- `IF NOT EXISTS` on DDL; `ON CONFLICT DO NOTHING` on seed inserts.
+- Never `SELECT *` or `RETURNING *` — always list columns explicitly.
+- yoyo migration files: `0001.short-description.sql` with `-- depends:`.
+
+### GraphQL
+
+- Schema-first with `.graphql` files.
+- Root types in `schema.graphql`; domain types use `extend type Query` / `extend type Mutation`.
+- Doc-strings on non-obvious fields only.
+- Relay-style connections for lists.
+
+### Python
+
+- async throughout (async def resolvers, async DB calls).
+- Settings accessed via Dynaconf — never hard-coded connection strings.
+- Tests run against a real (disposable) Postgres database, not mocks.
+
+---
+
+## Dev Tooling
+
+### Task Runner
+
+All tasks are managed via [Poe the Poet](https://poethepoet.naber.io/) (`uv run poe <task>`):
+
+| Task | Description |
+|------|-------------|
+| `dev` | Start backend dev server (uvicorn, port 8000) |
+| `dev:web` | Start web frontend dev server |
+| `dev:android` | Start Android/Expo dev server |
+| `test` | Run pytest with coverage |
+| `lint` | Check linting and formatting (Ruff) |
+| `format` | Auto-format Python code |
+| `migrate` | Apply database migrations |
+| `docker:build` | Build Docker image |
+| `docker:up` | Start Docker services |
+
+### Linting & Formatting
+
+- **Python:** [Ruff](https://docs.astral.sh/ruff/) — lint + format, configured in `pyproject.toml` (target Python 3.12, line-length 88).
+- **Android:** ESLint + Prettier, with `lint`, `format`, and `typecheck` scripts in `package.json`.
+
+---
+
+## UI/UX Reference
+
+### Web App Flow
+
+1. On load, check localStorage for `moods-user-id` and `moods-token`.
+2. **No token** — show login screen (email input, pre-filled from stored `moods-email`).
+3. **Token set** — fetch users, show the timeline.
+
+### Web State Management
+
+- **localStorage** — `moods-user-id`, `moods-token`, `moods-email`. Read on init into re-frame app-db; set on login, cleared on switch-user.
+- **re-frame app-db** — current user, users list, unified mood entries list, tags, login-email, modal state.
+- **re-graph** — GraphQL queries and mutations dispatched as re-frame events.
+- **Routing** — reitit HTML5 history. Routes: `/` (login or redirect), `/timeline`, `/tags`, `/settings`, `/summary`.
+
+### Android State Management
+
+- **AsyncStorage** — `moods_auth_token` (via expo-secure-store), `moods_current_user`, `moods_email`.
+- **Zustand store** — `authToken`, `currentUserId`, `loginEmail`, `users`, `moodModalOpen`, plus async actions for persist/restore.
+- **urql** — GraphQL client configured with auth token header.
+
+### Timeline
+
+- Unified chronological list showing both partners' entries in reverse chronological order.
+- Entry cards: mood badge (color-coded 1–10), user name, notes, tags, relative timestamp.
+- Date group headers ("Today", "Yesterday", "Feb 14") separate entries by day.
+- User avatar and border color differentiate partners at a glance.
+- Cursor-based "Load more" pagination.
+
+### Log Mood
+
+- Mood value picker (1–10 button grid).
+- Text area for notes.
+- Tag multi-select with search autocomplete.
+- Submit calls `logMood` mutation; refreshes timeline on success.
 

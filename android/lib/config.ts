@@ -4,7 +4,7 @@ const variant: AppVariant = (process.env.EXPO_PUBLIC_APP_VARIANT as AppVariant) 
 
 const config = {
   local: {
-    apiUrl: 'http://localhost:8000/graphql',
+    apiUrl: 'http://192.168.129.136:8000/graphql',
     enableDevtools: true,
   },
   dev: {

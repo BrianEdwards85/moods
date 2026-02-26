@@ -9,6 +9,7 @@
 | id          | uuid (v7)   | PK                     |
 | name        | text        | NOT NULL               |
 | email       | text        | NOT NULL, UNIQUE       |
+| icon        | text        | NOT NULL               |
 | settings    | jsonb       | NOT NULL, DEFAULT '{}' |
 | archived_at | timestamptz | NULL                   |
 
@@ -160,3 +161,4 @@ mood_shares 1──* mood_share_filters
 | 0008 | create-mood-shares        | mood_shares + mood_share_filters tables |
 | 0009 | soft-delete-shares        | archived_at on mood_shares + mood_share_filters |
 | 0010 | users-trgm-search         | Trigram indexes on users name + email   |
+| 0011 | add-user-icon             | icon column on users                    |
