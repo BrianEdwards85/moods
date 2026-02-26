@@ -26,6 +26,13 @@ dynaconf_merge = true
 allow_origins = ["https://moods-dev.free-side.us"]
 allow_credentials = false
 
+[development.db]
+host = "db"
+port = 5432
+name = "moods_dev"
+user = "moods_dev"
+password = "moods_dev"
+
 [production]
 dynaconf_merge = true
 
