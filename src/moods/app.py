@@ -104,16 +104,26 @@ def create_app() -> Starlette:
     async def spa_fallback(request):
         return FileResponse(WEB_PUBLIC / "index.html")
 
+    routes = [
+        Route("/health", health, methods=["GET"]),
+        Route("/graphql", graphql_app, methods=["GET", "POST"]),
+    ]
+
+    if (WEB_PUBLIC / "js").is_dir():
+        routes.append(Mount("/js", StaticFiles(directory=WEB_PUBLIC / "js"), name="js"))
+    if (WEB_PUBLIC / "css").is_dir():
+        routes.append(
+            Mount("/css", StaticFiles(directory=WEB_PUBLIC / "css"), name="css")
+        )
+
+    routes += [
+        Route("/favicon.svg", spa_fallback),
+        Route("/{path:path}", spa_fallback),
+    ]
+
     return Starlette(
         lifespan=lifespan,
-        routes=[
-            Route("/health", health, methods=["GET"]),
-            Route("/graphql", graphql_app, methods=["GET", "POST"]),
-            Mount("/js", StaticFiles(directory=WEB_PUBLIC / "js"), name="js"),
-            Mount("/css", StaticFiles(directory=WEB_PUBLIC / "css"), name="css"),
-            Route("/favicon.svg", spa_fallback),
-            Route("/{path:path}", spa_fallback),
-        ],
+        routes=routes,
         middleware=[
             Middleware(
                 CORSMiddleware,
