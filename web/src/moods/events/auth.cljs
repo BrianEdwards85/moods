@@ -2,8 +2,6 @@
   (:require [moods.events :as-alias events]
             [moods.db :as db]
             [moods.gql :as gql]
-            [moods.routes :as routes]
-            [moods.storage :as storage]
             [re-frame.core :as rf]
             [re-graph.core :as re-graph]))
 
@@ -53,22 +51,22 @@
                 (update :loading disj :login)
                 (assoc :login-error (first errors)))}
        (let [{:keys [token user]} (:verifyLoginCode data)]
-         (storage/set-item! "moods-token" token)
-         (storage/set-item! "moods-user-id" (:id user))
-         (storage/set-item! "moods-email" (:login-email db))
-         (routes/navigate! :route/timeline)
-         {:db         (-> db
-                          (update :loading disj :login)
-                          (assoc :auth-token token)
-                          (assoc :current-user-id (:id user))
-                          (assoc :current-user user)
-                          (assoc :login-code-sent false)
-                          (assoc :login-error nil)
-                          (assoc :entries (:entries db/default-db)))
-          :dispatch-n [[::re-graph/re-init {:http {:impl {:headers {"Authorization" (str "Bearer " token)}}}}]
-                       [::events/fetch-users]
-                       [::events/fetch-entries]]
-          :start-poll true})))))
+         {:db               (-> db
+                                (update :loading disj :login)
+                                (assoc :auth-token token)
+                                (assoc :current-user-id (:id user))
+                                (assoc :current-user user)
+                                (assoc :login-code-sent false)
+                                (assoc :login-error nil)
+                                (assoc :entries (:entries db/default-db)))
+          :set-auth-storage {"moods-token"   token
+                             "moods-user-id" (:id user)
+                             "moods-email"   (:login-email db)}
+          :navigate         :route/timeline
+          :dispatch-n       [[::re-graph/re-init {:http {:impl {:headers {"Authorization" (str "Bearer " token)}}}}]
+                             [::events/fetch-users]
+                             [::events/fetch-entries]]
+          :start-poll       true})))))
 
 (rf/reg-event-db
  ::events/cancel-login
@@ -84,12 +82,11 @@
 (rf/reg-event-fx
  ::events/switch-user
  (fn [{:keys [db]} _]
-   (storage/remove-item! "moods-user-id")
-   (storage/remove-item! "moods-token")
-   (routes/navigate! :route/user-select)
-   {:db        (assoc db
-                      :current-user-id nil
-                      :current-user nil
-                      :auth-token nil
-                      :entries (:entries db/default-db))
-    :stop-poll true}))
+   {:db                 (assoc db
+                               :current-user-id nil
+                               :current-user nil
+                               :auth-token nil
+                               :entries (:entries db/default-db))
+    :clear-auth-storage true
+    :navigate           :route/user-select
+    :stop-poll          true}))

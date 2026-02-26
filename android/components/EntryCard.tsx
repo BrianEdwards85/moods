@@ -1,3 +1,4 @@
+import React from 'react';
 import { Image, Text, View } from 'react-native';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import MoodTag from './MoodTag';
@@ -29,7 +30,7 @@ function deltaIconName(delta: number): 'arrow-up' | 'arrow-down' | 'minus' {
   return 'minus';
 }
 
-export default function EntryCard({ entry, user, mine }: Props) {
+function EntryCard({ entry, user, mine }: Props) {
   const bg = moodColor(entry.mood);
   const name = user?.name ?? entry.user?.name ?? '?';
   const customAvatar = (user?.settings as Record<string, unknown>)?.avatarUrl as string | undefined;
@@ -38,7 +39,13 @@ export default function EntryCard({ entry, user, mine }: Props) {
 
   return (
     <View style={[styles.outer, mine ? styles.mine : styles.partner]}>
-      <View style={[styles.card, { backgroundColor: bg }, userColor ? { borderLeftWidth: 4, borderLeftColor: userColor } : null]}>
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: bg },
+          userColor ? { borderLeftWidth: 4, borderLeftColor: userColor } : null,
+        ]}
+      >
         <View style={styles.header}>
           <Image source={{ uri: avatarUri }} style={styles.avatar} />
           <View style={styles.nameRow}>
@@ -70,3 +77,5 @@ export default function EntryCard({ entry, user, mine }: Props) {
     </View>
   );
 }
+
+export default React.memo(EntryCard);

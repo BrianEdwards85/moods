@@ -1,9 +1,9 @@
-import { Client, cacheExchange, fetchExchange, Exchange, mapExchange } from "urql";
-import { pipe, map } from "wonka";
-import { useStore } from "@/lib/store";
-import { appConfig } from "@/lib/config";
-import { isTokenExpired, needsRefresh } from "@/lib/auth";
-import { REFRESH_TOKEN_MUTATION } from "@/lib/graphql/mutations";
+import { Client, cacheExchange, fetchExchange, Exchange, mapExchange } from 'urql';
+import { pipe, map } from 'wonka';
+import { useStore } from '@/lib/store';
+import { appConfig } from '@/lib/config';
+import { isTokenExpired, needsRefresh } from '@/lib/auth';
+import { REFRESH_TOKEN_MUTATION } from '@/lib/graphql/mutations';
 
 // Singleton promise to deduplicate concurrent refresh attempts
 let refreshPromise: Promise<string | null> | null = null;
@@ -11,9 +11,9 @@ let refreshPromise: Promise<string | null> | null = null;
 async function doRefresh(token: string): Promise<string | null> {
   try {
     const resp = await fetch(appConfig.apiUrl, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ query: REFRESH_TOKEN_MUTATION }),
@@ -53,7 +53,7 @@ const authExchange: Exchange =
         }
         // Return operation as-is — fetchOptions picks up the (possibly new) token
         return operation;
-      })
+      }),
     );
     return forward(processedOps$);
   };
@@ -61,10 +61,8 @@ const authExchange: Exchange =
 /** Post-response exchange: catch "Authentication required" as defense-in-depth. */
 const authErrorExchange: Exchange = mapExchange({
   onResult(result) {
-    const errors = result.data
-      ? undefined
-      : (result as any).error?.graphQLErrors;
-    if (errors?.some((e: any) => e.message === "Authentication required")) {
+    const errors = result.data ? undefined : (result as any).error?.graphQLErrors;
+    if (errors?.some((e: any) => e.message === 'Authentication required')) {
       useStore.getState().clearAuth();
     }
   },
@@ -74,7 +72,7 @@ const exchanges: Exchange[] = [];
 
 if (appConfig.enableDevtools) {
   try {
-    const { devtoolsExchange } = require("@urql/devtools");
+    const { devtoolsExchange } = require('@urql/devtools');
     exchanges.push(devtoolsExchange);
   } catch {
     // @urql/devtools not installed, skip

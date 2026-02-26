@@ -1,12 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  RefreshControl,
-  Text,
-  View,
-} from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
 import { useQuery } from 'urql';
 import { useStore, type MoodEntry, type User } from '@/lib/store';
 import { USERS_QUERY, MOOD_ENTRIES_QUERY } from '@/lib/graphql/queries';
@@ -38,9 +31,12 @@ export default function TimelineScreen() {
     if (usersResult.data?.users?.length) setUsers(usersResult.data.users);
   }, [usersResult.data]);
 
-  const userIds = users.map((u) => u.id);
-  const usersById: Record<string, User> = {};
-  users.forEach((u) => (usersById[u.id] = u));
+  const userIds = useMemo(() => users.map((u) => u.id), [users]);
+  const usersById = useMemo(() => {
+    const map: Record<string, User> = {};
+    users.forEach((u) => (map[u.id] = u));
+    return map;
+  }, [users]);
 
   const [endCursor, setEndCursor] = useState<string | null>(null);
   const [allEdges, setAllEdges] = useState<{ cursor: string; node: MoodEntry }[]>([]);
@@ -72,7 +68,11 @@ export default function TimelineScreen() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [moreResult, executeMore] = useQuery({
     query: MOOD_ENTRIES_QUERY,
-    variables: { userIds: userIds.length ? userIds : undefined, first: PAGE_SIZE, after: endCursor },
+    variables: {
+      userIds: userIds.length ? userIds : undefined,
+      first: PAGE_SIZE,
+      after: endCursor,
+    },
     pause: true,
   });
 
@@ -92,22 +92,34 @@ export default function TimelineScreen() {
     }
   }, [moreResult.data]);
 
-  const listItems: ListItem[] = [];
-  allEdges.forEach((edge, idx) => {
-    const curDate = dateKey(edge.node.createdAt);
-    const prevDate = idx > 0 ? dateKey(allEdges[idx - 1].node.createdAt) : null;
-    if (idx === 0 || curDate !== prevDate) {
-      listItems.push({ type: 'divider', key: `d-${curDate}`, label: dateLabel(edge.node.createdAt) });
-    }
-    const mine = edge.node.user?.id === currentUserId;
-    listItems.push({
-      type: 'entry',
-      key: edge.node.id,
-      entry: edge.node,
-      mine,
-      user: usersById[edge.node.user?.id],
+  const listItems = useMemo(() => {
+    const items: ListItem[] = [];
+    allEdges.forEach((edge, idx) => {
+      const curDate = dateKey(edge.node.createdAt);
+      const prevDate = idx > 0 ? dateKey(allEdges[idx - 1].node.createdAt) : null;
+      if (idx === 0 || curDate !== prevDate) {
+        items.push({
+          type: 'divider',
+          key: `d-${curDate}`,
+          label: dateLabel(edge.node.createdAt),
+        });
+      }
+      const mine = edge.node.user?.id === currentUserId;
+      items.push({
+        type: 'entry',
+        key: edge.node.id,
+        entry: edge.node,
+        mine,
+        user: usersById[edge.node.user?.id],
+      });
     });
-  });
+    return items;
+  }, [allEdges, currentUserId, usersById]);
+
+  const renderItem = useCallback(({ item }: { item: ListItem }) => {
+    if (item.type === 'divider') return <DateDivider label={item.label} />;
+    return <EntryCard entry={item.entry} user={item.user} mine={item.mine} />;
+  }, []);
 
   const onRefresh = useCallback(() => {
     reexecute({ requestPolicy: 'network-only' });
@@ -126,10 +138,7 @@ export default function TimelineScreen() {
       <FlatList
         data={listItems}
         keyExtractor={(item) => item.key}
-        renderItem={({ item }) => {
-          if (item.type === 'divider') return <DateDivider label={item.label} />;
-          return <EntryCard entry={item.entry} user={item.user} mine={item.mine} />;
-        }}
+        renderItem={renderItem}
         contentContainerStyle={styles.listContent}
         refreshControl={
           <RefreshControl

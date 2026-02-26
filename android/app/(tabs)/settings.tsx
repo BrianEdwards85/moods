@@ -12,10 +12,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useClient, useMutation, useQuery } from 'urql';
 import { USERS_QUERY, SEARCH_USERS_QUERY } from '@/lib/graphql/queries';
-import {
-  UPDATE_USER_SETTINGS_MUTATION,
-  UPDATE_SHARING_MUTATION,
-} from '@/lib/graphql/mutations';
+import { UPDATE_USER_SETTINGS_MUTATION, UPDATE_SHARING_MUTATION } from '@/lib/graphql/mutations';
 import { useStore } from '@/lib/store';
 import { scheduleReminder, cancelReminder } from '@/lib/useNotifications';
 import { colors, tagPresetColors } from '@/lib/theme';
@@ -282,7 +279,7 @@ export default function SettingsScreen() {
         <View style={styles.shareHeader}>
           <View style={{ flex: 1 }}>
             <Text style={styles.shareName}>Mood Reminder</Text>
-            <Text style={styles.description}>Remind me if I haven't logged in 18 hours</Text>
+            <Text style={styles.description}>Remind me if I haven&apos;t logged in 18 hours</Text>
           </View>
           <Switch
             value={reminderEnabled}
@@ -328,9 +325,7 @@ export default function SettingsScreen() {
                     placeholderTextColor={colors.fgDim}
                   />
                   <View style={styles.filterToggle}>
-                    <Text style={styles.filterLabel}>
-                      {f.isInclude ? 'Include' : 'Exclude'}
-                    </Text>
+                    <Text style={styles.filterLabel}>{f.isInclude ? 'Include' : 'Exclude'}</Text>
                     <Switch
                       value={f.isInclude}
                       onValueChange={(val) => updateFilter(uid, idx, 'isInclude', val)}

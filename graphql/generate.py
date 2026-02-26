@@ -8,18 +8,34 @@ OPS_DIR = REPO_ROOT / "graphql" / "operations"
 
 # Ordering matches the existing files exactly.
 CLJS_ORDER = [
-    "users", "user", "mood-entries", "tags",
-    "log-mood", "archive-entry", "update-tag-metadata",
-    "archive-tag", "unarchive-tag", "send-login-code",
-    "verify-login-code", "update-user-settings",
-    "update-sharing", "refresh-token", "search-users",
+    "users",
+    "user",
+    "mood-entries",
+    "tags",
+    "log-mood",
+    "archive-entry",
+    "update-tag-metadata",
+    "archive-tag",
+    "unarchive-tag",
+    "send-login-code",
+    "verify-login-code",
+    "update-user-settings",
+    "update-sharing",
+    "refresh-token",
+    "search-users",
 ]
 
 TS_QUERIES_ORDER = ["users", "mood-entries", "search-users", "tags"]
 TS_MUTATIONS_ORDER = [
-    "log-mood", "update-tag-metadata", "archive-tag", "unarchive-tag",
-    "send-login-code", "verify-login-code", "update-user-settings",
-    "update-sharing", "refresh-token",
+    "log-mood",
+    "update-tag-metadata",
+    "archive-tag",
+    "unarchive-tag",
+    "send-login-code",
+    "verify-login-code",
+    "update-user-settings",
+    "update-sharing",
+    "refresh-token",
 ]
 
 
@@ -37,6 +53,7 @@ def to_screaming_snake(name: str) -> str:
 
 # -- ClojureScript ------------------------------------------------------------
 
+
 def format_cljs_def(name: str, content: str) -> str:
     suffix = "mutation" if is_mutation(content) else "query"
     def_name = f"{name}-{suffix}"
@@ -50,7 +67,10 @@ def format_cljs_def(name: str, content: str) -> str:
 
 def generate_cljs() -> None:
     header = ";; GENERATED — do not edit. Run: python graphql/generate.py"
-    ns = '(ns moods.gql\n  "GraphQL query and mutation strings, plus re-graph initialization.")'
+    ns = (
+        '(ns moods.gql\n  "GraphQL query and mutation strings,'
+        ' plus re-graph initialization.")'
+    )
     defs = [format_cljs_def(n, read_operation(n)) for n in CLJS_ORDER]
     path = REPO_ROOT / "web" / "src" / "moods" / "gql.cljs"
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -59,6 +79,7 @@ def generate_cljs() -> None:
 
 
 # -- TypeScript ----------------------------------------------------------------
+
 
 def format_ts_export(name: str, content: str) -> str:
     suffix = "MUTATION" if is_mutation(content) else "QUERY"

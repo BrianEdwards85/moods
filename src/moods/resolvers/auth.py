@@ -1,6 +1,6 @@
 from ariadne import MutationType
-from graphql import GraphQLError
 
+from graphql import GraphQLError
 from moods.config import settings
 from moods.orchestration import auth as auth_ops
 
@@ -14,9 +14,7 @@ def require_auth(info):
 
 @mutation.field("sendLoginCode")
 async def resolve_send_login_code(_obj, info, *, email):
-    success = await auth_ops.send_login_code(
-        info.context["pool"], email, settings
-    )
+    success = await auth_ops.send_login_code(info.context["pool"], email, settings)
     return {"success": success}
 
 

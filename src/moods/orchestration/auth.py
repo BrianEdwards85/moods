@@ -1,5 +1,5 @@
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import jwt
 from asyncpg import Pool
@@ -19,7 +19,7 @@ async def send_login_code(pool: Pool, email: str, settings) -> bool:
 
     user = dict(row)
     code = _generate_code()
-    expires_at = datetime.now(timezone.utc) + timedelta(
+    expires_at = datetime.now(UTC) + timedelta(
         minutes=settings.auth_code_expiry_minutes
     )
 
@@ -31,7 +31,7 @@ async def send_login_code(pool: Pool, email: str, settings) -> bool:
 
 
 def _create_token(user_id: str, jwt_secret: str, jwt_expiry_days: int) -> str:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return jwt.encode(
         {
             "sub": str(user_id),
@@ -53,7 +53,7 @@ async def verify_login_code(
         return None
 
     user = dict(row)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     verified = await queries.verify_auth_code(
         pool, user_id=user["id"], code=code, now=now
     )

@@ -771,7 +771,7 @@ Work through these one at a time.
 
 ### 13.2 High Priority — Reliability
 
-- [ ] **Add tests and linting to CI** — `.github/workflows/build-backend.yml`
+- [x] **Add tests and linting to CI** — `.github/workflows/build-backend.yml`
   goes straight from checkout to Docker build. Add steps before the build:
   - `uv run ruff check src/ tests/` (linting)
   - `uv run pytest --cov` (tests)
@@ -805,7 +805,7 @@ Work through these one at a time.
 
 ### 13.3 Medium Priority — Code Quality & Performance
 
-- [ ] **Add linting and formatting tools** — No linter or formatter is
+- [x] **Add linting and formatting tools** — No linter or formatter is
   configured anywhere:
   - Python: add `ruff` (lint + format) to `pyproject.toml` dev deps, add
     `[tool.ruff]` config section.
@@ -821,11 +821,11 @@ Work through these one at a time.
   - Extract shared `.graphql` files and load from both clients.
   - Use `graphql-codegen` for the Android client to also get type safety.
 
-- [ ] **Android performance: memoize computed data** —
+- [x] **Android performance: memoize computed data** —
   `android/app/(tabs)/index.tsx:41-110` recomputes `usersById` and `listItems`
   on every render. Wrap in `useMemo` with appropriate dependency arrays.
 
-- [ ] **Android performance: memoize components** —
+- [x] **Android performance: memoize components** —
   - `android/components/EntryCard.tsx` — wrap in `React.memo` for FlatList
     performance.
   - `android/app/(tabs)/index.tsx` — extract `renderItem` into a
@@ -836,7 +836,7 @@ Work through these one at a time.
   causing re-renders on any store change. Use individual selectors:
   `const currentUserId = useStore(s => s.currentUserId)`.
 
-- [ ] **Fix re-frame purity violations** —
+- [x] **Fix re-frame purity violations** —
   `web/src/moods/events.cljs:436-438` performs cookie writes as direct side
   effects inside event handlers. Move to re-frame effects (`:fx`).
 
@@ -865,11 +865,11 @@ Work through these one at a time.
   step (e.g. an init container, a `make migrate` target, or a pre-deploy
   script).
 
-- [ ] **Make tests runnable in CI** — `tests/conftest.py` requires an external
+- [x] **Make tests runnable in CI** — `tests/conftest.py` requires an external
   PostgreSQL on localhost:5433. Add a PostgreSQL service container to the CI
   workflow (GitHub Actions `services:` block) and run `pytest` as a CI step.
 
-- [ ] **Fix migration 0011 metadata** — `migrations/0011.add-user-icon.sql`
+- [x] **Fix migration 0011 metadata** — `migrations/0011.add-user-icon.sql`
   is missing the `-- depends:` header that all other migrations have.
 
 ### 13.5 Low Priority — Developer Experience
@@ -891,7 +891,7 @@ Work through these one at a time.
   - Deployment instructions
   - Link to `architecture.md`, `data.md`, and `PLAN.md`.
 
-- [ ] **Add `lint`, `format`, `typecheck`, `test` scripts** to both
+- [x] **Add `lint`, `format`, `typecheck`, `test` scripts** to both
   `web/package.json` and `android/package.json`.
 
 - [ ] **Clean up `any` types in Android TypeScript** — `strict: true` is

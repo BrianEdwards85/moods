@@ -90,7 +90,9 @@ def create_app() -> Starlette:
                     f"https://api.mailgun.net/v3/{settings.mailgun.domain}",
                     auth=("api", settings.mailgun.api_key),
                 )
-                checks["mailgun"] = "ok" if resp.status_code == 200 else f"status {resp.status_code}"
+                checks["mailgun"] = (
+                    "ok" if resp.status_code == 200 else f"status {resp.status_code}"
+                )
         except Exception as exc:
             checks["mailgun"] = str(exc)
 

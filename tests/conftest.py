@@ -10,7 +10,7 @@ import os
 
 os.environ["MOODS_ENV"] = "testing"
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import httpx
 import jwt
@@ -21,7 +21,15 @@ from moods.app import create_app
 from moods.config import settings
 from moods.db import apply_migrations, create_pool
 
-TABLES = ["mood_share_filters", "mood_shares", "mood_entry_tags", "mood_entries", "tags", "auth_codes", "users"]
+TABLES = [
+    "mood_share_filters",
+    "mood_shares",
+    "mood_entry_tags",
+    "mood_entries",
+    "tags",
+    "auth_codes",
+    "users",
+]
 
 apply_migrations()
 _app = create_app()
@@ -52,7 +60,7 @@ async def _clean_db(pool):
 
 def auth_header(user_id: str) -> dict:
     """Mint a JWT for test use and return an Authorization header dict."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     token = jwt.encode(
         {
             "sub": str(user_id),

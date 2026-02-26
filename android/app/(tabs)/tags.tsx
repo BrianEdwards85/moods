@@ -98,17 +98,8 @@ export default function TagsScreen() {
             <Pressable onPress={() => setEditingTag(tag)}>
               <View style={[styles.tagRow, { backgroundColor: bg }]}>
                 <View style={styles.tagContent}>
-                  {tag.metadata?.face ? (
-                    <Text style={styles.face}>{tag.metadata.face}</Text>
-                  ) : null}
-                  <Text
-                    style={[
-                      styles.tagName,
-                      archived && styles.tagArchived,
-                    ]}
-                  >
-                    {tag.name}
-                  </Text>
+                  {tag.metadata?.face ? <Text style={styles.face}>{tag.metadata.face}</Text> : null}
+                  <Text style={[styles.tagName, archived && styles.tagArchived]}>{tag.name}</Text>
                 </View>
                 {archived && <Text style={styles.archivedBadge}>archived</Text>}
               </View>
@@ -134,11 +125,7 @@ export default function TagsScreen() {
         }
       />
 
-      <TagEditModal
-        tag={editingTag}
-        onClose={() => setEditingTag(null)}
-        onSaved={onTagSaved}
-      />
+      <TagEditModal tag={editingTag} onClose={() => setEditingTag(null)} onSaved={onTagSaved} />
     </View>
   );
 }

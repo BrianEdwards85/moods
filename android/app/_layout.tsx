@@ -88,7 +88,10 @@ export default function RootLayout() {
         <AuthGate>
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="user-select" options={{ title: 'Select User', headerShown: false }} />
+            <Stack.Screen
+              name="user-select"
+              options={{ title: 'Select User', headerShown: false }}
+            />
           </Stack>
         </AuthGate>
       </ThemeProvider>
