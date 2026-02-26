@@ -5,12 +5,14 @@ on:
     branches: [main]
     paths:
       - "android/**"
+      - "graphql/**"
       - "pyproject.toml"
       - ".github/workflows/build-android.yml"
   pull_request:
     branches: [main]
     paths:
       - "android/**"
+      - "graphql/**"
       - "pyproject.toml"
       - ".github/workflows/build-android.yml"
 
@@ -40,6 +42,9 @@ jobs:
 
       - name: Install dependencies
         run: cd android && npm ci
+
+      - name: Generate GraphQL
+        run: cd android && npm run gql:generate
 
       - name: Lint & typecheck
         run: |
