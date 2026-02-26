@@ -110,7 +110,7 @@ export default function TimelineScreen() {
         key: edge.node.id,
         entry: edge.node,
         mine,
-        user: usersById[edge.node.user?.id],
+        user: edge.node.user?.id ? usersById[edge.node.user.id] : undefined,
       });
     });
     return items;

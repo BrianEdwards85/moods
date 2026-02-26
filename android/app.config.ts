@@ -39,7 +39,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   android: {
     package: `com.moods.app${vc.packageSuffix}`,
-    usesCleartextTraffic: vc.usesCleartextTraffic,
+    ...(vc.usesCleartextTraffic && { usesCleartextTraffic: true }),
     adaptiveIcon: {
       foregroundImage: './assets/images/adaptive-icon.png',
       backgroundColor: '#1f2335',

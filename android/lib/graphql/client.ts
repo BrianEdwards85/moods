@@ -87,8 +87,7 @@ export const urqlClient = new Client({
   preferGetMethod: false,
   fetchOptions: () => {
     const token = useStore.getState().authToken;
-    return {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    };
+    if (!token) return {};
+    return { headers: { Authorization: `Bearer ${token}` } };
   },
 });
