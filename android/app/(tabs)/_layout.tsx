@@ -19,15 +19,15 @@ function UserHeaderButton() {
 
   if (!currentUser) return null;
 
-  const customAvatar = currentUser.settings?.avatarUrl;
-  const avatarUri = customAvatar && customAvatar.length > 0 ? customAvatar : currentUser.icon;
-
   return (
     <Pressable
       onPress={() => router.push('/(tabs)/settings')}
       style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginRight: 12 }}
     >
-      <Image source={{ uri: avatarUri }} style={{ width: 24, height: 24, borderRadius: 12 }} />
+      <Image
+        source={{ uri: currentUser.icon }}
+        style={{ width: 24, height: 24, borderRadius: 12 }}
+      />
       <Text style={{ color: colors.fgMuted, fontSize: 14 }}>{currentUser.name}</Text>
     </Pressable>
   );
