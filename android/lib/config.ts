@@ -8,11 +8,11 @@ const config = {
     enableDevtools: true,
   },
   dev: {
-    apiUrl: 'https://moods-dev.free-side.us/graphql',
+    apiUrl: 'https://moods-dev.hosaka.io/graphql',
     enableDevtools: true,
   },
   release: {
-    apiUrl: 'https://moods.free-side.us/graphql',
+    apiUrl: 'https://moods.hosaka.io/graphql',
     enableDevtools: false,
   },
 } as const;

@@ -1,6 +1,6 @@
 [project]
 name = "moods"
-version = "2.1.0"
+version = "2.1.1"
 description = "Shared mood-tracking app"
 requires-python = ">=3.12"
 dependencies = [
@@ -84,6 +84,11 @@ help = "Auto-format Python code"
 [tool.poe.tasks.migrate]
 cmd = "python -c 'from moods.db import apply_migrations; apply_migrations()'"
 help = "Apply database migrations"
+
+[tool.poe.tasks.version]
+help = "Set version across all packages: poe version 2.2.0"
+cmd = "python3 scripts/set_version.py ${version}"
+args = [{ name = "version", positional = true, required = true, help = "Version string (X.Y.Z)" }]
 
 [tool.poe.tasks."docker:build"]
 cmd = "docker compose build"
