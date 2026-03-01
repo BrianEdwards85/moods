@@ -41,6 +41,9 @@ COPY settings.toml ./
 
 COPY --from=frontend /app/web/resources/public/ web/resources/public/
 
+RUN useradd --create-home appuser
+USER appuser
+
 EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

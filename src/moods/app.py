@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -16,6 +17,19 @@ from moods.resolvers import create_gql
 from moods.resolvers.auth import COOKIE_NAME
 
 WEB_PUBLIC = Path(__file__).parent.parent.parent / "web" / "resources" / "public"
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next) -> Response:
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        if settings.cookie_secure:
+            response.headers["Strict-Transport-Security"] = (
+                "max-age=31536000; includeSubDomains"
+            )
+        return response
 
 
 class AuthCookieMiddleware(BaseHTTPMiddleware):
@@ -62,7 +76,8 @@ def create_app() -> Starlette:
                 await conn.fetchval("SELECT 1")
             checks["db"] = "ok"
         except Exception as exc:
-            checks["db"] = str(exc)
+            logging.exception("Health check DB failure")
+            checks["db"] = "error"
 
         healthy = all(v == "ok" for v in checks.values())
         return JSONResponse(
@@ -101,6 +116,7 @@ def create_app() -> Starlette:
                 allow_methods=["GET", "POST", "OPTIONS"],
                 allow_headers=["*"],
             ),
+            Middleware(SecurityHeadersMiddleware),
             Middleware(AuthCookieMiddleware),
         ],
     )
