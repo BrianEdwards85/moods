@@ -1,13 +1,105 @@
 services:
-  moods:
-    build: .
+  traefik:
+    image: traefik:v3.4
+    command:
+      - --api.insecure=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --certificatesresolvers.letsencrypt.acme.dnschallenge=true
+      - --certificatesresolvers.letsencrypt.acme.dnschallenge.provider=cloudflare
+      - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
     ports:
-      - "8000:8000"
+      - "80:80"
+      - "443:443"
+    volumes:
+      - letsencrypt:/letsencrypt
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
+    restart: unless-stopped
+
+  db:
+    image: postgres:18
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - MOODS_DB_PASSWORD=${MOODS_DB_PASSWORD}
+      - MOODS_DEV_DB_PASSWORD=${MOODS_DEV_DB_PASSWORD}
+    restart: unless-stopped
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.pgadmin.rule=Host(`pg.hosaka.io`)
+      - traefik.http.routers.pgadmin.entrypoints=websecure
+      - traefik.http.routers.pgadmin.tls.certresolver=letsencrypt
+      - traefik.http.routers.pgadmin.tls.domains[0].main=hosaka.io
+      - traefik.http.routers.pgadmin.tls.domains[0].sans=*.hosaka.io
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  moods-prod:
+    image: ghcr.io/brianedwards85/moods:latest
+    environment:
+      - MOODS_ENV=production
+      - MOODS_DB__HOST=db
+      - MOODS_DB__PORT=5432
+      - MOODS_DB__NAME=moods
+      - MOODS_DB__USER=moods
+      - MOODS_DB__PASSWORD=${MOODS_DB_PASSWORD}
     volumes:
       - ./settings.toml:/app/settings.toml:ro
       - ./.secrets.toml:/app/.secrets.toml:ro
-    environment:
-      - MOODS_DB__HOST=host.docker.internal
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.moods-prod.rule=Host(`moods.hosaka.io`)
+      - traefik.http.routers.moods-prod.entrypoints=websecure
+      - traefik.http.routers.moods-prod.tls.certresolver=letsencrypt
+      - traefik.http.routers.moods-prod.tls.domains[0].main=hosaka.io
+      - traefik.http.routers.moods-prod.tls.domains[0].sans=*.hosaka.io
+    depends_on:
+      - db
     restart: unless-stopped
+
+  moods-dev:
+    build: .
+    environment:
+      - MOODS_ENV=development
+      - MOODS_DB__HOST=db
+      - MOODS_DB__PORT=5432
+      - MOODS_DB__NAME=moods_dev
+      - MOODS_DB__USER=moods_dev
+      - MOODS_DB__PASSWORD=${MOODS_DEV_DB_PASSWORD}
+    volumes:
+      - ./settings.toml:/app/settings.toml:ro
+      - ./.secrets.toml:/app/.secrets.toml:ro
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.moods-dev.rule=Host(`moods-dev.hosaka.io`)
+      - traefik.http.routers.moods-dev.entrypoints=websecure
+      - traefik.http.routers.moods-dev.tls.certresolver=letsencrypt
+      - traefik.http.routers.moods-dev.tls.domains[0].main=hosaka.io
+      - traefik.http.routers.moods-dev.tls.domains[0].sans=*.hosaka.io
+    depends_on:
+      - db
+    restart: unless-stopped
+
+volumes:
+  letsencrypt:
+  pgdata:
+  pgadmin:
