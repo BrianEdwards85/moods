@@ -5,6 +5,7 @@ from moods.orchestration.auth import Auth
 
 COOKIE_NAME = "moods_token"
 
+
 def require_auth(info) -> str:
     if not info.context.get("auth_user_id"):
         raise GraphQLError("Authentication required")

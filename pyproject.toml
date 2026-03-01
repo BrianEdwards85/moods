@@ -73,7 +73,7 @@ help = "Run tests with coverage"
 [tool.poe.tasks.lint]
 help = "Check linting and formatting"
 sequence = [
-    { cmd = "ruff check src/ tests/" },
+    { cmd = "ruff check --fix src/ tests/" },
     { cmd = "ruff format --check src/ tests/" },
 ]
 
