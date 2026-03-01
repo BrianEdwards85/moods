@@ -1,8 +1,9 @@
 services:
   traefik:
-    image: traefik:v3.4
+    image: traefik:v3.6
     command:
-      - --api.insecure=true
+      - --api=true
+      - --api.dashboard=true
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
       - --entrypoints.web.address=:80
@@ -13,6 +14,17 @@ services:
       - --certificatesresolvers.letsencrypt.acme.dnschallenge.provider=cloudflare
       - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}
       - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.dashboard.rule=Host(`traefik.hosaka.io`)
+      - traefik.http.routers.dashboard.entrypoints=websecure
+      - traefik.http.routers.dashboard.tls.certresolver=letsencrypt
+      - traefik.http.routers.dashboard.tls.domains[0].main=hosaka.io
+      - traefik.http.routers.dashboard.tls.domains[0].sans=*.hosaka.io
+      - traefik.http.routers.dashboard.service=api@internal
+      - traefik.http.routers.dashboard.middlewares=dashboard-auth
+      - traefik.http.middlewares.dashboard-auth.basicauth.users=${TRAEFIK_DASHBOARD_AUTH}
+      - traefik.http.middlewares.block-health.ipallowlist.sourcerange=127.0.0.1/32
     ports:
       - "80:80"
       - "443:443"
@@ -72,6 +84,11 @@ services:
       - traefik.http.routers.moods-prod.tls.certresolver=letsencrypt
       - traefik.http.routers.moods-prod.tls.domains[0].main=hosaka.io
       - traefik.http.routers.moods-prod.tls.domains[0].sans=*.hosaka.io
+      - traefik.http.routers.moods-prod-health.rule=Host(`moods.hosaka.io`) && Path(`/health`)
+      - traefik.http.routers.moods-prod-health.entrypoints=websecure
+      - traefik.http.routers.moods-prod-health.tls.certresolver=letsencrypt
+      - traefik.http.routers.moods-prod-health.middlewares=block-health
+      - traefik.http.routers.moods-prod-health.priority=200
     depends_on:
       - db
     restart: unless-stopped
@@ -95,6 +112,11 @@ services:
       - traefik.http.routers.moods-dev.tls.certresolver=letsencrypt
       - traefik.http.routers.moods-dev.tls.domains[0].main=hosaka.io
       - traefik.http.routers.moods-dev.tls.domains[0].sans=*.hosaka.io
+      - traefik.http.routers.moods-dev-health.rule=Host(`moods-dev.hosaka.io`) && Path(`/health`)
+      - traefik.http.routers.moods-dev-health.entrypoints=websecure
+      - traefik.http.routers.moods-dev-health.tls.certresolver=letsencrypt
+      - traefik.http.routers.moods-dev-health.middlewares=block-health
+      - traefik.http.routers.moods-dev-health.priority=200
     depends_on:
       - db
     restart: unless-stopped
