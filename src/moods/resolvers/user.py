@@ -4,7 +4,7 @@ from moods.data import Moods, Shares, Users
 from moods.resolvers.auth import require_auth
 
 
-async def resolve_user(self, _obj, info, *, id):
+async def resolve_user(_obj, info, *, id):
     return await info.context["user_loader"].load(id)
 
 
@@ -54,7 +54,6 @@ class UserResolver:
     ):
         user_id = require_auth(info)
         return await self.moods.get_mood_entries(
-            info.context["pool"],
             user_ids=[str(user["id"])],
             include_archived=include_archived,
             first=first,

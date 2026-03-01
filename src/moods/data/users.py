@@ -44,6 +44,6 @@ class Users:
         verified = await queries.verify_auth_code(self.pool, user_id=id, code=code)
         return verified is not None
 
-    async def get_user_by_email(self, email: str) -> dict:
+    async def get_user_by_email(self, email: str) -> dict | None:
         row = await queries.get_user_by_email(self.pool, email=email)
-        return dict(row)
+        return dict(row) if row else None

@@ -48,7 +48,8 @@ async def test_user_entries_connection(client):
     await _log_mood(client, uid, mood=8, notes="good")
     await _log_mood(client, uid, mood=3, notes="bad")
 
-    body = await gql(client, USER_WITH_ENTRIES, {"id": uid})
+    h = auth_header(uid)
+    body = await gql(client, USER_WITH_ENTRIES, {"id": uid}, headers=h)
     user = body["data"]["user"]
     assert user["name"] == "Alice"
     edges = user["entries"]["edges"]
@@ -61,12 +62,14 @@ async def test_user_entries_excludes_other_users(client):
     await _log_mood(client, alice_id, mood=8, notes="alice entry")
     await _log_mood(client, bob_id, mood=4, notes="bob entry")
 
-    body = await gql(client, USER_WITH_ENTRIES, {"id": alice_id})
+    h_alice = auth_header(alice_id)
+    body = await gql(client, USER_WITH_ENTRIES, {"id": alice_id}, headers=h_alice)
     edges = body["data"]["user"]["entries"]["edges"]
     assert len(edges) == 1
     assert edges[0]["node"]["notes"] == "alice entry"
 
-    body = await gql(client, USER_WITH_ENTRIES, {"id": bob_id})
+    h_bob = auth_header(bob_id)
+    body = await gql(client, USER_WITH_ENTRIES, {"id": bob_id}, headers=h_bob)
     edges = body["data"]["user"]["entries"]["edges"]
     assert len(edges) == 1
     assert edges[0]["node"]["notes"] == "bob entry"
@@ -77,7 +80,8 @@ async def test_user_entries_pagination(client):
     for i in range(5):
         await _log_mood(client, uid, mood=i + 1, notes=f"entry {i}")
 
-    body = await gql(client, USER_WITH_ENTRIES, {"id": uid, "first": 2})
+    h = auth_header(uid)
+    body = await gql(client, USER_WITH_ENTRIES, {"id": uid, "first": 2}, headers=h)
     page1 = body["data"]["user"]["entries"]
     assert len(page1["edges"]) == 2
     assert page1["pageInfo"]["hasNextPage"] is True
@@ -86,6 +90,7 @@ async def test_user_entries_pagination(client):
         client,
         USER_WITH_ENTRIES,
         {"id": uid, "first": 2, "after": page1["pageInfo"]["endCursor"]},
+        headers=h,
     )
     page2 = body["data"]["user"]["entries"]
     assert len(page2["edges"]) == 2
@@ -95,6 +100,7 @@ async def test_user_entries_pagination(client):
         client,
         USER_WITH_ENTRIES,
         {"id": uid, "first": 2, "after": page2["pageInfo"]["endCursor"]},
+        headers=h,
     )
     page3 = body["data"]["user"]["entries"]
     assert len(page3["edges"]) == 1

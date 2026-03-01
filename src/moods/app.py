@@ -13,8 +13,7 @@ from starlette.staticfiles import StaticFiles
 from moods.config import settings
 from moods.db import apply_migrations, create_pool
 from moods.resolvers import create_gql
-
-COOKIE_NAME = "moods_token"
+from moods.resolvers.auth import COOKIE_NAME
 WEB_PUBLIC = Path(__file__).parent.parent.parent / "web" / "resources" / "public"
 
 
@@ -41,11 +40,17 @@ def create_app() -> Starlette:
     @asynccontextmanager
     async def lifespan(app):
         apply_migrations()
-        app.state.pool = await create_pool()
+        pool = await create_pool()
+        app.state.pool = pool
+        app.state.graphql = create_gql(pool, settings)
         yield
-        await app.state.pool.close()
+        await pool.close()
 
-    graphql_app = create_gql(create_pool(), settings)
+    class _GraphQLProxy:
+        """Routes to the GraphQL ASGI app stored in app.state during lifespan."""
+
+        async def __call__(self, scope, receive, send):
+            await scope["app"].state.graphql(scope, receive, send)
 
     async def health(request):
         checks = {}
@@ -58,19 +63,6 @@ def create_app() -> Starlette:
         except Exception as exc:
             checks["db"] = str(exc)
 
-        # Mailgun
-        #        try:
-        #            async with httpx.AsyncClient(timeout=5) as client:
-        #                resp = await client.get(
-        #                    f"https://api.mailgun.net/v3/{settings.mailgun.domain}",
-        #                    auth=("api", settings.mailgun.api_key),
-        #                )
-        #                checks["mailgun"] = (
-        #              "ok" if resp.status_code == 200 else f"status {resp.status_code}"
-        #                )
-        #        except Exception as exc:
-        #            checks["mailgun"] = str(exc)
-
         healthy = all(v == "ok" for v in checks.values())
         return JSONResponse(
             {"status": "healthy" if healthy else "degraded", "checks": checks},
@@ -82,7 +74,7 @@ def create_app() -> Starlette:
 
     routes = [
         Route("/health", health, methods=["GET"]),
-        Route("/graphql", graphql_app, methods=["GET", "POST"]),
+        Route("/graphql", _GraphQLProxy(), methods=["GET", "POST"]),
     ]
 
     if (WEB_PUBLIC / "js").is_dir():

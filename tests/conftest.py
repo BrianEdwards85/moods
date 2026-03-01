@@ -20,6 +20,7 @@ from httpx import ASGITransport
 from moods.app import create_app
 from moods.config import settings
 from moods.db import apply_migrations, create_pool
+from moods.resolvers import create_gql
 
 TABLES = [
     "mood_share_filters",
@@ -45,6 +46,7 @@ async def pool():
 @pytest.fixture
 async def client(pool):
     _app.state.pool = pool
+    _app.state.graphql = create_gql(pool, settings)
     transport = ASGITransport(app=_app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
         yield c
@@ -58,12 +60,13 @@ async def _clean_db(pool):
         await conn.execute(f"TRUNCATE {', '.join(TABLES)} CASCADE")
 
 
-def _mint_token(user_id: str) -> str:
+def _mint_token(user_id: str, email: str = "test@test.com") -> str:
     """Mint a JWT for test use."""
     now = datetime.now(UTC)
     return jwt.encode(
         {
             "sub": str(user_id),
+            "email": email,
             "exp": now + timedelta(days=1),
             "refresh_after": int((now + timedelta(hours=12)).timestamp()),
         },

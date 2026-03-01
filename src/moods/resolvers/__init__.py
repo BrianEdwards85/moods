@@ -14,8 +14,10 @@ from .scalars import scalars
 from .tag import get_tag_resolvers
 from .user import get_user_resolvers
 
-SCHEMA_DIR = Path(__file__).parent / "schema"
-async def create_gql(pool: Pool, settings) -> GraphQL:
+SCHEMA_DIR = Path(__file__).parent.parent / "schema"
+
+
+def create_gql(pool: Pool, settings) -> GraphQL:
     moods = Moods(pool)
     shares = Shares(pool)
     tags = Tags(pool)
