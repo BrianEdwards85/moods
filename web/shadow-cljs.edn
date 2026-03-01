@@ -6,6 +6,7 @@
  :builds {:app {:target     :browser
                 :output-dir "resources/public/js"
                 :asset-path "/js"
+                :closure-defines {"moods.config/APP_VERSION" #shadow/env "npm_package_version"}
                 :modules    {:main {:init-fn moods.core/init}}
                 :js-options {:resolve {"change-case" {:target :file
                                                       :file   "src/js/change-case-shim.js"}}}

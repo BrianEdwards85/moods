@@ -39,7 +39,7 @@ services:
   db:
     image: postgres:18
     volumes:
-      - /var/lib/postgres:/var/lib/postgresql
+      - /var/lib/postgresql:/var/lib/postgresql
       - ./moods-dev/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
