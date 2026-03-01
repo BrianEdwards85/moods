@@ -14,7 +14,8 @@ update auth_codes
 set failed_attempts = failed_attempts + 1
 where user_id = :user_id
   and used_at is null
-  and expires_at > NOW();
+  and expires_at > NOW()
+  and failed_attempts < 5;
 
 -- name: verify_auth_code(user_id, code)^
 update auth_codes
