@@ -75,7 +75,7 @@ def create_app() -> Starlette:
             async with request.app.state.pool.acquire() as conn:
                 await conn.fetchval("SELECT 1")
             checks["db"] = "ok"
-        except Exception as exc:
+        except Exception:
             logging.exception("Health check DB failure")
             checks["db"] = "error"
 
