@@ -1,5 +1,6 @@
 (ns moods.views.user-select
   (:require [moods.bp :as bp]
+            [moods.config :as config]
             [moods.events :as events]
             [moods.subs :as subs]
             [re-frame.core :as rf]
@@ -79,5 +80,10 @@
                        :intent   "primary"
                        :large    true
                        :disabled (or loading? (empty? @email-input))
-                       :on-click #(rf/dispatch [::events/send-login-code @email-input])}]]]
+                       :on-click #(rf/dispatch [::events/send-login-code @email-input])}]]
+          [:a {:href   config/apk-download-url
+               :target "_blank"
+               :rel    "noopener noreferrer"
+               :class  "text-tn-fg-muted text-sm mt-6 inline-block"}
+           "Download Android App"]]
          [login-code-dialog]]))))

@@ -1,19 +1,21 @@
 import httpx
 
 
-async def send_code_email(to_email: str, code: str, settings) -> None:
-    domain = settings.mailgun.domain
-    api_key = settings.mailgun.api_key
-    from_email = settings.mailgun.from_email
+class Email:
+    def __init__(self, settings):
+        self.domain = settings.mailgun.domain
+        self.api_key = getattr(settings.mailgun, "api_key", None)
+        self.from_email = settings.mailgun.from_email
 
-    async with httpx.AsyncClient() as client:
-        await client.post(
-            f"https://api.mailgun.net/v3/{domain}/messages",
-            auth=("api", api_key),
-            data={
-                "from": from_email,
-                "to": [to_email],
-                "subject": "Your Moods login code",
-                "text": f"Your Moods login code is: {code}",
-            },
-        )
+    async def send_code_email(self, to_email: str, code: str) -> None:
+        async with httpx.AsyncClient() as client:
+            await client.post(
+                f"https://api.mailgun.net/v3/{self.domain}/messages",
+                auth=("api", self.api_key),
+                data={
+                    "from": self.from_email,
+                    "to": [to_email],
+                    "subject": "Your Moods login code",
+                    "text": f"Your Moods login code is: {code}",
+                },
+            )

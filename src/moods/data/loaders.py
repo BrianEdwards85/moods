@@ -3,7 +3,7 @@ from collections import defaultdict
 from aiodataloader import DataLoader
 from asyncpg import Pool
 
-from moods.data import queries
+from .utils import queries
 
 
 class UserLoader(DataLoader):

@@ -33,3 +33,9 @@ where (name % :query or email % :query)
   and archived_at is null
 order by greatest(similarity(name, :query), similarity(email, :query)) desc, name
 limit :page_limit;
+
+-- name: get_user_by_email(email)^
+select id, name, email, icon, settings, archived_at
+from users
+where email = :email
+  and archived_at is null;

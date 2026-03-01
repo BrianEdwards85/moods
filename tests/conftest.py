@@ -20,6 +20,7 @@ from httpx import ASGITransport
 from moods.app import create_app
 from moods.config import settings
 from moods.db import apply_migrations, create_pool
+from moods.resolvers import create_gql
 
 TABLES = [
     "mood_share_filters",
@@ -45,6 +46,7 @@ async def pool():
 @pytest.fixture
 async def client(pool):
     _app.state.pool = pool
+    _app.state.graphql = create_gql(pool, settings)
     transport = ASGITransport(app=_app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
         yield c
@@ -58,19 +60,31 @@ async def _clean_db(pool):
         await conn.execute(f"TRUNCATE {', '.join(TABLES)} CASCADE")
 
 
-def auth_header(user_id: str) -> dict:
-    """Mint a JWT for test use and return an Authorization header dict."""
+def _mint_token(user_id: str, email: str = "test@test.com") -> str:
+    """Mint a JWT for test use."""
     now = datetime.now(UTC)
-    token = jwt.encode(
+    return jwt.encode(
         {
             "sub": str(user_id),
+            "email": email,
             "exp": now + timedelta(days=1),
             "refresh_after": int((now + timedelta(hours=12)).timestamp()),
         },
         settings.jwt_secret,
         algorithm="HS256",
     )
-    return {"Authorization": f"Bearer {token}"}
+
+
+def auth_header(user_id: str) -> dict:
+    """Mint a JWT for test use and return an Authorization header dict."""
+    return {"Authorization": f"Bearer {_mint_token(user_id)}"}
+
+
+def auth_cookie(user_id: str) -> httpx.Cookies:
+    """Mint a JWT for test use and return it as a cookies jar."""
+    cookies = httpx.Cookies()
+    cookies.set("moods_token", _mint_token(user_id))
+    return cookies
 
 
 async def gql(

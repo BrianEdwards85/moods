@@ -1,6 +1,6 @@
 [project]
 name = "moods"
-version = "2.0.0"
+version = "2.1.0"
 description = "Shared mood-tracking app"
 requires-python = ">=3.12"
 dependencies = [
@@ -73,7 +73,7 @@ help = "Run tests with coverage"
 [tool.poe.tasks.lint]
 help = "Check linting and formatting"
 sequence = [
-    { cmd = "ruff check src/ tests/" },
+    { cmd = "ruff check --fix src/ tests/" },
     { cmd = "ruff format --check src/ tests/" },
 ]
 

@@ -3,14 +3,15 @@ server_host = "0.0.0.0"
 server_port = 8000
 jwt_expiry_days = 90
 auth_code_expiry_minutes = 10
+cookie_secure = false
 
 [default.cors]
 allow_origins = ["*"]
 allow_credentials = true
 
 [default.mailgun]
-domain = "moods.free-side.us"
-from_email = "Moods <noreply@moods.free-side.us>"
+domain = "sandbox5ef17532b595421ba4c35386a9b09f11.mailgun.org"
+from_email = "Mailgun Sandbox <postmaster@sandbox5ef17532b595421ba4c35386a9b09f11.mailgun.org>"
 
 [default.db]
 host = "localhost"
@@ -21,9 +22,10 @@ password = "moods"
 
 [development]
 dynaconf_merge = true
+cookie_secure = true
 
 [development.cors]
-allow_origins = ["https://moods-dev.free-side.us"]
+allow_origins = ["https://moods-dev.hosaka.io"]
 allow_credentials = false
 
 [development.db]
@@ -35,10 +37,15 @@ password = "moods_dev"
 
 [production]
 dynaconf_merge = true
+cookie_secure = true
 
 [production.cors]
-allow_origins = ["https://moods.free-side.us"]
+allow_origins = ["https://moods.hosaka.io"]
 allow_credentials = false
+
+[production.db]
+host = "db"
+port = 5432
 
 [testing]
 dynaconf_merge = true

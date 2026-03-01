@@ -1,75 +1,71 @@
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from ariadne import load_schema_from_path, make_executable_schema
-from ariadne.asgi import GraphQL
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.cors import CORSMiddleware
-from starlette.responses import FileResponse, JSONResponse
+from starlette.requests import Request
+from starlette.responses import FileResponse, JSONResponse, Response
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
 from moods.config import settings
-from moods.data.auth import decode_token
-from moods.data.loaders import create_loaders
 from moods.db import apply_migrations, create_pool
-from moods.resolvers.auth import mutation as auth_mutation
-from moods.resolvers.mood import mood_entry
-from moods.resolvers.mood import mutation as mood_mutation
-from moods.resolvers.mood import query as mood_query
-from moods.resolvers.scalars import datetime_scalar, json_scalar
-from moods.resolvers.tag import mutation as tag_mutation
-from moods.resolvers.tag import query as tag_query
-from moods.resolvers.user import mutation as user_mutation
-from moods.resolvers.user import query as user_query
-from moods.resolvers.user import share_rule_obj, user_obj
+from moods.resolvers import create_gql
+from moods.resolvers.auth import COOKIE_NAME
 
-SCHEMA_DIR = Path(__file__).parent / "schema"
 WEB_PUBLIC = Path(__file__).parent.parent.parent / "web" / "resources" / "public"
 
 
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next) -> Response:
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        if settings.cookie_secure:
+            response.headers["Strict-Transport-Security"] = (
+                "max-age=31536000; includeSubDomains"
+            )
+        return response
+
+
+class AuthCookieMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next) -> Response:
+        request.state.auth_cookie = None
+        response = await call_next(request)
+        token = request.state.auth_cookie
+        if token:
+            response.set_cookie(
+                key=COOKIE_NAME,
+                value=token,
+                httponly=True,
+                secure=settings.cookie_secure,
+                samesite="lax",
+                max_age=settings.jwt_expiry_days * 86400,
+                path="/",
+            )
+        return response
+
+
 def create_app() -> Starlette:
-    type_defs = load_schema_from_path(str(SCHEMA_DIR))
-    schema = make_executable_schema(
-        type_defs,
-        user_query,
-        tag_query,
-        mood_query,
-        user_mutation,
-        mood_mutation,
-        tag_mutation,
-        auth_mutation,
-        mood_entry,
-        user_obj,
-        share_rule_obj,
-        datetime_scalar,
-        json_scalar,
-        convert_names_case=True,
-    )
 
     @asynccontextmanager
     async def lifespan(app):
         apply_migrations()
-        app.state.pool = await create_pool()
+        pool = await create_pool()
+        app.state.pool = pool
+        app.state.graphql = create_gql(pool, settings)
         yield
-        await app.state.pool.close()
+        await pool.close()
 
-    async def get_context(request, _data=None):
-        pool = request.app.state.pool
-        auth_user_id = None
-        auth_header = request.headers.get("authorization", "")
-        if auth_header.startswith("Bearer "):
-            token = auth_header[7:]
-            auth_user_id = decode_token(token, settings.jwt_secret)
-        return {
-            "request": request,
-            "pool": pool,
-            "auth_user_id": auth_user_id,
-            **create_loaders(pool),
-        }
+    class _GraphQLProxy:
+        """Routes to the GraphQL ASGI app stored in app.state during lifespan."""
 
-    graphql_app = GraphQL(schema, context_value=get_context)
+        async def __call__(self, scope, receive, send):
+            await scope["app"].state.graphql(scope, receive, send)
 
     async def health(request):
         checks = {}
@@ -79,21 +75,9 @@ def create_app() -> Starlette:
             async with request.app.state.pool.acquire() as conn:
                 await conn.fetchval("SELECT 1")
             checks["db"] = "ok"
-        except Exception as exc:
-            checks["db"] = str(exc)
-
-        # Mailgun
-        #        try:
-        #            async with httpx.AsyncClient(timeout=5) as client:
-        #                resp = await client.get(
-        #                    f"https://api.mailgun.net/v3/{settings.mailgun.domain}",
-        #                    auth=("api", settings.mailgun.api_key),
-        #                )
-        #                checks["mailgun"] = (
-        #              "ok" if resp.status_code == 200 else f"status {resp.status_code}"
-        #                )
-        #        except Exception as exc:
-        #            checks["mailgun"] = str(exc)
+        except Exception:
+            logging.exception("Health check DB failure")
+            checks["db"] = "error"
 
         healthy = all(v == "ok" for v in checks.values())
         return JSONResponse(
@@ -106,7 +90,7 @@ def create_app() -> Starlette:
 
     routes = [
         Route("/health", health, methods=["GET"]),
-        Route("/graphql", graphql_app, methods=["GET", "POST"]),
+        Route("/graphql", _GraphQLProxy(), methods=["GET", "POST"]),
     ]
 
     if (WEB_PUBLIC / "js").is_dir():
@@ -132,6 +116,8 @@ def create_app() -> Starlette:
                 allow_methods=["GET", "POST", "OPTIONS"],
                 allow_headers=["*"],
             ),
+            Middleware(SecurityHeadersMiddleware),
+            Middleware(AuthCookieMiddleware),
         ],
     )
 
