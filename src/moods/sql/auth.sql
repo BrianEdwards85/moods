@@ -1,3 +1,9 @@
+-- name: count_valid_auth_codes(user_id)$
+select count(*) as cnt from auth_codes
+where user_id = :user_id
+  and used_at is null
+  and expires_at > NOW();
+
 -- name: create_auth_code(user_id, code, expires_at)^
 insert into auth_codes (user_id, code, expires_at)
 values (:user_id, :code, :expires_at)

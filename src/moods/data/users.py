@@ -35,6 +35,9 @@ class Users:
             )
         ]
 
+    async def count_valid_auth_codes(self, id: str) -> int:
+        return await queries.count_valid_auth_codes(self.pool, user_id=id)
+
     async def create_auth_code(self, id: str, code: str, expires_at: int):
         await queries.create_auth_code(
             self.pool, user_id=id, code=code, expires_at=expires_at

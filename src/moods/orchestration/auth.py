@@ -22,6 +22,9 @@ class Auth:
     async def send_login_code(self, email: str) -> bool:
         user = await self.users.get_user_by_email(email)
         if user:
+            valid_count = await self.users.count_valid_auth_codes(user["id"])
+            if valid_count >= 3:
+                return True
             code = _generate_code()
             expires_at = datetime.now(UTC) + timedelta(
                 minutes=self.auth_code_expiry_minutes
