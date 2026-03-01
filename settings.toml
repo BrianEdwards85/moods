@@ -3,6 +3,7 @@ server_host = "0.0.0.0"
 server_port = 8000
 jwt_expiry_days = 90
 auth_code_expiry_minutes = 10
+cookie_secure = false
 
 [default.cors]
 allow_origins = ["*"]
@@ -21,6 +22,7 @@ password = "moods"
 
 [development]
 dynaconf_merge = true
+cookie_secure = true
 
 [development.cors]
 allow_origins = ["https://moods-dev.free-side.us"]
@@ -35,6 +37,7 @@ password = "moods_dev"
 
 [production]
 dynaconf_merge = true
+cookie_secure = true
 
 [production.cors]
 allow_origins = ["https://moods.free-side.us"]

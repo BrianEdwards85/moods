@@ -58,10 +58,10 @@ async def _clean_db(pool):
         await conn.execute(f"TRUNCATE {', '.join(TABLES)} CASCADE")
 
 
-def auth_header(user_id: str) -> dict:
-    """Mint a JWT for test use and return an Authorization header dict."""
+def _mint_token(user_id: str) -> str:
+    """Mint a JWT for test use."""
     now = datetime.now(UTC)
-    token = jwt.encode(
+    return jwt.encode(
         {
             "sub": str(user_id),
             "exp": now + timedelta(days=1),
@@ -70,7 +70,18 @@ def auth_header(user_id: str) -> dict:
         settings.jwt_secret,
         algorithm="HS256",
     )
-    return {"Authorization": f"Bearer {token}"}
+
+
+def auth_header(user_id: str) -> dict:
+    """Mint a JWT for test use and return an Authorization header dict."""
+    return {"Authorization": f"Bearer {_mint_token(user_id)}"}
+
+
+def auth_cookie(user_id: str) -> httpx.Cookies:
+    """Mint a JWT for test use and return it as a cookies jar."""
+    cookies = httpx.Cookies()
+    cookies.set("moods_token", _mint_token(user_id))
+    return cookies
 
 
 async def gql(

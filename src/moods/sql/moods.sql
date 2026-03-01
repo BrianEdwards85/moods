@@ -6,7 +6,6 @@ with entries as (
   where (:user_ids::uuid[] IS NULL OR me.user_id = ANY(:user_ids::uuid[]))
     and (:include_archived::boolean OR me.archived_at IS NULL)
     and (
-        :viewer_id::uuid IS NULL
         OR me.user_id = :viewer_id::uuid
         OR EXISTS (
             SELECT 1 FROM mood_shares ms

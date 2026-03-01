@@ -1,52 +1,42 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from ariadne import load_schema_from_path, make_executable_schema
-from ariadne.asgi import GraphQL
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.cors import CORSMiddleware
-from starlette.responses import FileResponse, JSONResponse
+from starlette.requests import Request
+from starlette.responses import FileResponse, JSONResponse, Response
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
 from moods.config import settings
-from moods.data.auth import decode_token
-from moods.data.loaders import create_loaders
 from moods.db import apply_migrations, create_pool
-from moods.resolvers.auth import mutation as auth_mutation
-from moods.resolvers.mood import mood_entry
-from moods.resolvers.mood import mutation as mood_mutation
-from moods.resolvers.mood import query as mood_query
-from moods.resolvers.scalars import datetime_scalar, json_scalar
-from moods.resolvers.tag import mutation as tag_mutation
-from moods.resolvers.tag import query as tag_query
-from moods.resolvers.user import mutation as user_mutation
-from moods.resolvers.user import query as user_query
-from moods.resolvers.user import share_rule_obj, user_obj
+from moods.resolvers import create_gql
 
-SCHEMA_DIR = Path(__file__).parent / "schema"
+COOKIE_NAME = "moods_token"
 WEB_PUBLIC = Path(__file__).parent.parent.parent / "web" / "resources" / "public"
 
 
+class AuthCookieMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next) -> Response:
+        request.state.auth_cookie = None
+        response = await call_next(request)
+        token = request.state.auth_cookie
+        if token:
+            response.set_cookie(
+                key=COOKIE_NAME,
+                value=token,
+                httponly=True,
+                secure=settings.cookie_secure,
+                samesite="lax",
+                max_age=settings.jwt_expiry_days * 86400,
+                path="/",
+            )
+        return response
+
+
 def create_app() -> Starlette:
-    type_defs = load_schema_from_path(str(SCHEMA_DIR))
-    schema = make_executable_schema(
-        type_defs,
-        user_query,
-        tag_query,
-        mood_query,
-        user_mutation,
-        mood_mutation,
-        tag_mutation,
-        auth_mutation,
-        mood_entry,
-        user_obj,
-        share_rule_obj,
-        datetime_scalar,
-        json_scalar,
-        convert_names_case=True,
-    )
 
     @asynccontextmanager
     async def lifespan(app):
@@ -55,21 +45,7 @@ def create_app() -> Starlette:
         yield
         await app.state.pool.close()
 
-    async def get_context(request, _data=None):
-        pool = request.app.state.pool
-        auth_user_id = None
-        auth_header = request.headers.get("authorization", "")
-        if auth_header.startswith("Bearer "):
-            token = auth_header[7:]
-            auth_user_id = decode_token(token, settings.jwt_secret)
-        return {
-            "request": request,
-            "pool": pool,
-            "auth_user_id": auth_user_id,
-            **create_loaders(pool),
-        }
-
-    graphql_app = GraphQL(schema, context_value=get_context)
+    graphql_app = create_gql(create_pool(), settings)
 
     async def health(request):
         checks = {}
@@ -132,6 +108,7 @@ def create_app() -> Starlette:
                 allow_methods=["GET", "POST", "OPTIONS"],
                 allow_headers=["*"],
             ),
+            Middleware(AuthCookieMiddleware),
         ],
     )
 

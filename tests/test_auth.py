@@ -1,10 +1,11 @@
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
+import httpx
 import jwt
 
 from moods.config import settings
-from tests.conftest import auth_header, gql
+from tests.conftest import auth_cookie, auth_header, gql
 
 H = auth_header("00000000-0000-0000-0000-000000000000")
 
@@ -208,3 +209,83 @@ async def test_refresh_token_expired_fails(client):
 async def test_refresh_token_without_auth_fails(client):
     body = await gql(client, REFRESH_TOKEN, expect_errors=True)
     assert "errors" in body
+
+
+# --- Cookie-based auth tests ---
+
+
+@patch("moods.orchestration.auth.send_code_email", new_callable=AsyncMock)
+async def test_verify_login_code_sets_cookie(mock_send, client, pool):
+    user = await _create_user(client)
+    await gql(client, SEND_LOGIN_CODE, {"email": user["email"]})
+
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT code FROM auth_codes WHERE user_id = $1", user["id"]
+        )
+
+    resp = await client.post(
+        "/graphql",
+        json={
+            "query": VERIFY_LOGIN_CODE,
+            "variables": {"email": user["email"], "code": row["code"]},
+        },
+    )
+    assert resp.status_code == 200
+    cookie_header = resp.headers.get("set-cookie", "")
+    assert "moods_token=" in cookie_header
+    assert "httponly" in cookie_header.lower()
+    assert "samesite=lax" in cookie_header.lower()
+    assert "path=/" in cookie_header.lower()
+
+
+async def test_cookie_auth_works(client):
+    user = await _create_user(client)
+    cookies = auth_cookie(user["id"])
+    resp = await client.post(
+        "/graphql",
+        json={"query": MOOD_ENTRIES_QUERY},
+        cookies=cookies,
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "errors" not in body
+    assert body["data"]["moodEntries"]["edges"] == []
+
+
+async def test_header_takes_precedence_over_cookie(client):
+    user_a = await _create_user(client, name="Alice", email="alice@test.com")
+    # Header authenticates as user_a, cookie has an invalid token
+    h = auth_header(user_a["id"])
+    bad_cookies = httpx.Cookies()
+    bad_cookies.set("moods_token", "invalid-token")
+    # If cookie took precedence, auth would fail; header wins so it succeeds
+    resp = await client.post(
+        "/graphql",
+        json={"query": MOOD_ENTRIES_QUERY},
+        headers=h,
+        cookies=bad_cookies,
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "errors" not in body
+    assert body["data"]["moodEntries"]["edges"] == []
+
+
+async def test_refresh_token_from_cookie(client):
+    user = await _create_user(client)
+    cookies = auth_cookie(user["id"])
+    resp = await client.post(
+        "/graphql",
+        json={"query": REFRESH_TOKEN},
+        cookies=cookies,
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "errors" not in body
+    new_token = body["data"]["refreshToken"]["token"]
+    payload = jwt.decode(new_token, settings.jwt_secret, algorithms=["HS256"])
+    assert payload["sub"] == user["id"]
+    # Should also set a cookie with the new token
+    cookie_header = resp.headers.get("set-cookie", "")
+    assert "moods_token=" in cookie_header

@@ -24,3 +24,6 @@ def serialize_json(value):
 @json_scalar.value_parser
 def parse_json(value):
     return value
+
+
+scalars = [datetime_scalar, json_scalar]
