@@ -66,6 +66,29 @@ async def test_send_login_code(mock_send, client, pool):
 
 
 @patch("moods.services.email.Email.send_code_email", new_callable=AsyncMock)
+async def test_send_login_code_rate_limited(mock_send, client, pool):
+    user = await _create_user(client)
+    # Send 3 codes — all should succeed and create codes
+    for _ in range(3):
+        await gql(client, SEND_LOGIN_CODE, {"email": user["email"]})
+    assert mock_send.call_count == 3
+
+    # 4th request should still return success but NOT create a new code or send email
+    mock_send.reset_mock()
+    body = await gql(client, SEND_LOGIN_CODE, {"email": user["email"]})
+    assert body["data"]["sendLoginCode"]["success"] is True
+    mock_send.assert_not_called()
+
+    async with pool.acquire() as conn:
+        count = await conn.fetchval(
+            "SELECT count(*) FROM auth_codes WHERE user_id = $1"
+            " AND used_at IS NULL AND expires_at > NOW()",
+            user["id"],
+        )
+    assert count == 3
+
+
+@patch("moods.services.email.Email.send_code_email", new_callable=AsyncMock)
 async def test_verify_login_code(mock_send, client, pool):
     user = await _create_user(client)
     await gql(client, SEND_LOGIN_CODE, {"email": user["email"]})
@@ -88,6 +111,47 @@ async def test_verify_login_code(mock_send, client, pool):
     assert result["token"]
     assert result["user"]["id"] == user["id"]
     assert result["user"]["email"] == user["email"]
+
+
+@patch("moods.services.email.Email.send_code_email", new_callable=AsyncMock)
+async def test_verify_locked_out_after_5_failures(mock_send, client, pool):
+    user = await _create_user(client)
+    await gql(client, SEND_LOGIN_CODE, {"email": user["email"]})
+
+    # Get the real code
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT code FROM auth_codes WHERE user_id = $1", user["id"]
+        )
+    real_code = row["code"]
+
+    # 5 wrong attempts
+    for _ in range(5):
+        body = await gql(
+            client,
+            VERIFY_LOGIN_CODE,
+            {"email": user["email"], "code": "000000"},
+            expect_errors=True,
+        )
+        assert "errors" in body
+
+    # 6th attempt with the REAL code should still fail (locked out)
+    body = await gql(
+        client,
+        VERIFY_LOGIN_CODE,
+        {"email": user["email"], "code": real_code},
+        expect_errors=True,
+    )
+    assert "errors" in body
+
+    # Confirm failed_attempts was tracked in DB
+    async with pool.acquire() as conn:
+        total = await conn.fetchval(
+            "SELECT sum(failed_attempts) FROM auth_codes"
+            " WHERE user_id = $1 AND used_at IS NULL AND expires_at > NOW()",
+            user["id"],
+        )
+    assert total == 5
 
 
 @patch("moods.services.email.Email.send_code_email", new_callable=AsyncMock)

@@ -50,15 +50,14 @@ class Auth:
 
     async def verify_login_code(self, email: str, code: str) -> dict | None:
         user = await self.users.get_user_by_email(email)
-        if user:
-            verified = await self.users.verify_auth_code(user["id"], code)
-            if verified:
-                token = self._create_token(user["id"], user["email"])
-                return {"token": token, "user": user}
-            else:
-                return None
-        else:
+        if not user:
             return None
+        verified = await self.users.verify_auth_code(user["id"], code)
+        if verified:
+            token = self._create_token(user["id"], user["email"])
+            return {"token": token, "user": user}
+        await self.users.increment_failed_attempts(user["id"])
+        return None
 
     def refresh_token(self, current_token: str) -> str | None:
         try:
