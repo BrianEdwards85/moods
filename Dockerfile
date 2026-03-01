@@ -26,7 +26,7 @@ RUN npm run css:build && npx shadow-cljs release app
 # Stage 2: Python runtime
 FROM python:3.12-slim AS runtime
 
-RUN pip install --no-cache-dir uv \
+RUN pip install --no-cache-dir uv==0.10.2 \
     && apt-get update && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -41,7 +41,8 @@ COPY settings.toml ./
 
 COPY --from=frontend /app/web/resources/public/ web/resources/public/
 
-RUN useradd --create-home appuser
+RUN useradd --create-home appuser \
+    && chown -R appuser:appuser /app
 USER appuser
 
 EXPOSE 8000
