@@ -32,14 +32,15 @@ services:
       - letsencrypt:/letsencrypt
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
+      - CLOUDFLARE_EMAIL=${ACME_EMAIL}
       - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
     restart: unless-stopped
 
   db:
     image: postgres:18
     volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+      - /var/lib/postgres:/var/lib/postgresql
+      - ./moods-dev/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -76,7 +77,7 @@ services:
       - MOODS_DB__PASSWORD=${MOODS_DB_PASSWORD}
     volumes:
       - ./settings.toml:/app/settings.toml:ro
-      - ./.secrets.toml:/app/.secrets.toml:ro
+      - ./secrets.prod.toml:/app/.secrets.toml:ro
     labels:
       - traefik.enable=true
       - traefik.http.routers.moods-prod.rule=Host(`moods.hosaka.io`)
@@ -94,7 +95,7 @@ services:
     restart: unless-stopped
 
   moods-dev:
-    build: .
+    build: moods-dev
     environment:
       - MOODS_ENV=development
       - MOODS_DB__HOST=db
@@ -104,7 +105,7 @@ services:
       - MOODS_DB__PASSWORD=${MOODS_DEV_DB_PASSWORD}
     volumes:
       - ./settings.toml:/app/settings.toml:ro
-      - ./.secrets.toml:/app/.secrets.toml:ro
+      - ./secrets.dev.toml:/app/.secrets.toml:ro
     labels:
       - traefik.enable=true
       - traefik.http.routers.moods-dev.rule=Host(`moods-dev.hosaka.io`)
@@ -123,5 +124,4 @@ services:
 
 volumes:
   letsencrypt:
-  pgdata:
   pgadmin:
