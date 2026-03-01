@@ -4,7 +4,7 @@ import httpx
 class Email:
     def __init__(self, settings):
         self.domain = settings.mailgun.domain
-        self.api_key = settings.mailgun.api_key
+        self.api_key = getattr(settings.mailgun, "api_key", None)
         self.from_email = settings.mailgun.from_email
 
     async def send_code_email(self, to_email: str, code: str) -> None:
