@@ -1,6 +1,11 @@
 type AppVariant = 'local' | 'dev' | 'release';
 
-const variant: AppVariant = (process.env.EXPO_PUBLIC_APP_VARIANT as AppVariant) || 'dev';
+const VALID_VARIANTS: readonly string[] = ['local', 'dev', 'release'] as const;
+const raw = process.env.EXPO_PUBLIC_APP_VARIANT || 'dev';
+if (!VALID_VARIANTS.includes(raw)) {
+  throw new Error(`Invalid EXPO_PUBLIC_APP_VARIANT: "${raw}". Must be one of: ${VALID_VARIANTS.join(', ')}`);
+}
+const variant = raw as AppVariant;
 
 const config = {
   local: {
