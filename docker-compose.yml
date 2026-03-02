@@ -147,6 +147,34 @@ services:
         max-file: "3"
     restart: unless-stopped
 
+  openobserve:
+    image: public.ecr.aws/zinclabs/openobserve:latest
+    environment:
+      - ZO_ROOT_USER_EMAIL=${ZO_ROOT_USER_EMAIL}
+      - ZO_ROOT_USER_PASSWORD=${ZO_ROOT_USER_PASSWORD}
+      - ZO_DATA_DIR=/data
+      - ZO_MEM_TABLE_MAX_SIZE=512
+      - ZO_COMPACT_DATA_RETENTION_DAYS=180
+      - ZO_CREATE_ORG_THROUGH_INGESTION=true
+      - ZO_COOKIE_SECURE_ONLY=true
+      - ZO_TELEMETRY=false
+    volumes:
+      - /var/lib/openobserve:/data
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.openobserve.rule=Host(`observe.hosaka.io`)
+      - traefik.http.routers.openobserve.entrypoints=websecure
+      - traefik.http.routers.openobserve.tls.certresolver=letsencrypt
+      - traefik.http.routers.openobserve.tls.domains[0].main=hosaka.io
+      - traefik.http.routers.openobserve.tls.domains[0].sans=*.hosaka.io
+      - traefik.http.services.openobserve.loadbalancer.server.port=5080
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+
 volumes:
   letsencrypt:
   pgadmin:
