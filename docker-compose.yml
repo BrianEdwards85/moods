@@ -7,9 +7,8 @@ services:
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
       - --entrypoints.web.address=:80
-      - --entrypoints.websecure.address=:443
-      - --entrypoints.web.http.redirections.entrypoint.to=websecure
-      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.websecure.address=:444
+      - --entrypoints.vpn.address=:443
       - --certificatesresolvers.letsencrypt.acme.dnschallenge=true
       - --certificatesresolvers.letsencrypt.acme.dnschallenge.provider=cloudflare
       - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}
@@ -21,24 +20,39 @@ services:
       - --tracing.capturedResponseHeaders=Content-Type
     labels:
       - traefik.enable=true
+      # HTTP→HTTPS redirect middleware (replaces entrypoint-level redirect)
+      - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+      - traefik.http.middlewares.redirect-to-https.redirectscheme.port=443
+      - traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true
+      # Catch-all HTTP router applies the redirect
+      - traefik.http.routers.http-catchall.rule=HostRegexp(`.+`)
+      - traefik.http.routers.http-catchall.entrypoints=web
+      - traefik.http.routers.http-catchall.middlewares=redirect-to-https
+      - traefik.http.routers.http-catchall.priority=1
+      # Dashboard — VPN-only
       - traefik.http.routers.dashboard.rule=Host(`traefik.hosaka.io`)
-      - traefik.http.routers.dashboard.entrypoints=websecure
+      - traefik.http.routers.dashboard.entrypoints=vpn
       - traefik.http.routers.dashboard.tls.certresolver=letsencrypt
       - traefik.http.routers.dashboard.tls.domains[0].main=hosaka.io
       - traefik.http.routers.dashboard.tls.domains[0].sans=*.hosaka.io
       - traefik.http.routers.dashboard.service=api@internal
       - traefik.http.routers.dashboard.middlewares=dashboard-auth
+      # Shared middlewares
       - traefik.http.middlewares.dashboard-auth.basicauth.users=${TRAEFIK_DASHBOARD_AUTH}
       - traefik.http.middlewares.block-health.ipallowlist.sourcerange=127.0.0.1/32
     ports:
       - "80:80"
-      - "443:443"
+      - "443:444"
     volumes:
       - letsencrypt:/letsencrypt
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
       - CLOUDFLARE_EMAIL=${ACME_EMAIL}
       - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
+    networks:
+      default:
+      vpn:
+        ipv4_address: 10.9.0.2
     logging:
       driver: json-file
       options:
@@ -73,7 +87,7 @@ services:
     labels:
       - traefik.enable=true
       - traefik.http.routers.pgadmin.rule=Host(`pg.hosaka.io`)
-      - traefik.http.routers.pgadmin.entrypoints=websecure
+      - traefik.http.routers.pgadmin.entrypoints=vpn
       - traefik.http.routers.pgadmin.tls.certresolver=letsencrypt
       - traefik.http.routers.pgadmin.tls.domains[0].main=hosaka.io
       - traefik.http.routers.pgadmin.tls.domains[0].sans=*.hosaka.io
@@ -105,6 +119,11 @@ services:
       - traefik.http.routers.moods-prod.tls.certresolver=letsencrypt
       - traefik.http.routers.moods-prod.tls.domains[0].main=hosaka.io
       - traefik.http.routers.moods-prod.tls.domains[0].sans=*.hosaka.io
+      - traefik.http.routers.moods-prod-vpn.rule=Host(`moods.hosaka.io`)
+      - traefik.http.routers.moods-prod-vpn.entrypoints=vpn
+      - traefik.http.routers.moods-prod-vpn.tls.certresolver=letsencrypt
+      - traefik.http.routers.moods-prod-vpn.tls.domains[0].main=hosaka.io
+      - traefik.http.routers.moods-prod-vpn.tls.domains[0].sans=*.hosaka.io
       - traefik.http.routers.moods-prod-health.rule=Host(`moods.hosaka.io`) && Path(`/health`)
       - traefik.http.routers.moods-prod-health.entrypoints=websecure
       - traefik.http.routers.moods-prod-health.tls.certresolver=letsencrypt
@@ -134,12 +153,12 @@ services:
     labels:
       - traefik.enable=true
       - traefik.http.routers.moods-dev.rule=Host(`moods-dev.hosaka.io`)
-      - traefik.http.routers.moods-dev.entrypoints=websecure
+      - traefik.http.routers.moods-dev.entrypoints=vpn
       - traefik.http.routers.moods-dev.tls.certresolver=letsencrypt
       - traefik.http.routers.moods-dev.tls.domains[0].main=hosaka.io
       - traefik.http.routers.moods-dev.tls.domains[0].sans=*.hosaka.io
       - traefik.http.routers.moods-dev-health.rule=Host(`moods-dev.hosaka.io`) && Path(`/health`)
-      - traefik.http.routers.moods-dev-health.entrypoints=websecure
+      - traefik.http.routers.moods-dev-health.entrypoints=vpn
       - traefik.http.routers.moods-dev-health.tls.certresolver=letsencrypt
       - traefik.http.routers.moods-dev-health.middlewares=block-health
       - traefik.http.routers.moods-dev-health.priority=200
@@ -168,12 +187,12 @@ services:
     labels:
       - traefik.enable=true
       - traefik.http.routers.openobserve.rule=Host(`observe.hosaka.io`)
-      - traefik.http.routers.openobserve.entrypoints=websecure
+      - traefik.http.routers.openobserve.entrypoints=vpn
       - traefik.http.routers.openobserve.tls.certresolver=letsencrypt
       - traefik.http.routers.openobserve.tls.domains[0].main=hosaka.io
       - traefik.http.routers.openobserve.tls.domains[0].sans=*.hosaka.io
       - traefik.http.routers.openobserve-health.rule=Host(`observe.hosaka.io`) && Path(`/healthz`)
-      - traefik.http.routers.openobserve-health.entrypoints=websecure
+      - traefik.http.routers.openobserve-health.entrypoints=vpn
       - traefik.http.routers.openobserve-health.tls.certresolver=letsencrypt
       - traefik.http.routers.openobserve-health.middlewares=block-health
       - traefik.http.routers.openobserve-health.priority=200
@@ -209,6 +228,79 @@ services:
         max-file: "3"
     restart: unless-stopped
 
+  wg-easy:
+    image: ghcr.io/wg-easy/wg-easy:15
+    container_name: wg-easy
+    environment:
+      - WG_HOST=${WG_HOST}
+      - PASSWORD_HASH=${WG_PASSWORD_HASH}
+      - WG_DEFAULT_DNS=10.9.0.3
+      - WG_ALLOWED_IPS=10.9.0.0/24
+      - WG_PERSISTENT_KEEPALIVE=25
+      - PORT=51821
+      - LANG=en
+    volumes:
+      - etc_wireguard:/etc/wireguard
+      - /lib/modules:/lib/modules:ro
+    ports:
+      - "51820:51820/udp"
+    networks:
+      default:
+      vpn:
+        ipv4_address: 10.9.0.4
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv4.conf.all.src_valid_mark=1
+    labels:
+      - traefik.enable=true
+      # Public router (for initial bootstrap — remove websecure after first VPN client created)
+      - traefik.http.routers.wg-easy-public.rule=Host(`vpn.hosaka.io`)
+      - traefik.http.routers.wg-easy-public.entrypoints=websecure
+      - traefik.http.routers.wg-easy-public.tls.certresolver=letsencrypt
+      - traefik.http.routers.wg-easy-public.tls.domains[0].main=hosaka.io
+      - traefik.http.routers.wg-easy-public.tls.domains[0].sans=*.hosaka.io
+      # VPN router (permanent)
+      - traefik.http.routers.wg-easy.rule=Host(`vpn.hosaka.io`)
+      - traefik.http.routers.wg-easy.entrypoints=vpn
+      - traefik.http.routers.wg-easy.tls.certresolver=letsencrypt
+      - traefik.http.routers.wg-easy.tls.domains[0].main=hosaka.io
+      - traefik.http.routers.wg-easy.tls.domains[0].sans=*.hosaka.io
+      - traefik.http.services.wg-easy.loadbalancer.server.port=51821
+      - traefik.docker.network=moods_vpn
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+
+  dnsmasq:
+    image: 4km3/dnsmasq:latest
+    volumes:
+      - ./dnsmasq.conf:/etc/dnsmasq.conf:ro
+    networks:
+      vpn:
+        ipv4_address: 10.9.0.3
+    cap_add:
+      - NET_ADMIN
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+
 volumes:
   letsencrypt:
   pgadmin:
+  etc_wireguard:
+
+networks:
+  vpn:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.9.0.0/24
