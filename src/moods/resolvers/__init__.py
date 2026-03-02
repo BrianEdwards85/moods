@@ -2,7 +2,8 @@ from pathlib import Path
 
 from ariadne import load_schema_from_path, make_executable_schema
 from ariadne.asgi import GraphQL
-from ariadne.contrib.tracing.opentelemetry import OpenTelemetryExtension
+from ariadne.asgi.handlers import GraphQLHTTPHandler
+from ariadne.contrib.tracing.opentelemetry import opentelemetry_extension
 from asyncpg import Pool
 
 from moods.data import Moods, Shares, Tags, Users, create_loaders
@@ -48,7 +49,7 @@ def create_gql(pool: Pool, settings) -> GraphQL:
             **create_loaders(pool),
         }
 
-    _SENSITIVE_ARGS = {"email", "code", "token", "password"}
+    _SENSITIVE_ARGS = {"code", "token", "password"}
 
     def _arg_filter(args, info):
         return {k: "[REDACTED]" if k in _SENSITIVE_ARGS else v for k, v in args.items()}
@@ -56,9 +57,11 @@ def create_gql(pool: Pool, settings) -> GraphQL:
     return GraphQL(
         schema,
         context_value=get_context,
-        extensions=[
-            lambda: OpenTelemetryExtension(arg_filter=_arg_filter),
-        ],
+        http_handler=GraphQLHTTPHandler(
+            extensions=[
+                opentelemetry_extension(arg_filter=_arg_filter),
+            ],
+        ),
     )
 
 
