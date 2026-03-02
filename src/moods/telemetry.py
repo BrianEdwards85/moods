@@ -50,6 +50,16 @@ def setup_telemetry() -> None:
     log.info("Telemetry enabled, exporting to %s", endpoint)
 
 
+def instrument_app(app) -> None:
+    if _provider is None:
+        return
+
+    from opentelemetry.instrumentation.starlette import StarletteInstrumentor
+
+    StarletteInstrumentor.instrument_app(app)
+    log.info("Starlette instrumentation enabled")
+
+
 def shutdown_telemetry() -> None:
     if _provider is not None:
         _provider.shutdown()
