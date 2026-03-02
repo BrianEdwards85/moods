@@ -26,7 +26,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: `Moods${vc.nameSuffix}`,
   slug: 'moods',
-  version: '2.1.1',
+  version: '2.2.0',
   orientation: 'portrait',
   icon: './assets/images/icon.png',
   scheme: 'moods',

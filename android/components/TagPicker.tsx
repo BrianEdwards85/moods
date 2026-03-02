@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { useQuery } from 'urql';
 import { TAGS_QUERY } from '@/lib/graphql/queries';
-import { colors } from '@/lib/theme';
-import { styles } from './TagPicker.styles';
+import { colors } from '@/styles/theme';
+import { styles } from '@/styles/TagPicker.styles';
+import { TAG_PICKER_PAGE_SIZE } from '@/lib/constants';
+import type { Tag, TagEdge } from '@/lib/store';
 import MoodTag from './MoodTag';
 
 interface TagPickerProps {
@@ -17,13 +19,11 @@ export default function TagPicker({ selectedTags, onChange, active }: TagPickerP
 
   const [tagsResult] = useQuery({
     query: TAGS_QUERY,
-    variables: { search: tagSearch || undefined, first: 50 },
+    variables: { search: tagSearch || undefined, first: TAG_PICKER_PAGE_SIZE },
     pause: !active,
   });
 
-  const allTags = (tagsResult.data?.tags?.edges ?? []).map(
-    (e: { node: { name: string; metadata: Record<string, string> } }) => e.node,
-  );
+  const allTags = (tagsResult.data?.tags?.edges ?? []).map((e: TagEdge) => e.node);
 
   useEffect(() => {
     if (!active) setTagSearch('');
@@ -50,7 +50,7 @@ export default function TagPicker({ selectedTags, onChange, active }: TagPickerP
       {selectedTags.length > 0 && (
         <View style={styles.selectedTags}>
           {selectedTags.map((name) => {
-            const meta = allTags.find((t: { name: string }) => t.name === name)?.metadata;
+            const meta = allTags.find((t: Tag) => t.name === name)?.metadata;
             return (
               <Pressable key={name} onPress={() => toggleTag(name)}>
                 <MoodTag name={name} metadata={meta} />
@@ -72,14 +72,14 @@ export default function TagPicker({ selectedTags, onChange, active }: TagPickerP
       </View>
       <View style={styles.list}>
         {allTags
-          .filter((t: { name: string }) => !selectedTags.includes(t.name))
-          .map((t: { name: string; metadata: Record<string, string> }) => (
+          .filter((t: Tag) => !selectedTags.includes(t.name))
+          .map((t: Tag) => (
             <Pressable key={t.name} onPress={() => toggleTag(t.name)}>
               <MoodTag name={t.name} metadata={t.metadata} />
             </Pressable>
           ))}
         {tagSearch.trim() &&
-          !allTags.some((t: { name: string }) => t.name === tagSearch.trim().toLowerCase()) && (
+          !allTags.some((t: Tag) => t.name === tagSearch.trim().toLowerCase()) && (
             <Pressable onPress={addCustomTag}>
               <View style={styles.createTag}>
                 <Text style={styles.createTagText}>

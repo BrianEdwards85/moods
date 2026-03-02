@@ -1,10 +1,8 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Image, Pressable, Text } from 'react-native';
 import { Tabs, useRouter } from 'expo-router';
-import { useQuery } from 'urql';
-import { USERS_QUERY } from '@/lib/graphql/queries';
-import { useStore, type User } from '@/lib/store';
-import { colors } from '@/lib/theme';
+import { useStore } from '@/lib/store';
+import { colors } from '@/styles/theme';
 
 function TabIcon(props: { name: React.ComponentProps<typeof FontAwesome>['name']; color: string }) {
   return <FontAwesome size={22} style={{ marginBottom: -3 }} {...props} />;
@@ -13,8 +11,7 @@ function TabIcon(props: { name: React.ComponentProps<typeof FontAwesome>['name']
 function UserHeaderButton() {
   const router = useRouter();
   const currentUserId = useStore((s) => s.currentUserId);
-  const [usersResult] = useQuery<{ users: User[] }>({ query: USERS_QUERY });
-  const users = usersResult.data?.users ?? [];
+  const users = useStore((s) => s.users);
   const currentUser = users.find((u) => u.id === currentUserId);
 
   if (!currentUser) return null;

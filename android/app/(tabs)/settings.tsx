@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useMutation, useQuery } from 'urql';
-import { USERS_QUERY } from '@/lib/graphql/queries';
+import { useMutation } from 'urql';
 import { UPDATE_USER_SETTINGS_MUTATION } from '@/lib/graphql/mutations';
-import { useStore, type User } from '@/lib/store';
+import { useStore } from '@/lib/store';
 import { scheduleReminder, cancelReminder } from '@/lib/useNotifications';
-import { colors } from '@/lib/theme';
-import { styles } from './settings.styles';
+import { colors } from '@/styles/theme';
+import { styles } from '@/styles/settings.styles';
 import { useSharing } from '@/lib/useSharing';
 import { useUserSearch } from '@/lib/useUserSearch';
 import ProfileSection from '@/components/ProfileSection';
@@ -17,9 +16,7 @@ export default function SettingsScreen() {
   const router = useRouter();
   const currentUserId = useStore((s) => s.currentUserId);
   const clearAuth = useStore((s) => s.clearAuth);
-
-  const [usersResult] = useQuery<{ users: User[] }>({ query: USERS_QUERY });
-  const users = usersResult.data?.users ?? [];
+  const users = useStore((s) => s.users);
   const currentUser = users.find((u) => u.id === currentUserId);
 
   const [avatarUrl, setAvatarUrl] = useState('');
@@ -38,7 +35,7 @@ export default function SettingsScreen() {
       const notifications = currentUser.settings?.notifications ?? [];
       setReminderEnabled(notifications.includes('reminder'));
     }
-  }, [currentUser?.id]);
+  }, [currentUser]);
 
   const handleSaveProfile = useCallback(async () => {
     if (!currentUserId) return;
@@ -54,7 +51,7 @@ export default function SettingsScreen() {
     if (result.error) {
       Alert.alert('Error', 'Failed to save profile settings.');
     }
-  }, [currentUserId, avatarUrl, selectedColor, reminderEnabled]);
+  }, [currentUserId, avatarUrl, selectedColor, reminderEnabled, updateSettings]);
 
   const handleToggleReminder = useCallback((value: boolean) => {
     setReminderEnabled(value);
@@ -71,7 +68,7 @@ export default function SettingsScreen() {
     router.replace('/user-select');
   };
 
-  if (usersResult.fetching && !currentUser) {
+  if (!currentUser) {
     return (
       <View style={styles.container}>
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.blue} size="large" />

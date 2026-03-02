@@ -1,5 +1,5 @@
 import { Text, View } from 'react-native';
-import { styles } from './DateDivider.styles';
+import { styles } from '@/styles/DateDivider.styles';
 
 export default function DateDivider({ label }: { label: string }) {
   return (

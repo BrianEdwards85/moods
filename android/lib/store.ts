@@ -35,6 +35,16 @@ export interface Tag {
   archivedAt?: string | null;
 }
 
+export interface TagEdge {
+  cursor: string;
+  node: Tag;
+}
+
+export interface PageInfo {
+  hasNextPage: boolean;
+  endCursor: string;
+}
+
 export interface MoodEntry {
   id: string;
   mood: number;
@@ -52,8 +62,10 @@ interface StoreState {
   loginEmail: string | null;
   users: User[];
   moodModalOpen: boolean;
+  isOnline: boolean;
 
   setUsers: (users: User[]) => void;
+  setOnline: (online: boolean) => void;
   setAuthToken: (token: string, userId: string) => Promise<void>;
   restoreAuth: () => Promise<string | null>;
   clearAuth: () => Promise<void>;
@@ -73,8 +85,10 @@ export const useStore = create<StoreState>((set) => ({
   loginEmail: null,
   users: [],
   moodModalOpen: false,
+  isOnline: true,
 
   setUsers: (users) => set({ users }),
+  setOnline: (online) => set({ isOnline: online }),
 
   setAuthToken: async (token, userId) => {
     await SecureStore.setItemAsync(TOKEN_STORAGE_KEY, token);
@@ -94,7 +108,7 @@ export const useStore = create<StoreState>((set) => ({
   clearAuth: async () => {
     await SecureStore.deleteItemAsync(TOKEN_STORAGE_KEY);
     await AsyncStorage.removeItem(USER_STORAGE_KEY);
-    set({ authToken: null, currentUserId: null });
+    set({ authToken: null, currentUserId: null, users: [] });
   },
 
   setLoginEmail: async (email) => {

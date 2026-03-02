@@ -1,6 +1,6 @@
 import { ActivityIndicator, Pressable, Switch, Text, TextInput, View } from 'react-native';
-import { colors } from '@/lib/theme';
-import { styles } from '@/app/(tabs)/settings.styles';
+import { colors } from '@/styles/theme';
+import { styles } from '@/styles/settings.styles';
 import type { useSharing, ShareFilter } from '@/lib/useSharing';
 import type { useUserSearch, SearchUser } from '@/lib/useUserSearch';
 

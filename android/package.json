@@ -1,7 +1,7 @@
 {
   "name": "moods",
   "main": "expo-router/entry",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "scripts": {
     "gql:generate": "python3 ../graphql/generate.py",
     "prestart": "npm run gql:generate",
@@ -22,6 +22,7 @@
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
     "@react-native-async-storage/async-storage": "^2.2.0",
+    "@react-native-community/netinfo": "^12.0.1",
     "@react-navigation/native": "^7.1.8",
     "@urql/devtools": "^2.0.3",
     "expo": "~54.0.33",
@@ -35,6 +36,9 @@
     "expo-status-bar": "~3.0.9",
     "expo-web-browser": "~15.0.10",
     "graphql": "^16.12.0",
+    "lodash.debounce": "^4.0.8",
+    "lodash.keyby": "^4.6.0",
+    "lodash.minby": "^4.6.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.5",
@@ -47,6 +51,9 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@types/lodash.debounce": "^4.0.9",
+    "@types/lodash.keyby": "^4.6.9",
+    "@types/lodash.minby": "^4.6.9",
     "@types/react": "~19.1.0",
     "eslint": "^9.39.3",
     "eslint-config-expo": "^55.0.0",

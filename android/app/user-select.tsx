@@ -1,11 +1,21 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMutation } from 'urql';
 import { useStore } from '@/lib/store';
 import { SEND_LOGIN_CODE_MUTATION, VERIFY_LOGIN_CODE_MUTATION } from '@/lib/graphql/mutations';
-import { colors } from '@/lib/theme';
-import { styles } from './user-select.styles';
+import { colors } from '@/styles/theme';
+import { styles } from '@/styles/user-select.styles';
+import { friendlyError } from '@/lib/errors';
 
 export default function UserSelectScreen() {
   const router = useRouter();
@@ -27,7 +37,7 @@ export default function UserSelectScreen() {
     restoreLoginEmail().then((saved) => {
       if (saved) setEmail(saved);
     });
-  }, []);
+  }, [restoreLoginEmail]);
 
   const onSendCode = async () => {
     const trimmed = email.trim();
@@ -41,7 +51,7 @@ export default function UserSelectScreen() {
     setLoading(false);
 
     if (res.error) {
-      setError(res.error.message);
+      setError(friendlyError(res.error));
     } else {
       setCodeSent(true);
     }
@@ -55,7 +65,7 @@ export default function UserSelectScreen() {
     setLoading(false);
 
     if (res.error) {
-      setError(res.error.message);
+      setError(friendlyError(res.error));
     } else if (res.data?.verifyLoginCode) {
       const { token, user } = res.data.verifyLoginCode;
       await setLoginEmail(email.trim());
@@ -102,7 +112,10 @@ export default function UserSelectScreen() {
       </View>
 
       <Modal visible={codeSent} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Enter login code</Text>
             <Text style={styles.modalSubtext}>A 6-digit code has been sent to {email.trim()}.</Text>
@@ -136,7 +149,7 @@ export default function UserSelectScreen() {
               </Pressable>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

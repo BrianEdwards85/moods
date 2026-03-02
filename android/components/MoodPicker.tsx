@@ -1,6 +1,6 @@
 import { Pressable, Text, View } from 'react-native';
 import { moodColor } from '@/lib/utils';
-import { styles } from './MoodPicker.styles';
+import { styles } from '@/styles/MoodPicker.styles';
 
 interface MoodPickerProps {
   value: number | null;

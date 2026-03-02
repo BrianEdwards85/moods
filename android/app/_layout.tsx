@@ -9,9 +9,14 @@ import { urqlClient } from '@/lib/graphql/client';
 import { useStore } from '@/lib/store';
 import { useNotifications } from '@/lib/useNotifications';
 import { isTokenExpired } from '@/lib/auth';
-import { colors } from '@/lib/theme';
+import { useNetworkStatus } from '@/lib/useNetworkStatus';
+import OfflineBanner from '@/components/OfflineBanner';
+import ErrorFallback from '@/components/ErrorFallback';
+import { colors } from '@/styles/theme';
 
-export { ErrorBoundary } from 'expo-router';
+export function ErrorBoundary({ error, retry }: { error: Error; retry: () => void }) {
+  return <ErrorFallback error={error} retry={retry} />;
+}
 
 export const unstable_settings = {
   initialRouteName: '(tabs)',
@@ -39,6 +44,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   const [restored, setRestored] = useState(false);
 
   useNotifications();
+  useNetworkStatus();
 
   const clearAuth = useStore((s) => s.clearAuth);
 
@@ -49,7 +55,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       }
       setRestored(true);
     });
-  }, []);
+  }, [restoreAuth, clearAuth]);
 
   useEffect(() => {
     if (!restored) return;
@@ -61,7 +67,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     } else if (authToken && inAuthScreen) {
       router.replace('/(tabs)');
     }
-  }, [restored, authToken, segments]);
+  }, [restored, authToken, segments, router]);
 
   return <>{children}</>;
 }
@@ -86,6 +92,7 @@ export default function RootLayout() {
     <Provider value={urqlClient}>
       <ThemeProvider value={moodsDarkTheme}>
         <AuthGate>
+          <OfflineBanner />
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen

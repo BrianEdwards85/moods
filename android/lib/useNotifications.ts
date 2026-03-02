@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
 import * as Notifications from 'expo-notifications';
+import minBy from 'lodash.minby';
+import { REMINDER_HOURS, REMINDER_MIN_DELAY } from '@/lib/constants';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -22,12 +24,12 @@ export async function scheduleReminder() {
   await cancelReminder();
 
   const now = new Date();
-  const earliest = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  const earliest = new Date(now.getTime() + REMINDER_MIN_DELAY);
 
   // Build candidate times: 11am and 8pm for the next few days
   const candidates: Date[] = [];
   for (let dayOffset = 0; dayOffset <= 3; dayOffset++) {
-    for (const hour of [11, 20]) {
+    for (const hour of REMINDER_HOURS) {
       const candidate = new Date(now);
       candidate.setDate(candidate.getDate() + dayOffset);
       candidate.setHours(hour, 0, 0, 0);
@@ -39,7 +41,7 @@ export async function scheduleReminder() {
 
   if (candidates.length === 0) return;
 
-  const next = candidates.sort((a, b) => a.getTime() - b.getTime())[0];
+  const next = minBy(candidates, (d) => d.getTime())!;
 
   await Notifications.scheduleNotificationAsync({
     identifier: REMINDER_IDENTIFIER,

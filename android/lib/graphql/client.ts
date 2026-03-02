@@ -72,6 +72,7 @@ const exchanges: Exchange[] = [];
 
 if (appConfig.enableDevtools) {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { devtoolsExchange } = require('@urql/devtools');
     exchanges.push(devtoolsExchange);
   } catch {

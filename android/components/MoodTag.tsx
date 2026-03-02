@@ -1,6 +1,6 @@
 import { Text, View } from 'react-native';
-import { defaultTagColor } from '@/lib/theme';
-import { styles } from './MoodTag.styles';
+import { defaultTagColor } from '@/styles/theme';
+import { styles } from '@/styles/MoodTag.styles';
 
 interface Props {
   name: string;

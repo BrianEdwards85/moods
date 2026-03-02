@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { colors } from '@/lib/theme';
+import { colors } from './theme';
 
 export const styles = StyleSheet.create({
   grid: {
@@ -9,7 +9,7 @@ export const styles = StyleSheet.create({
   },
   squareActive: {
     borderWidth: 3,
-    borderColor: '#fff',
+    borderColor: colors.white,
   },
   circleBorder: {
     borderWidth: 2,
