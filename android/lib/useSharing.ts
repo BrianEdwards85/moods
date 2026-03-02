@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 import { useMutation } from 'urql';
+import debounce from 'lodash.debounce';
 import { UPDATE_SHARING_MUTATION } from '@/lib/graphql/mutations';
 import type { User } from '@/lib/store';
 import { AUTO_SAVE_DEBOUNCE } from '@/lib/constants';
@@ -40,30 +41,34 @@ export function useSharing(currentUser: User | undefined) {
     }
   }, [currentUser]);
 
+  const debouncedSave = useMemo(
+    () =>
+      debounce(async (snapshot: Record<string, ShareConfig>) => {
+        const current = JSON.stringify(snapshot);
+        if (current === serverSharesRef.current) return;
+        setSavingSharing(true);
+        const rules = Object.entries(snapshot)
+          .filter(([, cfg]) => cfg.shared)
+          .map(([userId, cfg]) => ({
+            userId,
+            filters: cfg.filters,
+          }));
+        const result = await updateSharing({ input: { rules } });
+        setSavingSharing(false);
+        if (result.error) {
+          Alert.alert('Error', 'Failed to save sharing settings.');
+        } else {
+          serverSharesRef.current = current;
+        }
+      }, AUTO_SAVE_DEBOUNCE),
+    [updateSharing],
+  );
+
   // Auto-save shares when they change (debounced, skips server-synced state)
   useEffect(() => {
-    const current = JSON.stringify(shares);
-    if (current === serverSharesRef.current) return;
-
-    const timer = setTimeout(async () => {
-      setSavingSharing(true);
-      const rules = Object.entries(shares)
-        .filter(([, cfg]) => cfg.shared)
-        .map(([userId, cfg]) => ({
-          userId,
-          filters: cfg.filters,
-        }));
-      const result = await updateSharing({ input: { rules } });
-      setSavingSharing(false);
-      if (result.error) {
-        Alert.alert('Error', 'Failed to save sharing settings.');
-      } else {
-        serverSharesRef.current = current;
-      }
-    }, AUTO_SAVE_DEBOUNCE);
-
-    return () => clearTimeout(timer);
-  }, [shares, updateSharing]);
+    debouncedSave(shares);
+    return () => debouncedSave.cancel();
+  }, [shares, debouncedSave]);
 
   const toggleShare = (userId: string) => {
     setShares((prev) => ({
