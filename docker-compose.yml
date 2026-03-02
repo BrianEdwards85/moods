@@ -13,7 +13,7 @@ services:
       - --certificatesresolvers.letsencrypt.acme.dnschallenge.provider=cloudflare
       - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}
       - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
-      - --tracing.otlp.http.endpoint=http://openobserve:5080/api/production/v1/traces
+      - --tracing.otlp.http.endpoint=http://openobserve:5080/api/3ANT9xNeShmoldeVfO1ZlOblRjw/v1/traces
       - --tracing.otlp.http.headers.Authorization=Basic ${OTEL_AUTH_TOKEN}
       - --tracing.serviceName=traefik
       - --tracing.capturedRequestHeaders=X-Forwarded-For
@@ -157,11 +157,6 @@ services:
       - traefik.http.routers.moods-dev.tls.certresolver=letsencrypt
       - traefik.http.routers.moods-dev.tls.domains[0].main=hosaka.io
       - traefik.http.routers.moods-dev.tls.domains[0].sans=*.hosaka.io
-      - traefik.http.routers.moods-dev-health.rule=Host(`moods-dev.hosaka.io`) && Path(`/health`)
-      - traefik.http.routers.moods-dev-health.entrypoints=vpn
-      - traefik.http.routers.moods-dev-health.tls.certresolver=letsencrypt
-      - traefik.http.routers.moods-dev-health.middlewares=block-health
-      - traefik.http.routers.moods-dev-health.priority=200
     depends_on:
       - db
     logging:
@@ -197,12 +192,6 @@ services:
       - traefik.http.routers.openobserve-health.middlewares=block-health
       - traefik.http.routers.openobserve-health.priority=200
       - traefik.http.services.openobserve.loadbalancer.server.port=5080
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5080/healthz"]
-      interval: 30s
-      timeout: 5s
-      start_period: 15s
-      retries: 3
     logging:
       driver: json-file
       options:
@@ -215,12 +204,8 @@ services:
     volumes:
       - ./fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
-    environment:
-      - ZO_ROOT_USER_EMAIL=${ZO_ROOT_USER_EMAIL}
-      - ZO_ROOT_USER_PASSWORD=${ZO_ROOT_USER_PASSWORD}
     depends_on:
-      openobserve:
-        condition: service_healthy
+      - openobserve
     logging:
       driver: json-file
       options:
@@ -232,11 +217,11 @@ services:
     image: ghcr.io/wg-easy/wg-easy:15
     container_name: wg-easy
     environment:
-      - WG_HOST=${WG_HOST}
-      - PASSWORD_HASH=${WG_PASSWORD_HASH}
       - WG_DEFAULT_DNS=10.9.0.3
       - WG_ALLOWED_IPS=10.9.0.0/24
       - WG_PERSISTENT_KEEPALIVE=25
+#      - WG_POST_UP=iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -j MASQUERADE; iptables -A INPUT -p udp -m udp --dport 51820 -j ACCEPT; iptables -A FORWARD -i wg0 -j ACCEPT; iptables -A FORWARD -o wg0 -j ACCEPT
+#      - WG_POST_DOWN=iptables -t nat -D POSTROUTING -s 10.8.0.0/24 -j MASQUERADE; iptables -D INPUT -p udp -m udp --dport 51820 -j ACCEPT; iptables -D FORWARD -i wg0 -j ACCEPT; iptables -D FORWARD -o wg0 -j ACCEPT
       - PORT=51821
       - LANG=en
     volumes:
