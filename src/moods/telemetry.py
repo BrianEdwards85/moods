@@ -8,6 +8,7 @@ silently disabled (local dev).
 import contextlib
 import logging
 import threading
+from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 from opentelemetry.sdk.resources import Resource
@@ -102,10 +103,14 @@ def setup_telemetry() -> None:
         log.info("settings.otel.endpoint not set, telemetry disabled")
         return
 
+    import os
+
     from opentelemetry import trace
     from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
         OTLPSpanExporter,
     )
+
+    os.environ.setdefault("OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT", "256")
 
     auth_token = settings.get("otel.auth_token", "")
     headers = {}
@@ -122,9 +127,20 @@ def setup_telemetry() -> None:
         }
     )
 
-    exporter = OTLPSpanExporter(endpoint=f"{endpoint}v1/traces", headers=headers)
-    _provider = TracerProvider(resource=resource)
-    _provider.add_span_processor(BatchSpanProcessor(exporter))
+    exporter = OTLPSpanExporter(
+        endpoint=f"{endpoint}v1/traces",
+        headers=headers,
+        timeout=5,
+    )
+    _provider = TracerProvider(
+        resource=resource,
+        active_span_processor=BatchSpanProcessor(
+            exporter,
+            max_queue_size=2048,
+            max_export_batch_size=512,
+            schedule_delay_millis=5000,
+        ),
+    )
     trace.set_tracer_provider(_provider)
 
     # Set up log shipping to OpenObserve
@@ -145,13 +161,29 @@ def instrument_db() -> None:
     log.info("asyncpg instrumentation enabled")
 
 
+def _sanitize_request_hook(span, scope) -> None:
+    """Strip query strings from http.url to prevent token/code leaks."""
+    if not span.is_recording():
+        return
+    url = span.attributes.get("http.url", "")
+    if url and "?" in url:
+        parts = urlsplit(url)
+        span.set_attribute("http.url", urlunsplit((*parts[:3], "", "")))
+
+
 def instrument_app(app) -> None:
     if _provider is None:
         return
 
+    import os
+
     from opentelemetry.instrumentation.starlette import StarletteInstrumentor
 
-    StarletteInstrumentor.instrument_app(app)
+    os.environ.setdefault("OTEL_PYTHON_EXCLUDED_URLS", "health")
+    StarletteInstrumentor.instrument_app(
+        app,
+        server_request_hook=_sanitize_request_hook,
+    )
     log.info("Starlette instrumentation enabled")
 
 
