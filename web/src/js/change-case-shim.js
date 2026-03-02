@@ -9,7 +9,9 @@ function splitWords(str) {
 
 export function pascalCase(str) {
   return splitWords(str)
-    .map(function (w) { return w.charAt(0).toUpperCase() + w.slice(1); })
+    .map(function (w) {
+      return w.charAt(0).toUpperCase() + w.slice(1);
+    })
     .join("");
 }
 

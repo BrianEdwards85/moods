@@ -95,7 +95,10 @@ export default function TimelineScreen() {
         }
       />
 
-      <Pressable style={[styles.fab, { bottom: Math.max(insets.bottom, 16) + 8 }]} onPress={openMoodModal}>
+      <Pressable
+        style={[styles.fab, { bottom: Math.max(insets.bottom, 16) + 8 }]}
+        onPress={openMoodModal}
+      >
         <FontAwesome name="plus" size={22} color={colors.darkText} />
       </Pressable>
 
