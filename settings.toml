@@ -40,7 +40,7 @@ user = "moods_dev"
 password = "moods_dev"
 
 [development.otel]
-endpoint = "http://openobserve:5080/api/development/"
+endpoint = "http://openobserve:5080/api/3ANT9xNeShmoldeVfO1ZlOblRjw/"
 service_name = "moods-dev"
 
 [production]
