@@ -75,6 +75,8 @@ help = "Check linting and formatting"
 sequence = [
     { cmd = "ruff check --fix src/ tests/" },
     { cmd = "ruff format --check src/ tests/" },
+    { cmd = "npm run lint", cwd = "android" },
+    { cmd = "npm run lint", cwd = "web" },
 ]
 
 [tool.poe.tasks.format]
