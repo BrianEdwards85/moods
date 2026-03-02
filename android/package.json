@@ -1,7 +1,7 @@
 {
   "name": "moods",
   "main": "expo-router/entry",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "scripts": {
     "gql:generate": "python3 ../graphql/generate.py",
     "prestart": "npm run gql:generate",
