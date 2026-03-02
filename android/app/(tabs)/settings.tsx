@@ -38,7 +38,7 @@ export default function SettingsScreen() {
       const notifications = currentUser.settings?.notifications ?? [];
       setReminderEnabled(notifications.includes('reminder'));
     }
-  }, [currentUser?.id]);
+  }, [currentUser]);
 
   const handleSaveProfile = useCallback(async () => {
     if (!currentUserId) return;
@@ -54,7 +54,7 @@ export default function SettingsScreen() {
     if (result.error) {
       Alert.alert('Error', 'Failed to save profile settings.');
     }
-  }, [currentUserId, avatarUrl, selectedColor, reminderEnabled]);
+  }, [currentUserId, avatarUrl, selectedColor, reminderEnabled, updateSettings]);
 
   const handleToggleReminder = useCallback((value: boolean) => {
     setReminderEnabled(value);

@@ -23,7 +23,7 @@ export default function TimelineScreen() {
   const [usersResult] = useQuery<{ users: User[] }>({ query: USERS_QUERY, pause: !ready });
   useEffect(() => {
     if (usersResult.data?.users?.length) setUsers(usersResult.data.users);
-  }, [usersResult.data]);
+  }, [usersResult.data, setUsers]);
 
   const userIds = useMemo(() => users.map((u) => u.id), [users]);
   const usersById = useMemo(() => {

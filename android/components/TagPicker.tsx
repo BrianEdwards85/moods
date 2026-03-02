@@ -4,6 +4,7 @@ import { useQuery } from 'urql';
 import { TAGS_QUERY } from '@/lib/graphql/queries';
 import { colors } from '@/styles/theme';
 import { styles } from '@/styles/TagPicker.styles';
+import { TAG_PICKER_PAGE_SIZE } from '@/lib/constants';
 import MoodTag from './MoodTag';
 
 interface TagPickerProps {
@@ -17,7 +18,7 @@ export default function TagPicker({ selectedTags, onChange, active }: TagPickerP
 
   const [tagsResult] = useQuery({
     query: TAGS_QUERY,
-    variables: { search: tagSearch || undefined, first: 50 },
+    variables: { search: tagSearch || undefined, first: TAG_PICKER_PAGE_SIZE },
     pause: !active,
   });
 

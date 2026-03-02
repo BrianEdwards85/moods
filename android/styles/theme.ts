@@ -12,6 +12,15 @@ export const colors = {
   orange: '#ff9e64',
   darkText: '#1f2335',
   overlay: 'rgba(0,0,0,0.6)',
+  white: '#ffffff',
+  black: '#000000',
+  deltaNeutral: '#9ca3af',
+  deltaUpLarge: '#14532d',
+  deltaUpMedium: '#166534',
+  deltaUpSmall: '#15803d',
+  deltaDownLarge: '#7f1d1d',
+  deltaDownMedium: '#991b1b',
+  deltaDownSmall: '#b91c1c',
 };
 
 export const defaultTagColor = '#3b4261';

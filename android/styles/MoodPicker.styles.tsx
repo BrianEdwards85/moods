@@ -16,7 +16,7 @@ export const styles = StyleSheet.create({
   },
   btnActive: {
     borderWidth: 3,
-    borderColor: '#fff',
+    borderColor: colors.white,
   },
   btnText: {
     fontSize: 16,

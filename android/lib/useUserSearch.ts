@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { useClient } from 'urql';
 import { SEARCH_USERS_QUERY } from '@/lib/graphql/queries';
+import { SEARCH_DEBOUNCE } from '@/lib/constants';
 
 export interface SearchUser {
   id: string;
@@ -28,7 +29,7 @@ export function useUserSearch() {
         const result = await urqlClient.query(SEARCH_USERS_QUERY, { search: text }).toPromise();
         setSearchResults(result.data?.searchUsers ?? []);
         setSearching(false);
-      }, 300);
+      }, SEARCH_DEBOUNCE);
     },
     [urqlClient],
   );

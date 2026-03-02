@@ -2,9 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useQuery } from 'urql';
 import { MOOD_ENTRIES_QUERY } from '@/lib/graphql/queries';
 import type { MoodEntry } from '@/lib/store';
-
-const PAGE_SIZE = 20;
-const POLL_INTERVAL = 60_000;
+import { ENTRIES_PAGE_SIZE, POLL_INTERVAL } from '@/lib/constants';
 
 export function usePaginatedEntries(userIds: string[], ready: boolean) {
   const [endCursor, setEndCursor] = useState<string | null>(null);
@@ -13,7 +11,7 @@ export function usePaginatedEntries(userIds: string[], ready: boolean) {
 
   const [entriesResult, reexecute] = useQuery({
     query: MOOD_ENTRIES_QUERY,
-    variables: { userIds: userIds.length ? userIds : undefined, first: PAGE_SIZE },
+    variables: { userIds: userIds.length ? userIds : undefined, first: ENTRIES_PAGE_SIZE },
     pause: !ready || !userIds.length,
     requestPolicy: 'network-only',
   });
@@ -32,14 +30,14 @@ export function usePaginatedEntries(userIds: string[], ready: boolean) {
     if (!ready || !userIds.length) return;
     const interval = setInterval(() => reexecute({ requestPolicy: 'network-only' }), POLL_INTERVAL);
     return () => clearInterval(interval);
-  }, [ready, userIds.length]);
+  }, [ready, userIds.length, reexecute]);
 
   const [loadingMore, setLoadingMore] = useState(false);
   const [moreResult, executeMore] = useQuery({
     query: MOOD_ENTRIES_QUERY,
     variables: {
       userIds: userIds.length ? userIds : undefined,
-      first: PAGE_SIZE,
+      first: ENTRIES_PAGE_SIZE,
       after: endCursor,
     },
     pause: true,
@@ -49,7 +47,7 @@ export function usePaginatedEntries(userIds: string[], ready: boolean) {
     if (!hasNextPage || loadingMore) return;
     setLoadingMore(true);
     executeMore({ requestPolicy: 'network-only' });
-  }, [hasNextPage, loadingMore, endCursor]);
+  }, [hasNextPage, loadingMore, executeMore]);
 
   useEffect(() => {
     const data = moreResult.data?.moodEntries;
@@ -59,7 +57,7 @@ export function usePaginatedEntries(userIds: string[], ready: boolean) {
       setEndCursor(data.pageInfo.endCursor);
       setLoadingMore(false);
     }
-  }, [moreResult.data]);
+  }, [moreResult.data, loadingMore]);
 
   const onRefresh = useCallback(() => {
     reexecute({ requestPolicy: 'network-only' });

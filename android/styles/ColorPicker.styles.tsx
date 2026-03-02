@@ -9,7 +9,7 @@ export const styles = StyleSheet.create({
   },
   squareActive: {
     borderWidth: 3,
-    borderColor: '#fff',
+    borderColor: colors.white,
   },
   circleBorder: {
     borderWidth: 2,

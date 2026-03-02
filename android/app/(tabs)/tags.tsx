@@ -13,9 +13,8 @@ import { TAGS_QUERY } from '@/lib/graphql/queries';
 import { colors, defaultTagColor } from '@/styles/theme';
 import { styles } from '@/styles/tags.styles';
 import type { Tag } from '@/lib/store';
+import { TAGS_PAGE_SIZE } from '@/lib/constants';
 import TagEditModal from '@/components/TagEditModal';
-
-const PAGE_SIZE = 30;
 
 export default function TagsScreen() {
   const [search, setSearch] = useState('');
@@ -27,7 +26,7 @@ export default function TagsScreen() {
     variables: {
       search: search || undefined,
       includeArchived: showArchived,
-      first: PAGE_SIZE,
+      first: TAGS_PAGE_SIZE,
     },
     requestPolicy: 'network-only',
   });
@@ -41,7 +40,7 @@ export default function TagsScreen() {
     variables: {
       search: search || undefined,
       includeArchived: showArchived,
-      first: PAGE_SIZE,
+      first: TAGS_PAGE_SIZE,
       after: pageInfo?.endCursor,
     },
     pause: true,
@@ -51,7 +50,7 @@ export default function TagsScreen() {
     if (!pageInfo?.hasNextPage || loadingMore) return;
     setLoadingMore(true);
     executeMore({ requestPolicy: 'network-only' });
-  }, [pageInfo, loadingMore]);
+  }, [pageInfo, loadingMore, executeMore]);
 
   const onRefresh = useCallback(() => {
     reexecute({ requestPolicy: 'network-only' });

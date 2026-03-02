@@ -3,6 +3,7 @@ import { Alert } from 'react-native';
 import { useMutation } from 'urql';
 import { UPDATE_SHARING_MUTATION } from '@/lib/graphql/mutations';
 import type { User } from '@/lib/store';
+import { AUTO_SAVE_DEBOUNCE } from '@/lib/constants';
 
 export interface ShareFilter {
   pattern: string;
@@ -37,7 +38,7 @@ export function useSharing(currentUser: User | undefined) {
       serverSharesRef.current = JSON.stringify(shareMap);
       setShares(shareMap);
     }
-  }, [currentUser?.id]);
+  }, [currentUser]);
 
   // Auto-save shares when they change (debounced, skips server-synced state)
   useEffect(() => {
@@ -59,10 +60,10 @@ export function useSharing(currentUser: User | undefined) {
       } else {
         serverSharesRef.current = current;
       }
-    }, 1000);
+    }, AUTO_SAVE_DEBOUNCE);
 
     return () => clearTimeout(timer);
-  }, [shares]);
+  }, [shares, updateSharing]);
 
   const toggleShare = (userId: string) => {
     setShares((prev) => ({
