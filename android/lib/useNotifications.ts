@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import * as Notifications from 'expo-notifications';
+import minBy from 'lodash.minby';
 import { REMINDER_HOURS, REMINDER_MIN_DELAY } from '@/lib/constants';
 
 Notifications.setNotificationHandler({
@@ -40,7 +41,7 @@ export async function scheduleReminder() {
 
   if (candidates.length === 0) return;
 
-  const next = candidates.sort((a, b) => a.getTime() - b.getTime())[0];
+  const next = minBy(candidates, (d) => d.getTime())!;
 
   await Notifications.scheduleNotificationAsync({
     identifier: REMINDER_IDENTIFIER,

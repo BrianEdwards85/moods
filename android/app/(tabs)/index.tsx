@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
 import { useQuery } from 'urql';
+import keyBy from 'lodash.keyby';
 import { useStore, type User } from '@/lib/store';
 import { USERS_QUERY } from '@/lib/graphql/queries';
 import { buildListItems, type ListItem } from '@/lib/utils';
@@ -28,11 +29,7 @@ export default function TimelineScreen() {
   }, [usersResult.data, setUsers]);
 
   const userIds = useMemo(() => users.map((u) => u.id), [users]);
-  const usersById = useMemo(() => {
-    const map: Record<string, User> = {};
-    users.forEach((u) => (map[u.id] = u));
-    return map;
-  }, [users]);
+  const usersById = useMemo(() => keyBy(users, 'id') as Record<string, User>, [users]);
 
   const { allEdges, fetching, error, loadingMore, loadMore, onRefresh } = usePaginatedEntries(
     userIds,

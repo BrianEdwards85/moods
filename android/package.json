@@ -37,6 +37,8 @@
     "expo-web-browser": "~15.0.10",
     "graphql": "^16.12.0",
     "lodash.debounce": "^4.0.8",
+    "lodash.keyby": "^4.6.0",
+    "lodash.minby": "^4.6.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.5",
@@ -50,6 +52,8 @@
   },
   "devDependencies": {
     "@types/lodash.debounce": "^4.0.9",
+    "@types/lodash.keyby": "^4.6.9",
+    "@types/lodash.minby": "^4.6.9",
     "@types/react": "~19.1.0",
     "eslint": "^9.39.3",
     "eslint-config-expo": "^55.0.0",
