@@ -81,7 +81,7 @@
                        :large    true
                        :disabled (or loading? (empty? @email-input))
                        :on-click #(rf/dispatch [::events/send-login-code @email-input])}]]
-          [:a {:href   config/apk-download-url
+          [:a {:href   "https://github.com/BrianEdwards85/moods/releases/latest"
                :target "_blank"
                :rel    "noopener noreferrer"
                :class  "text-tn-fg-muted text-sm mt-6 inline-block"}
