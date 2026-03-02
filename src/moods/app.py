@@ -15,6 +15,7 @@ from moods.config import settings
 from moods.db import apply_migrations, create_pool
 from moods.resolvers import create_gql
 from moods.resolvers.auth import COOKIE_NAME
+from moods.telemetry import setup_telemetry, shutdown_telemetry
 
 WEB_PUBLIC = Path(__file__).parent.parent.parent / "web" / "resources" / "public"
 
@@ -54,12 +55,14 @@ def create_app() -> Starlette:
 
     @asynccontextmanager
     async def lifespan(app):
+        setup_telemetry()
         apply_migrations()
         pool = await create_pool()
         app.state.pool = pool
         app.state.graphql = create_gql(pool, settings)
         yield
         await pool.close()
+        shutdown_telemetry()
 
     class _GraphQLProxy:
         """Routes to the GraphQL ASGI app stored in app.state during lifespan."""
