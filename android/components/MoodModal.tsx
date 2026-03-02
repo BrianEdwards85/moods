@@ -19,6 +19,7 @@ import { styles } from '@/styles/MoodModal.styles';
 import MoodPicker from './MoodPicker';
 import TagPicker from './TagPicker';
 import { scheduleReminder } from '@/lib/useNotifications';
+import { friendlyError } from '@/lib/errors';
 
 export default function MoodModal({ onSaved }: { onSaved: () => void }) {
   const open = useStore((s) => s.moodModalOpen);
@@ -41,7 +42,7 @@ export default function MoodModal({ onSaved }: { onSaved: () => void }) {
       },
     });
     if (result.error) {
-      Alert.alert('Error', 'Failed to save mood. Please try again.');
+      Alert.alert('Error', friendlyError(result.error));
       return;
     }
     scheduleReminder();

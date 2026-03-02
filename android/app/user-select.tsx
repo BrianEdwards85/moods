@@ -15,6 +15,7 @@ import { useStore } from '@/lib/store';
 import { SEND_LOGIN_CODE_MUTATION, VERIFY_LOGIN_CODE_MUTATION } from '@/lib/graphql/mutations';
 import { colors } from '@/styles/theme';
 import { styles } from '@/styles/user-select.styles';
+import { friendlyError } from '@/lib/errors';
 
 export default function UserSelectScreen() {
   const router = useRouter();
@@ -50,7 +51,7 @@ export default function UserSelectScreen() {
     setLoading(false);
 
     if (res.error) {
-      setError(res.error.message);
+      setError(friendlyError(res.error));
     } else {
       setCodeSent(true);
     }
@@ -64,7 +65,7 @@ export default function UserSelectScreen() {
     setLoading(false);
 
     if (res.error) {
-      setError(res.error.message);
+      setError(friendlyError(res.error));
     } else if (res.data?.verifyLoginCode) {
       const { token, user } = res.data.verifyLoginCode;
       await setLoginEmail(email.trim());

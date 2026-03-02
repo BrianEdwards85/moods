@@ -32,7 +32,7 @@ export default function TimelineScreen() {
     return map;
   }, [users]);
 
-  const { allEdges, fetching, loadingMore, loadMore, onRefresh } = usePaginatedEntries(
+  const { allEdges, fetching, error, loadingMore, loadMore, onRefresh } = usePaginatedEntries(
     userIds,
     ready,
   );
@@ -76,6 +76,11 @@ export default function TimelineScreen() {
           fetching ? (
             <View style={styles.center}>
               <ActivityIndicator size="large" color={colors.blue} />
+            </View>
+          ) : error ? (
+            <View style={styles.center}>
+              <Text style={styles.emptyText}>Failed to load entries</Text>
+              <Text style={styles.emptyDetail}>Pull down to retry.</Text>
             </View>
           ) : (
             <View style={styles.center}>

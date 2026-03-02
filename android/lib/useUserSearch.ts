@@ -26,9 +26,14 @@ export function useUserSearch() {
       }
       searchDebounceRef.current = setTimeout(async () => {
         setSearching(true);
-        const result = await urqlClient.query(SEARCH_USERS_QUERY, { search: text }).toPromise();
-        setSearchResults(result.data?.searchUsers ?? []);
-        setSearching(false);
+        try {
+          const result = await urqlClient.query(SEARCH_USERS_QUERY, { search: text }).toPromise();
+          setSearchResults(result.data?.searchUsers ?? []);
+        } catch {
+          setSearchResults([]);
+        } finally {
+          setSearching(false);
+        }
       }, SEARCH_DEBOUNCE);
     },
     [urqlClient],

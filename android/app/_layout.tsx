@@ -11,9 +11,12 @@ import { useNotifications } from '@/lib/useNotifications';
 import { isTokenExpired } from '@/lib/auth';
 import { useNetworkStatus } from '@/lib/useNetworkStatus';
 import OfflineBanner from '@/components/OfflineBanner';
+import ErrorFallback from '@/components/ErrorFallback';
 import { colors } from '@/styles/theme';
 
-export { ErrorBoundary } from 'expo-router';
+export function ErrorBoundary({ error, retry }: { error: Error; retry: () => void }) {
+  return <ErrorFallback error={error} retry={retry} />;
+}
 
 export const unstable_settings = {
   initialRouteName: '(tabs)',

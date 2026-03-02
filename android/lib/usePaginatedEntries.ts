@@ -66,6 +66,7 @@ export function usePaginatedEntries(userIds: string[], ready: boolean) {
   return {
     allEdges,
     fetching: entriesResult.fetching,
+    error: entriesResult.error ?? moreResult.error ?? null,
     loadingMore,
     loadMore,
     onRefresh,
