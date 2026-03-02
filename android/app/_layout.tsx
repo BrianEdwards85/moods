@@ -9,7 +9,7 @@ import { urqlClient } from '@/lib/graphql/client';
 import { useStore } from '@/lib/store';
 import { useNotifications } from '@/lib/useNotifications';
 import { isTokenExpired } from '@/lib/auth';
-import { colors } from '@/lib/theme';
+import { colors } from '@/styles/theme';
 
 export { ErrorBoundary } from 'expo-router';
 

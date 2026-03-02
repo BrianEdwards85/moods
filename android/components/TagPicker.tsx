@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { useQuery } from 'urql';
 import { TAGS_QUERY } from '@/lib/graphql/queries';
-import { colors } from '@/lib/theme';
-import { styles } from './TagPicker.styles';
+import { colors } from '@/styles/theme';
+import { styles } from '@/styles/TagPicker.styles';
 import MoodTag from './MoodTag';
 
 interface TagPickerProps {

@@ -4,8 +4,8 @@ import { useRouter } from 'expo-router';
 import { useMutation } from 'urql';
 import { useStore } from '@/lib/store';
 import { SEND_LOGIN_CODE_MUTATION, VERIFY_LOGIN_CODE_MUTATION } from '@/lib/graphql/mutations';
-import { colors } from '@/lib/theme';
-import { styles } from './user-select.styles';
+import { colors } from '@/styles/theme';
+import { styles } from '@/styles/user-select.styles';
 
 export default function UserSelectScreen() {
   const router = useRouter();

@@ -1,6 +1,6 @@
 import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
-import { colors } from '@/lib/theme';
-import { styles } from '@/app/(tabs)/settings.styles';
+import { colors } from '@/styles/theme';
+import { styles } from '@/styles/settings.styles';
 import ColorPicker from './ColorPicker';
 
 interface ProfileSectionProps {

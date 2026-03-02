@@ -10,8 +10,8 @@ import {
 } from 'react-native';
 import { useQuery } from 'urql';
 import { TAGS_QUERY } from '@/lib/graphql/queries';
-import { colors, defaultTagColor } from '@/lib/theme';
-import { styles } from './tags.styles';
+import { colors, defaultTagColor } from '@/styles/theme';
+import { styles } from '@/styles/tags.styles';
 import type { Tag } from '@/lib/store';
 import TagEditModal from '@/components/TagEditModal';
 

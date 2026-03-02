@@ -1,6 +1,6 @@
 import { Pressable, Text, View } from 'react-native';
-import { tagPresetColors } from '@/lib/theme';
-import { styles } from './ColorPicker.styles';
+import { tagPresetColors } from '@/styles/theme';
+import { styles } from '@/styles/ColorPicker.styles';
 
 interface ColorPickerProps {
   value: string | null;

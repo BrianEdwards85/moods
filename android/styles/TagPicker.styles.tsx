@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native';
-import { colors } from '@/lib/theme';
-import { sharedStyles } from '@/lib/shared-styles';
+import { colors } from './theme';
+import { sharedStyles } from './shared-styles';
 
 const local = StyleSheet.create({
   selectedTags: {

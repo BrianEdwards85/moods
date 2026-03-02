@@ -3,7 +3,7 @@ import { Image, Text, View } from 'react-native';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import MoodTag from './MoodTag';
 import { moodColor, formatRelativeTime } from '@/lib/utils';
-import { styles } from './EntryCard.styles';
+import { styles } from '@/styles/EntryCard.styles';
 import type { MoodEntry, User } from '@/lib/store';
 
 interface Props {

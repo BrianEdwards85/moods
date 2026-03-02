@@ -17,8 +17,8 @@ import {
   ARCHIVE_TAG_MUTATION,
   UNARCHIVE_TAG_MUTATION,
 } from '@/lib/graphql/mutations';
-import { colors } from '@/lib/theme';
-import { styles } from './TagEditModal.styles';
+import { colors } from '@/styles/theme';
+import { styles } from '@/styles/TagEditModal.styles';
 import ColorPicker from './ColorPicker';
 import type { Tag } from '@/lib/store';
 

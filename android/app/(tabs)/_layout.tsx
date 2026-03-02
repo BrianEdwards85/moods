@@ -4,7 +4,7 @@ import { Tabs, useRouter } from 'expo-router';
 import { useQuery } from 'urql';
 import { USERS_QUERY } from '@/lib/graphql/queries';
 import { useStore, type User } from '@/lib/store';
-import { colors } from '@/lib/theme';
+import { colors } from '@/styles/theme';
 
 function TabIcon(props: { name: React.ComponentProps<typeof FontAwesome>['name']; color: string }) {
   return <FontAwesome size={22} style={{ marginBottom: -3 }} {...props} />;

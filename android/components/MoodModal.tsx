@@ -14,8 +14,8 @@ import {
 import { useMutation } from 'urql';
 import { useStore } from '@/lib/store';
 import { LOG_MOOD_MUTATION } from '@/lib/graphql/mutations';
-import { colors } from '@/lib/theme';
-import { styles } from './MoodModal.styles';
+import { colors } from '@/styles/theme';
+import { styles } from '@/styles/MoodModal.styles';
 import MoodPicker from './MoodPicker';
 import TagPicker from './TagPicker';
 import { scheduleReminder } from '@/lib/useNotifications';
