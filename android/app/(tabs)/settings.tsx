@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useMutation, useQuery } from 'urql';
-import { USERS_QUERY } from '@/lib/graphql/queries';
+import { useMutation } from 'urql';
 import { UPDATE_USER_SETTINGS_MUTATION } from '@/lib/graphql/mutations';
-import { useStore, type User } from '@/lib/store';
+import { useStore } from '@/lib/store';
 import { scheduleReminder, cancelReminder } from '@/lib/useNotifications';
 import { colors } from '@/styles/theme';
 import { styles } from '@/styles/settings.styles';
@@ -17,9 +16,7 @@ export default function SettingsScreen() {
   const router = useRouter();
   const currentUserId = useStore((s) => s.currentUserId);
   const clearAuth = useStore((s) => s.clearAuth);
-
-  const [usersResult] = useQuery<{ users: User[] }>({ query: USERS_QUERY });
-  const users = usersResult.data?.users ?? [];
+  const users = useStore((s) => s.users);
   const currentUser = users.find((u) => u.id === currentUserId);
 
   const [avatarUrl, setAvatarUrl] = useState('');
@@ -71,7 +68,7 @@ export default function SettingsScreen() {
     router.replace('/user-select');
   };
 
-  if (usersResult.fetching && !currentUser) {
+  if (!currentUser) {
     return (
       <View style={styles.container}>
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.blue} size="large" />

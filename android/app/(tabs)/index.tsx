@@ -11,6 +11,7 @@ import DateDivider from '@/components/DateDivider';
 import MoodModal from '@/components/MoodModal';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { usePaginatedEntries } from '@/lib/usePaginatedEntries';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TimelineScreen() {
   const currentUserId = useStore((s) => s.currentUserId);
@@ -18,6 +19,7 @@ export default function TimelineScreen() {
   const users = useStore((s) => s.users);
   const setUsers = useStore((s) => s.setUsers);
   const openMoodModal = useStore((s) => s.openMoodModal);
+  const insets = useSafeAreaInsets();
   const ready = !!authToken;
 
   const [usersResult] = useQuery<{ users: User[] }>({ query: USERS_QUERY, pause: !ready });
@@ -96,7 +98,7 @@ export default function TimelineScreen() {
         }
       />
 
-      <Pressable style={styles.fab} onPress={openMoodModal}>
+      <Pressable style={[styles.fab, { bottom: Math.max(insets.bottom, 16) + 8 }]} onPress={openMoodModal}>
         <FontAwesome name="plus" size={22} color={colors.darkText} />
       </Pressable>
 

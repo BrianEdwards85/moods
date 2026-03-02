@@ -35,9 +35,8 @@ function deltaIconName(delta: number): 'arrow-up' | 'arrow-down' | 'minus' {
 function EntryCard({ entry, user, mine }: Props) {
   const bg = moodColor(entry.mood);
   const name = user?.name ?? entry.user?.name ?? '?';
-  const customAvatar = (user?.settings as Record<string, unknown>)?.avatarUrl as string | undefined;
-  const avatarUri = customAvatar || user?.icon || '';
-  const userColor = (user?.settings as Record<string, unknown>)?.color as string | undefined;
+  const avatarUri = user?.settings?.avatarUrl || user?.icon || '';
+  const userColor = user?.settings?.color;
 
   return (
     <View style={[styles.outer, mine ? styles.mine : styles.partner]}>

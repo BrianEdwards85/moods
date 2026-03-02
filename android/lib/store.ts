@@ -35,6 +35,16 @@ export interface Tag {
   archivedAt?: string | null;
 }
 
+export interface TagEdge {
+  cursor: string;
+  node: Tag;
+}
+
+export interface PageInfo {
+  hasNextPage: boolean;
+  endCursor: string;
+}
+
 export interface MoodEntry {
   id: string;
   mood: number;
