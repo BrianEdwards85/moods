@@ -112,9 +112,13 @@ def setup_telemetry() -> None:
     if auth_token:
         headers["Authorization"] = f"Basic {auth_token}"
 
+    from importlib.metadata import version
+
     resource = Resource.create(
         {
             "service.name": settings.get("otel.service_name", "moods"),
+            "service.version": version("moods"),
+            "deployment.environment": settings.current_env.lower(),
         }
     )
 
