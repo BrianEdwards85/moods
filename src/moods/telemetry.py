@@ -50,6 +50,16 @@ def setup_telemetry() -> None:
     log.info("Telemetry enabled, exporting to %s", endpoint)
 
 
+def instrument_db() -> None:
+    if _provider is None:
+        return
+
+    from opentelemetry.instrumentation.asyncpg import AsyncPGInstrumentor
+
+    AsyncPGInstrumentor().instrument()
+    log.info("asyncpg instrumentation enabled")
+
+
 def instrument_app(app) -> None:
     if _provider is None:
         return

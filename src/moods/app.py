@@ -15,7 +15,12 @@ from moods.config import settings
 from moods.db import apply_migrations, create_pool
 from moods.resolvers import create_gql
 from moods.resolvers.auth import COOKIE_NAME
-from moods.telemetry import instrument_app, setup_telemetry, shutdown_telemetry
+from moods.telemetry import (
+    instrument_app,
+    instrument_db,
+    setup_telemetry,
+    shutdown_telemetry,
+)
 
 WEB_PUBLIC = Path(__file__).parent.parent.parent / "web" / "resources" / "public"
 
@@ -56,6 +61,7 @@ def create_app() -> Starlette:
     @asynccontextmanager
     async def lifespan(app):
         setup_telemetry()
+        instrument_db()
         apply_migrations()
         pool = await create_pool()
         app.state.pool = pool
