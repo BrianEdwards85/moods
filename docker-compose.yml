@@ -34,6 +34,11 @@ services:
     environment:
       - CLOUDFLARE_EMAIL=${ACME_EMAIL}
       - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     restart: unless-stopped
 
   db:
@@ -46,6 +51,11 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - MOODS_DB_PASSWORD=${MOODS_DB_PASSWORD}
       - MOODS_DEV_DB_PASSWORD=${MOODS_DEV_DB_PASSWORD}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     restart: unless-stopped
 
   pgadmin:
@@ -64,6 +74,11 @@ services:
       - traefik.http.routers.pgadmin.tls.domains[0].sans=*.hosaka.io
     depends_on:
       - db
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     restart: unless-stopped
 
   moods-prod:
@@ -92,6 +107,11 @@ services:
       - traefik.http.routers.moods-prod-health.priority=200
     depends_on:
       - db
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     restart: unless-stopped
 
   moods-dev:
@@ -120,6 +140,11 @@ services:
       - traefik.http.routers.moods-dev-health.priority=200
     depends_on:
       - db
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     restart: unless-stopped
 
 volumes:
