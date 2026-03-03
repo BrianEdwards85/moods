@@ -14,6 +14,11 @@ services:
       - --certificatesresolvers.letsencrypt.acme.dnschallenge.provider=cloudflare
       - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}
       - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --tracing.otlp.http.endpoint=http://openobserve:5080/api/production/v1/traces
+      - --tracing.otlp.http.headers.Authorization=Basic ${OTEL_AUTH_TOKEN}
+      - --tracing.serviceName=traefik
+      - --tracing.capturedRequestHeaders=X-Forwarded-For
+      - --tracing.capturedResponseHeaders=Content-Type
     labels:
       - traefik.enable=true
       - traefik.http.routers.dashboard.rule=Host(`traefik.hosaka.io`)
@@ -34,6 +39,11 @@ services:
     environment:
       - CLOUDFLARE_EMAIL=${ACME_EMAIL}
       - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     restart: unless-stopped
 
   db:
@@ -46,6 +56,11 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - MOODS_DB_PASSWORD=${MOODS_DB_PASSWORD}
       - MOODS_DEV_DB_PASSWORD=${MOODS_DEV_DB_PASSWORD}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     restart: unless-stopped
 
   pgadmin:
@@ -64,6 +79,11 @@ services:
       - traefik.http.routers.pgadmin.tls.domains[0].sans=*.hosaka.io
     depends_on:
       - db
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     restart: unless-stopped
 
   moods-prod:
@@ -92,10 +112,15 @@ services:
       - traefik.http.routers.moods-prod-health.priority=200
     depends_on:
       - db
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     restart: unless-stopped
 
   moods-dev:
-    build: moods-dev
+    build: moods_dev
     environment:
       - MOODS_ENV=development
       - MOODS_DB__HOST=db
@@ -120,6 +145,68 @@ services:
       - traefik.http.routers.moods-dev-health.priority=200
     depends_on:
       - db
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+
+  openobserve:
+    image: public.ecr.aws/zinclabs/openobserve:latest
+    environment:
+      - ZO_ROOT_USER_EMAIL=${ZO_ROOT_USER_EMAIL}
+      - ZO_ROOT_USER_PASSWORD=${ZO_ROOT_USER_PASSWORD}
+      - ZO_DATA_DIR=/data
+      - ZO_MEM_TABLE_MAX_SIZE=512
+      - ZO_COMPACT_DATA_RETENTION_DAYS=180
+      - ZO_CREATE_ORG_THROUGH_INGESTION=true
+      - ZO_COOKIE_SECURE_ONLY=true
+      - ZO_TELEMETRY=false
+    volumes:
+      - /var/lib/openobserve:/data
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.openobserve.rule=Host(`observe.hosaka.io`)
+      - traefik.http.routers.openobserve.entrypoints=websecure
+      - traefik.http.routers.openobserve.tls.certresolver=letsencrypt
+      - traefik.http.routers.openobserve.tls.domains[0].main=hosaka.io
+      - traefik.http.routers.openobserve.tls.domains[0].sans=*.hosaka.io
+      - traefik.http.routers.openobserve-health.rule=Host(`observe.hosaka.io`) && Path(`/healthz`)
+      - traefik.http.routers.openobserve-health.entrypoints=websecure
+      - traefik.http.routers.openobserve-health.tls.certresolver=letsencrypt
+      - traefik.http.routers.openobserve-health.middlewares=block-health
+      - traefik.http.routers.openobserve-health.priority=200
+      - traefik.http.services.openobserve.loadbalancer.server.port=5080
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5080/healthz"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+
+  fluent-bit:
+    image: fluent/fluent-bit:latest
+    volumes:
+      - ./fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    environment:
+      - ZO_ROOT_USER_EMAIL=${ZO_ROOT_USER_EMAIL}
+      - ZO_ROOT_USER_PASSWORD=${ZO_ROOT_USER_PASSWORD}
+    depends_on:
+      openobserve:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     restart: unless-stopped
 
 volumes:

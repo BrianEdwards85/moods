@@ -20,6 +20,10 @@ name = "moods"
 user = "moods"
 password = "moods"
 
+[default.otel]
+endpoint = ""
+service_name = "moods"
+
 [development]
 dynaconf_merge = true
 cookie_secure = true
@@ -35,6 +39,10 @@ name = "moods_dev"
 user = "moods_dev"
 password = "moods_dev"
 
+[development.otel]
+endpoint = "http://openobserve:5080/api/3ANT9xNeShmoldeVfO1ZlOblRjw/"
+service_name = "moods-dev"
+
 [production]
 dynaconf_merge = true
 cookie_secure = true
@@ -46,6 +54,10 @@ allow_credentials = false
 [production.db]
 host = "db"
 port = 5432
+
+[production.otel]
+endpoint = "http://openobserve:5080/api/production/"
+service_name = "moods-prod"
 
 [testing]
 dynaconf_merge = true

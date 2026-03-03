@@ -16,6 +16,10 @@ on:
       - "pyproject.toml"
       - ".github/workflows/build-android.yml"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
