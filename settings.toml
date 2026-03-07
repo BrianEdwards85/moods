@@ -46,6 +46,7 @@ service_name = "moods-dev"
 [production]
 dynaconf_merge = true
 cookie_secure = true
+log_json = true
 
 [production.cors]
 allow_origins = ["https://moods.hosaka.io"]

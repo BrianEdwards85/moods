@@ -13,6 +13,7 @@ from moods.db import apply_migrations, create_pool
 from moods.resolvers import create_gql
 from moods.resolvers.auth import COOKIE_NAME
 from moods.telemetry import (
+    configure_logging,
     instrument_app,
     instrument_db,
     setup_telemetry,
@@ -57,6 +58,7 @@ class AuthCookieMiddleware(BaseHTTPMiddleware):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    configure_logging(json_output=settings.get("log_json", False))
     setup_telemetry()
     instrument_db()
     apply_migrations()
