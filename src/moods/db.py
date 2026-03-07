@@ -7,7 +7,7 @@ from yoyo import get_backend, read_migrations
 
 from moods.config import settings
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 MIGRATIONS_DIR = Path(__file__).parent.parent.parent / "migrations"
 
@@ -29,10 +29,10 @@ def apply_migrations() -> None:
     with backend.lock():
         to_apply = backend.to_apply(migrations)
         if to_apply:
-            log.info("Applying %d migration(s)", len(to_apply))
+            logger.info("Applying %d migration(s)", len(to_apply))
             backend.apply_migrations(to_apply)
         else:
-            log.info("Database is up to date")
+            logger.info("Database is up to date")
 
 
 async def _init_connection(conn: asyncpg.Connection):

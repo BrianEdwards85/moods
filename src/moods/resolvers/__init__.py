@@ -1,5 +1,5 @@
 import logging
-from pathlib import Path
+from importlib.resources import files
 
 from ariadne import load_schema_from_path, make_executable_schema
 from ariadne.asgi import GraphQL
@@ -21,7 +21,7 @@ from .user import get_user_resolvers
 
 logger = logging.getLogger(__name__)
 
-SCHEMA_DIR = Path(__file__).parent.parent / "schema"
+SCHEMA_DIR = files("moods").joinpath("schema")
 
 
 def format_error(error: GraphQLError, debug: bool = False) -> dict:

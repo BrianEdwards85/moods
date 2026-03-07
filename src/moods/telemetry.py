@@ -19,7 +19,7 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 from moods.config import settings
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 _provider: TracerProvider | None = None
 _log_handler: "OpenObserveLogHandler | None" = None
@@ -132,7 +132,7 @@ def setup_telemetry() -> None:
 
     endpoint = settings.get("otel.endpoint", "")
     if not endpoint:
-        log.info("settings.otel.endpoint not set, telemetry disabled")
+        logger.info("settings.otel.endpoint not set, telemetry disabled")
         return
 
     import os
@@ -180,7 +180,7 @@ def setup_telemetry() -> None:
     _log_handler = OpenObserveLogHandler(url=log_url, headers=headers)
     logging.getLogger().addHandler(_log_handler)
 
-    log.info("Telemetry enabled, exporting to %s", endpoint)
+    logger.info("Telemetry enabled, exporting to %s", endpoint)
 
 
 def instrument_db() -> None:
@@ -190,7 +190,7 @@ def instrument_db() -> None:
     from opentelemetry.instrumentation.asyncpg import AsyncPGInstrumentor
 
     AsyncPGInstrumentor().instrument()
-    log.info("asyncpg instrumentation enabled")
+    logger.info("asyncpg instrumentation enabled")
 
 
 def _sanitize_request_hook(span, scope) -> None:
@@ -216,7 +216,7 @@ def instrument_app(app) -> None:
         app,
         server_request_hook=_sanitize_request_hook,
     )
-    log.info("Starlette instrumentation enabled")
+    logger.info("Starlette instrumentation enabled")
 
 
 def shutdown_telemetry() -> None:
@@ -226,8 +226,8 @@ def shutdown_telemetry() -> None:
         logging.getLogger().removeHandler(_log_handler)
         _log_handler.close()
         _log_handler = None
-        log.info("Log handler shut down")
+        logger.info("Log handler shut down")
 
     if _provider is not None:
         _provider.shutdown()
-        log.info("Telemetry shut down")
+        logger.info("Telemetry shut down")
