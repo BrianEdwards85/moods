@@ -47,7 +47,7 @@ async def test_archive_nonexistent_tag(client):
     )
     assert body["data"] is None or body["data"]["archiveTag"] is None
     assert any(
-        "error" in e["message"].lower() or "not found" in e["message"].lower()
+        e.get("extensions", {}).get("code") == "NOT_FOUND"
         for e in body["errors"]
     )
 
@@ -59,7 +59,7 @@ async def test_archive_nonexistent_mood_entry(client):
     )
     assert body["data"] is None or body["data"]["archiveMoodEntry"] is None
     assert any(
-        "not found" in e["message"].lower() or "error" in e["message"].lower()
+        e.get("extensions", {}).get("code") == "NOT_FOUND"
         for e in body["errors"]
     )
 

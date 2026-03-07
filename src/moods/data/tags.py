@@ -1,5 +1,7 @@
 from asyncpg import Pool
 
+from moods.errors import NotFoundError
+
 from .utils import DEFAULT_PAGE_SIZE, build_connection, decode_cursor, queries
 
 
@@ -40,17 +42,17 @@ class Tags:
     async def update_tag_metadata(self, name: str, metadata: dict) -> dict:
         row = await queries.update_tag_metadata(self.pool, name=name, metadata=metadata)
         if not row:
-            raise ValueError("Tag not found")
+            raise NotFoundError("Tag not found")
         return dict(row)
 
     async def archive_tag(self, name: str) -> dict:
         row = await queries.archive_tag(self.pool, name=name)
         if not row:
-            raise ValueError("Tag not found or already archived")
+            raise NotFoundError("Tag not found or already archived")
         return dict(row)
 
     async def unarchive_tag(self, name: str) -> dict:
         row = await queries.unarchive_tag(self.pool, name=name)
         if not row:
-            raise ValueError("Tag not found or not archived")
+            raise NotFoundError("Tag not found or not archived")
         return dict(row)

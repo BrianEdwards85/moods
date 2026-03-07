@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 from ariadne import load_schema_from_path, make_executable_schema
@@ -6,7 +7,9 @@ from ariadne.asgi.handlers import GraphQLHTTPHandler
 from ariadne.contrib.tracing.opentelemetry import opentelemetry_extension
 from asyncpg import Pool
 
+from graphql import GraphQLError
 from moods.data import Moods, Shares, Tags, Users, create_loaders
+from moods.errors import AppError
 from moods.orchestration.auth import Auth
 from moods.services.email import Email
 
@@ -16,7 +19,21 @@ from .scalars import scalars
 from .tag import get_tag_resolvers
 from .user import get_user_resolvers
 
+logger = logging.getLogger(__name__)
+
 SCHEMA_DIR = Path(__file__).parent.parent / "schema"
+
+
+def format_error(error: GraphQLError, debug: bool = False) -> dict:
+    formatted = error.formatted
+    original = error.original_error
+    if isinstance(original, AppError):
+        formatted.setdefault("extensions", {})["code"] = original.code
+    elif original is not None:
+        logger.exception("Unhandled error in GraphQL resolver", exc_info=original)
+        formatted["message"] = "Internal server error"
+        formatted.setdefault("extensions", {})["code"] = "INTERNAL_ERROR"
+    return formatted
 
 
 def create_gql(pool: Pool, settings) -> GraphQL:
@@ -57,6 +74,7 @@ def create_gql(pool: Pool, settings) -> GraphQL:
     return GraphQL(
         schema,
         context_value=get_context,
+        error_formatter=format_error,
         http_handler=GraphQLHTTPHandler(
             extensions=[
                 opentelemetry_extension(arg_filter=_arg_filter),

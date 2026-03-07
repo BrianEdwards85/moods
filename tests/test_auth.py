@@ -191,12 +191,20 @@ async def test_verify_wrong_code(mock_send, client):
         expect_errors=True,
     )
     assert "errors" in body
+    assert any(
+        e.get("extensions", {}).get("code") == "VALIDATION_ERROR"
+        for e in body["errors"]
+    )
 
 
 async def test_protected_query_without_token(client):
     body = await gql(client, MOOD_ENTRIES_QUERY, expect_errors=True)
     assert "errors" in body
     assert any("authentication" in e["message"].lower() for e in body["errors"])
+    assert any(
+        e.get("extensions", {}).get("code") == "AUTHENTICATION_ERROR"
+        for e in body["errors"]
+    )
 
 
 async def test_protected_query_with_token(client):

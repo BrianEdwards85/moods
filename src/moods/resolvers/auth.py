@@ -1,6 +1,6 @@
 from ariadne import MutationType
 
-from graphql import GraphQLError
+from moods.errors import AuthenticationError, ValidationError
 from moods.orchestration.auth import Auth
 
 COOKIE_NAME = "moods_token"
@@ -8,7 +8,7 @@ COOKIE_NAME = "moods_token"
 
 def require_auth(info) -> str:
     if not info.context.get("auth_user_id"):
-        raise GraphQLError("Authentication required")
+        raise AuthenticationError("Authentication required")
     else:
         return str(info.context["auth_user_id"])
 
@@ -32,7 +32,7 @@ class AuthResolver:
     async def resolve_verify_login_code(self, _obj, info, *, email, code):
         result = await self.auth.verify_login_code(email, code)
         if not result:
-            raise GraphQLError("Invalid or expired code")
+            raise ValidationError("Invalid or expired code")
         info.context["request"].state.auth_cookie = result["token"]
         return result
 
@@ -40,11 +40,11 @@ class AuthResolver:
         request = info.context["request"]
         token = get_token(request)
         if not token:
-            raise GraphQLError("Authentication required")
+            raise AuthenticationError("Authentication required")
 
         new_token = self.auth.refresh_token(token)
         if not new_token:
-            raise GraphQLError("Token expired or invalid")
+            raise AuthenticationError("Token expired or invalid")
         request.state.auth_cookie = new_token
         return {"token": new_token}
 

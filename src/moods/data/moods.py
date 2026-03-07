@@ -1,5 +1,7 @@
 from asyncpg import Pool
 
+from moods.errors import NotFoundError
+
 from .utils import (
     DEFAULT_PAGE_SIZE,
     build_connection,
@@ -57,5 +59,5 @@ class Moods:
     async def archive_mood_entry(self, entry_id: str, user_id: str) -> dict:
         row = await queries.archive_mood_entry(self.pool, id=entry_id, user_id=user_id)
         if not row:
-            raise ValueError("Mood entry not found or already archived")
+            raise NotFoundError("Mood entry not found or already archived")
         return dict(row)
