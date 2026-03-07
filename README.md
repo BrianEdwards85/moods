@@ -96,7 +96,26 @@ createdb -p 5433 moods_test
 
 # Run tests with coverage
 uv run poe test
+
+# Run only unit or integration tests
+uv run pytest -m unit
+uv run pytest -m integration
 ```
+
+### Testing Against a Live Server
+
+Integration tests can run against an external server instead of the in-process ASGI app:
+
+```bash
+uv run pytest -m integration --server-url http://localhost:8000
+```
+
+When `--server-url` is provided:
+- Tests use `httpx.AsyncClient` pointed at the live server instead of ASGI transport
+- Database migrations are skipped (the server is assumed to be fully set up)
+- The test database connection (`pool` fixture) still connects locally for cleanup and assertions
+
+This is useful for smoke-testing a Docker deployment or staging environment.
 
 ---
 
