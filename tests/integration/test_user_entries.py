@@ -1,3 +1,5 @@
+from assertpy import assert_that
+
 from tests.integration.conftest import auth_header, gql
 
 H = auth_header("00000000-0000-0000-0000-000000000000")
@@ -51,9 +53,9 @@ async def test_user_entries_connection(client):
     h = auth_header(uid)
     body = await gql(client, USER_WITH_ENTRIES, {"id": uid}, headers=h)
     user = body["data"]["user"]
-    assert user["name"] == "Alice"
+    assert_that(user["name"]).is_equal_to("Alice")
     edges = user["entries"]["edges"]
-    assert len(edges) == 2
+    assert_that(edges).is_length(2)
 
 
 async def test_user_entries_excludes_other_users(client):
@@ -65,14 +67,14 @@ async def test_user_entries_excludes_other_users(client):
     h_alice = auth_header(alice_id)
     body = await gql(client, USER_WITH_ENTRIES, {"id": alice_id}, headers=h_alice)
     edges = body["data"]["user"]["entries"]["edges"]
-    assert len(edges) == 1
-    assert edges[0]["node"]["notes"] == "alice entry"
+    assert_that(edges).is_length(1)
+    assert_that(edges[0]["node"]["notes"]).is_equal_to("alice entry")
 
     h_bob = auth_header(bob_id)
     body = await gql(client, USER_WITH_ENTRIES, {"id": bob_id}, headers=h_bob)
     edges = body["data"]["user"]["entries"]["edges"]
-    assert len(edges) == 1
-    assert edges[0]["node"]["notes"] == "bob entry"
+    assert_that(edges).is_length(1)
+    assert_that(edges[0]["node"]["notes"]).is_equal_to("bob entry")
 
 
 async def test_user_entries_pagination(client):
@@ -83,8 +85,8 @@ async def test_user_entries_pagination(client):
     h = auth_header(uid)
     body = await gql(client, USER_WITH_ENTRIES, {"id": uid, "first": 2}, headers=h)
     page1 = body["data"]["user"]["entries"]
-    assert len(page1["edges"]) == 2
-    assert page1["pageInfo"]["hasNextPage"] is True
+    assert_that(page1["edges"]).is_length(2)
+    assert_that(page1["pageInfo"]["hasNextPage"]).is_true()
 
     body = await gql(
         client,
@@ -93,8 +95,8 @@ async def test_user_entries_pagination(client):
         headers=h,
     )
     page2 = body["data"]["user"]["entries"]
-    assert len(page2["edges"]) == 2
-    assert page2["pageInfo"]["hasNextPage"] is True
+    assert_that(page2["edges"]).is_length(2)
+    assert_that(page2["pageInfo"]["hasNextPage"]).is_true()
 
     body = await gql(
         client,
@@ -103,5 +105,5 @@ async def test_user_entries_pagination(client):
         headers=h,
     )
     page3 = body["data"]["user"]["entries"]
-    assert len(page3["edges"]) == 1
-    assert page3["pageInfo"]["hasNextPage"] is False
+    assert_that(page3["edges"]).is_length(1)
+    assert_that(page3["pageInfo"]["hasNextPage"]).is_false()

@@ -1,3 +1,5 @@
+from assertpy import assert_that
+
 from tests.integration.conftest import auth_header, gql
 
 H = auth_header("00000000-0000-0000-0000-000000000000")
@@ -77,9 +79,9 @@ async def test_create_sharing_rule(client):
         headers=auth_header(alice["id"]),
     )
     user = body["data"]["updateSharing"]
-    assert len(user["sharedWith"]) == 1
-    assert user["sharedWith"][0]["user"]["id"] == bob["id"]
-    assert user["sharedWith"][0]["filters"] == []
+    assert_that(user["sharedWith"]).is_length(1)
+    assert_that(user["sharedWith"][0]["user"]["id"]).is_equal_to(bob["id"])
+    assert_that(user["sharedWith"][0]["filters"]).is_empty()
 
 
 async def test_update_sharing_replaces_rules(client):
@@ -103,8 +105,8 @@ async def test_update_sharing_replaces_rules(client):
         headers=auth_header(alice["id"]),
     )
     user = body["data"]["updateSharing"]
-    assert len(user["sharedWith"]) == 1
-    assert user["sharedWith"][0]["user"]["id"] == carol["id"]
+    assert_that(user["sharedWith"]).is_length(1)
+    assert_that(user["sharedWith"][0]["user"]["id"]).is_equal_to(carol["id"])
 
 
 async def test_shared_entries_visible(client):
@@ -115,7 +117,7 @@ async def test_shared_entries_visible(client):
 
     # Bob can't see Alice's entries yet (no share)
     entries = await _query_entries(client, headers=auth_header(bob["id"]))
-    assert len(entries) == 0
+    assert_that(entries).is_empty()
 
     # Alice shares with Bob
     await gql(
@@ -127,8 +129,8 @@ async def test_shared_entries_visible(client):
 
     # Now Bob can see Alice's entries
     entries = await _query_entries(client, headers=auth_header(bob["id"]))
-    assert len(entries) == 1
-    assert entries[0]["mood"] == 7
+    assert_that(entries).is_length(1)
+    assert_that(entries[0]["mood"]).is_equal_to(7)
 
 
 async def test_no_share_entries_hidden(client):
@@ -138,7 +140,7 @@ async def test_no_share_entries_hidden(client):
     await _log_mood(client, alice["id"], 5)
 
     entries = await _query_entries(client, headers=auth_header(bob["id"]))
-    assert len(entries) == 0
+    assert_that(entries).is_empty()
 
 
 async def test_self_visibility(client):
@@ -147,8 +149,8 @@ async def test_self_visibility(client):
     await _log_mood(client, alice["id"], 8, "great day")
 
     entries = await _query_entries(client, headers=auth_header(alice["id"]))
-    assert len(entries) == 1
-    assert entries[0]["mood"] == 8
+    assert_that(entries).is_length(1)
+    assert_that(entries[0]["mood"]).is_equal_to(8)
 
 
 async def test_include_filter(client):
@@ -176,8 +178,9 @@ async def test_include_filter(client):
     )
 
     entries = await _query_entries(client, headers=auth_header(bob["id"]))
-    assert len(entries) == 1
-    assert any(t["name"] == "happy" for t in entries[0]["tags"])
+    assert_that(entries).is_length(1)
+    tag_names = [t["name"] for t in entries[0]["tags"]]
+    assert_that(tag_names).contains("happy")
 
 
 async def test_exclude_filter(client):
@@ -205,8 +208,9 @@ async def test_exclude_filter(client):
     )
 
     entries = await _query_entries(client, headers=auth_header(bob["id"]))
-    assert len(entries) == 1
-    assert any(t["name"] == "happy" for t in entries[0]["tags"])
+    assert_that(entries).is_length(1)
+    tag_names = [t["name"] for t in entries[0]["tags"]]
+    assert_that(tag_names).contains("happy")
 
 
 async def test_mixed_filters_exclude_takes_precedence(client):
@@ -239,8 +243,8 @@ async def test_mixed_filters_exclude_takes_precedence(client):
     )
 
     entries = await _query_entries(client, headers=auth_header(bob["id"]))
-    assert len(entries) == 1
-    assert entries[0]["mood"] == 8
+    assert_that(entries).is_length(1)
+    assert_that(entries[0]["mood"]).is_equal_to(8)
 
 
 async def test_multiple_include_filters_or_semantics(client):
@@ -272,9 +276,9 @@ async def test_multiple_include_filters_or_semantics(client):
     )
 
     entries = await _query_entries(client, headers=auth_header(bob["id"]))
-    assert len(entries) == 2
+    assert_that(entries).is_length(2)
     moods = {e["mood"] for e in entries}
-    assert moods == {7, 5}
+    assert_that(moods).is_equal_to({7, 5})
 
 
 async def test_entries_with_no_tags_hidden_by_include_filter(client):
@@ -304,8 +308,8 @@ async def test_entries_with_no_tags_hidden_by_include_filter(client):
     )
 
     entries = await _query_entries(client, headers=auth_header(bob["id"]))
-    assert len(entries) == 1
-    assert entries[0]["mood"] == 7
+    assert_that(entries).is_length(1)
+    assert_that(entries[0]["mood"]).is_equal_to(7)
 
 
 async def test_soft_delete_shares(client):
@@ -330,8 +334,8 @@ async def test_soft_delete_shares(client):
         headers=auth_header(alice["id"]),
     )
     user = body["data"]["updateSharing"]
-    assert len(user["sharedWith"]) == 1
-    assert user["sharedWith"][0]["user"]["id"] == carol["id"]
+    assert_that(user["sharedWith"]).is_length(1)
+    assert_that(user["sharedWith"][0]["user"]["id"]).is_equal_to(carol["id"])
 
     # Verify the old share still exists in the database (archived)
     body = await gql(
@@ -341,8 +345,10 @@ async def test_soft_delete_shares(client):
         headers=auth_header(alice["id"]),
     )
     # Only active shares should be returned
-    assert len(body["data"]["user"]["sharedWith"]) == 1
-    assert body["data"]["user"]["sharedWith"][0]["user"]["id"] == carol["id"]
+    assert_that(body["data"]["user"]["sharedWith"]).is_length(1)
+    assert_that(body["data"]["user"]["sharedWith"][0]["user"]["id"]).is_equal_to(
+        carol["id"]
+    )
 
 
 async def test_archived_share_hides_entries(client):
@@ -362,7 +368,7 @@ async def test_archived_share_hides_entries(client):
 
     # Bob can see Alice's entries
     entries = await _query_entries(client, headers=auth_header(bob["id"]))
-    assert len(entries) == 1
+    assert_that(entries).is_length(1)
 
     # Alice removes the share (archives it)
     await gql(
@@ -374,7 +380,7 @@ async def test_archived_share_hides_entries(client):
 
     # Bob can no longer see Alice's entries
     entries = await _query_entries(client, headers=auth_header(bob["id"]))
-    assert len(entries) == 0
+    assert_that(entries).is_empty()
 
 
 async def test_re_add_archived_share(client):
@@ -392,7 +398,7 @@ async def test_re_add_archived_share(client):
         headers=auth_header(alice["id"]),
     )
     entries = await _query_entries(client, headers=auth_header(bob["id"]))
-    assert len(entries) == 1
+    assert_that(entries).is_length(1)
 
     # Alice removes the share (archives it)
     await gql(
@@ -402,7 +408,7 @@ async def test_re_add_archived_share(client):
         headers=auth_header(alice["id"]),
     )
     entries = await _query_entries(client, headers=auth_header(bob["id"]))
-    assert len(entries) == 0
+    assert_that(entries).is_empty()
 
     # Alice re-adds the share with Bob
     body = await gql(
@@ -421,23 +427,23 @@ async def test_re_add_archived_share(client):
         headers=auth_header(alice["id"]),
     )
     user = body["data"]["updateSharing"]
-    assert len(user["sharedWith"]) == 1
-    assert user["sharedWith"][0]["user"]["id"] == bob["id"]
-    assert len(user["sharedWith"][0]["filters"]) == 1
+    assert_that(user["sharedWith"]).is_length(1)
+    assert_that(user["sharedWith"][0]["user"]["id"]).is_equal_to(bob["id"])
+    assert_that(user["sharedWith"][0]["filters"]).is_length(1)
 
     # Bob can see Alice's entries again (entry has no tags, include filter hides it)
     entries = await _query_entries(client, headers=auth_header(bob["id"]))
-    assert len(entries) == 0
+    assert_that(entries).is_empty()
 
     # Re-add without filters — Bob sees everything
-    body = await gql(
+    await gql(
         client,
         UPDATE_SHARING,
         {"input": {"rules": [{"userId": bob["id"], "filters": []}]}},
         headers=auth_header(alice["id"]),
     )
     entries = await _query_entries(client, headers=auth_header(bob["id"]))
-    assert len(entries) == 1
+    assert_that(entries).is_length(1)
 
 
 async def test_entries_with_no_tags_visible_with_exclude_only(client):
@@ -467,5 +473,5 @@ async def test_entries_with_no_tags_visible_with_exclude_only(client):
     )
 
     entries = await _query_entries(client, headers=auth_header(bob["id"]))
-    assert len(entries) == 1
-    assert entries[0]["mood"] == 5
+    assert_that(entries).is_length(1)
+    assert_that(entries[0]["mood"]).is_equal_to(5)

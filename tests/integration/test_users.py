@@ -1,3 +1,5 @@
+from assertpy import assert_that
+
 from tests.integration.conftest import auth_header, gql
 
 H = auth_header("00000000-0000-0000-0000-000000000000")
@@ -52,11 +54,11 @@ async def _create_user(client, name="Alice", email="alice@example.com"):
 
 async def test_create_user(client):
     user = await _create_user(client)
-    assert user["name"] == "Alice"
-    assert user["email"] == "alice@example.com"
-    assert user["id"]
-    assert user["settings"] == {}
-    assert user["archivedAt"] is None
+    assert_that(user["name"]).is_equal_to("Alice")
+    assert_that(user["email"]).is_equal_to("alice@example.com")
+    assert_that(user["id"]).is_not_empty()
+    assert_that(user["settings"]).is_equal_to({})
+    assert_that(user["archivedAt"]).is_none()
 
 
 async def test_list_users(client):
@@ -65,17 +67,17 @@ async def test_list_users(client):
 
     body = await gql(client, USERS_QUERY)
     users = body["data"]["users"]
-    assert len(users) == 2
+    assert_that(users).is_length(2)
     names = {u["name"] for u in users}
-    assert names == {"Alice", "Bob"}
+    assert_that(names).is_equal_to({"Alice", "Bob"})
 
 
 async def test_get_user_by_id(client):
     created = await _create_user(client)
     body = await gql(client, USER_QUERY, {"id": created["id"]})
     user = body["data"]["user"]
-    assert user["id"] == created["id"]
-    assert user["name"] == "Alice"
+    assert_that(user["id"]).is_equal_to(created["id"])
+    assert_that(user["name"]).is_equal_to("Alice")
 
 
 async def test_update_user_settings(client):
@@ -88,17 +90,17 @@ async def test_update_user_settings(client):
         headers=auth_header(created["id"]),
     )
     updated = body["data"]["updateUserSettings"]
-    assert updated["settings"] == new_settings
+    assert_that(updated["settings"]).is_equal_to(new_settings)
 
     body = await gql(client, USER_QUERY, {"id": created["id"]})
-    assert body["data"]["user"]["settings"] == new_settings
+    assert_that(body["data"]["user"]["settings"]).is_equal_to(new_settings)
 
 
 async def test_archive_user(client):
     created = await _create_user(client)
     body = await gql(client, ARCHIVE_USER, {"id": created["id"]}, headers=H)
     archived = body["data"]["archiveUser"]
-    assert archived["archivedAt"] is not None
+    assert_that(archived["archivedAt"]).is_not_none()
 
 
 async def test_list_users_excludes_archived(client):
@@ -108,9 +110,9 @@ async def test_list_users_excludes_archived(client):
 
     body = await gql(client, USERS_QUERY)
     users = body["data"]["users"]
-    assert len(users) == 1
-    assert users[0]["name"] == "Bob"
+    assert_that(users).is_length(1)
+    assert_that(users[0]["name"]).is_equal_to("Bob")
 
     body = await gql(client, USERS_QUERY, {"includeArchived": True})
     users = body["data"]["users"]
-    assert len(users) == 2
+    assert_that(users).is_length(2)

@@ -418,6 +418,7 @@ Sharing rules are updated atomically via `set_shares`: the entire rule set for a
 - async throughout (async def resolvers, async DB calls).
 - Settings accessed via Dynaconf — never hard-coded connection strings.
 - Tests run against a real (disposable) Postgres database, not mocks.
+- Tests use [assertpy](https://github.com/assertpy/assertpy) fluent assertions (`assert_that(x).is_equal_to(y)`) with `.described_as()` for clear failure messages.
 
 ### TypeScript (Android)
 

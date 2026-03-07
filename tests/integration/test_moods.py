@@ -1,3 +1,5 @@
+from assertpy import assert_that
+
 from tests.integration.conftest import auth_header, gql
 
 H = auth_header("00000000-0000-0000-0000-000000000000")
@@ -67,14 +69,14 @@ async def test_log_mood(client):
         client, user["id"], mood=8, notes="great day", tags=["happy", "sunny"]
     )
 
-    assert entry["mood"] == 8
-    assert entry["notes"] == "great day"
-    assert entry["createdAt"] is not None
-    assert entry["archivedAt"] is None
-    assert entry["user"]["id"] == user["id"]
-    assert entry["user"]["name"] == "Alice"
+    assert_that(entry["mood"]).is_equal_to(8)
+    assert_that(entry["notes"]).is_equal_to("great day")
+    assert_that(entry["createdAt"]).is_not_none()
+    assert_that(entry["archivedAt"]).is_none()
+    assert_that(entry["user"]["id"]).is_equal_to(user["id"])
+    assert_that(entry["user"]["name"]).is_equal_to("Alice")
     tag_names = sorted(t["name"] for t in entry["tags"])
-    assert tag_names == ["happy", "sunny"]
+    assert_that(tag_names).is_equal_to(["happy", "sunny"])
 
 
 async def test_query_mood_entries(client):
@@ -85,7 +87,7 @@ async def test_query_mood_entries(client):
 
     body = await gql(client, MOOD_ENTRIES_QUERY, headers=h)
     edges = body["data"]["moodEntries"]["edges"]
-    assert len(edges) == 2
+    assert_that(edges).is_length(2)
 
 
 async def test_query_mood_entries_by_user(client):
@@ -101,9 +103,9 @@ async def test_query_mood_entries_by_user(client):
         headers=auth_header(alice["id"]),
     )
     edges = body["data"]["moodEntries"]["edges"]
-    assert len(edges) == 1
-    assert edges[0]["node"]["mood"] == 5
-    assert edges[0]["node"]["user"]["id"] == alice["id"]
+    assert_that(edges).is_length(1)
+    assert_that(edges[0]["node"]["mood"]).is_equal_to(5)
+    assert_that(edges[0]["node"]["user"]["id"]).is_equal_to(alice["id"])
 
 
 async def test_query_mood_entries_multiple_users(client):
@@ -131,10 +133,9 @@ async def test_query_mood_entries_multiple_users(client):
         headers=auth_header(bob["id"]),
     )
     edges = body["data"]["moodEntries"]["edges"]
-    assert len(edges) == 2
+    assert_that(edges).is_length(2)
     user_ids = {e["node"]["user"]["id"] for e in edges}
-    assert alice["id"] in user_ids
-    assert bob["id"] in user_ids
+    assert_that(user_ids).contains(alice["id"], bob["id"])
 
 
 async def test_archive_mood_entry(client):
@@ -142,13 +143,13 @@ async def test_archive_mood_entry(client):
     h = auth_header(user["id"])
     entry = await _log_mood(client, user["id"])
     body = await gql(client, ARCHIVE_ENTRY, {"id": entry["id"]}, headers=h)
-    assert body["data"]["archiveMoodEntry"]["archivedAt"] is not None
+    assert_that(body["data"]["archiveMoodEntry"]["archivedAt"]).is_not_none()
 
     body = await gql(client, MOOD_ENTRIES_QUERY, headers=h)
-    assert len(body["data"]["moodEntries"]["edges"]) == 0
+    assert_that(body["data"]["moodEntries"]["edges"]).is_empty()
 
     body = await gql(client, MOOD_ENTRIES_QUERY, {"includeArchived": True}, headers=h)
-    assert len(body["data"]["moodEntries"]["edges"]) == 1
+    assert_that(body["data"]["moodEntries"]["edges"]).is_length(1)
 
 
 async def test_archive_mood_entry_wrong_user(client):
@@ -164,7 +165,7 @@ async def test_archive_mood_entry_wrong_user(client):
         headers=auth_header(bob["id"]),
         expect_errors=True,
     )
-    assert "errors" in body
+    assert_that(body).contains_key("errors")
 
 
 async def test_mood_entry_has_user(client):
@@ -174,8 +175,8 @@ async def test_mood_entry_has_user(client):
 
     body = await gql(client, MOOD_ENTRIES_QUERY, headers=h)
     node = body["data"]["moodEntries"]["edges"][0]["node"]
-    assert node["user"]["id"] == user["id"]
-    assert node["user"]["name"] == "Alice"
+    assert_that(node["user"]["id"]).is_equal_to(user["id"])
+    assert_that(node["user"]["name"]).is_equal_to("Alice")
 
 
 async def test_mood_entry_has_tags(client):
@@ -186,7 +187,7 @@ async def test_mood_entry_has_tags(client):
     body = await gql(client, MOOD_ENTRIES_QUERY, headers=h)
     node = body["data"]["moodEntries"]["edges"][0]["node"]
     tag_names = sorted(t["name"] for t in node["tags"])
-    assert tag_names == ["exercise", "meditation"]
+    assert_that(tag_names).is_equal_to(["exercise", "meditation"])
 
 
 DELTA_QUERY = """
@@ -212,12 +213,12 @@ async def test_mood_entry_delta(client):
     edges = body["data"]["moodEntries"]["edges"]
 
     # Returned newest-first: third(3), second(8), first(5)
-    assert edges[0]["node"]["mood"] == 3
-    assert edges[0]["node"]["delta"] == -5  # 3 - 8
-    assert edges[1]["node"]["mood"] == 8
-    assert edges[1]["node"]["delta"] == 3  # 8 - 5
-    assert edges[2]["node"]["mood"] == 5
-    assert edges[2]["node"]["delta"] is None  # first entry, no prior
+    assert_that(edges[0]["node"]["mood"]).is_equal_to(3)
+    assert_that(edges[0]["node"]["delta"]).is_equal_to(-5)  # 3 - 8
+    assert_that(edges[1]["node"]["mood"]).is_equal_to(8)
+    assert_that(edges[1]["node"]["delta"]).is_equal_to(3)  # 8 - 5
+    assert_that(edges[2]["node"]["mood"]).is_equal_to(5)
+    assert_that(edges[2]["node"]["delta"]).is_none()  # first entry, no prior
 
 
 async def test_mood_entry_delta_per_user(client):
@@ -247,9 +248,9 @@ async def test_mood_entry_delta_per_user(client):
     deltas = {
         (e["node"]["user"]["id"], e["node"]["mood"]): e["node"]["delta"] for e in edges
     }
-    assert deltas[(alice["id"], 9)] == 5  # 9 - 4
-    assert deltas[(bob["id"], 7)] is None  # bob's first
-    assert deltas[(alice["id"], 4)] is None  # alice's first
+    assert_that(deltas[(alice["id"], 9)]).is_equal_to(5)  # 9 - 4
+    assert_that(deltas[(bob["id"], 7)]).is_none()  # bob's first
+    assert_that(deltas[(alice["id"], 4)]).is_none()  # alice's first
 
 
 async def test_mood_entry_delta_across_pages(client):
@@ -264,8 +265,8 @@ async def test_mood_entry_delta_across_pages(client):
         client, DELTA_QUERY, {"userIds": [user["id"]], "first": 2}, headers=h
     )
     page1 = body["data"]["moodEntries"]
-    assert page1["edges"][0]["node"]["delta"] == 4  # 10 - 6
-    assert page1["edges"][1]["node"]["delta"] == 4  # 6 - 2
+    assert_that(page1["edges"][0]["node"]["delta"]).is_equal_to(4)  # 10 - 6
+    assert_that(page1["edges"][1]["node"]["delta"]).is_equal_to(4)  # 6 - 2
 
     # Page 2: oldest entry — delta still computed correctly via CTE
     body = await gql(
@@ -275,8 +276,8 @@ async def test_mood_entry_delta_across_pages(client):
         headers=h,
     )
     page2 = body["data"]["moodEntries"]
-    assert len(page2["edges"]) == 1
-    assert page2["edges"][0]["node"]["delta"] is None  # first entry
+    assert_that(page2["edges"]).is_length(1)
+    assert_that(page2["edges"][0]["node"]["delta"]).is_none()  # first entry
 
 
 async def test_mood_entries_pagination(client):
@@ -287,8 +288,8 @@ async def test_mood_entries_pagination(client):
 
     body = await gql(client, MOOD_ENTRIES_QUERY, {"first": 2}, headers=h)
     page1 = body["data"]["moodEntries"]
-    assert len(page1["edges"]) == 2
-    assert page1["pageInfo"]["hasNextPage"] is True
+    assert_that(page1["edges"]).is_length(2)
+    assert_that(page1["pageInfo"]["hasNextPage"]).is_true()
 
     body = await gql(
         client,
@@ -297,8 +298,8 @@ async def test_mood_entries_pagination(client):
         headers=h,
     )
     page2 = body["data"]["moodEntries"]
-    assert len(page2["edges"]) == 2
-    assert page2["pageInfo"]["hasNextPage"] is True
+    assert_that(page2["edges"]).is_length(2)
+    assert_that(page2["pageInfo"]["hasNextPage"]).is_true()
 
     body = await gql(
         client,
@@ -307,5 +308,5 @@ async def test_mood_entries_pagination(client):
         headers=h,
     )
     page3 = body["data"]["moodEntries"]
-    assert len(page3["edges"]) == 1
-    assert page3["pageInfo"]["hasNextPage"] is False
+    assert_that(page3["edges"]).is_length(1)
+    assert_that(page3["pageInfo"]["hasNextPage"]).is_false()

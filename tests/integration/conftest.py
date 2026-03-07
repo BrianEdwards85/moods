@@ -98,11 +98,13 @@ async def gql(
     if variables:
         payload["variables"] = variables
 
+    from assertpy import assert_that
+
     resp = await client.post("/graphql", json=payload, headers=headers or {})
-    assert resp.status_code == 200
+    assert_that(resp.status_code).described_as("GraphQL response status").is_equal_to(200)
     body = resp.json()
 
     if not expect_errors:
-        assert "errors" not in body, body.get("errors")
+        assert_that(body).described_as("GraphQL response body").does_not_contain_key("errors")
 
     return body

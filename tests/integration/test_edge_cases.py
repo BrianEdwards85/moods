@@ -1,5 +1,7 @@
 import uuid
 
+from assertpy import assert_that
+
 from tests.integration.conftest import auth_header, gql
 
 H = auth_header("00000000-0000-0000-0000-000000000000")
@@ -38,18 +40,16 @@ mutation ArchiveMoodEntry($id: ID!) {
 async def test_user_not_found(client):
     fake_id = str(uuid.uuid4())
     body = await gql(client, USER_QUERY, {"id": fake_id})
-    assert body["data"]["user"] is None
+    assert_that(body["data"]["user"]).is_none()
 
 
 async def test_archive_nonexistent_tag(client):
     body = await gql(
         client, ARCHIVE_TAG, {"name": "nope"}, expect_errors=True, headers=H
     )
-    assert body["data"] is None or body["data"]["archiveTag"] is None
-    assert any(
-        e.get("extensions", {}).get("code") == "NOT_FOUND"
-        for e in body["errors"]
-    )
+    assert_that(body["data"] is None or body["data"]["archiveTag"] is None).is_true()
+    codes = [e.get("extensions", {}).get("code") for e in body["errors"]]
+    assert_that(codes).contains("NOT_FOUND")
 
 
 async def test_archive_nonexistent_mood_entry(client):
@@ -57,11 +57,9 @@ async def test_archive_nonexistent_mood_entry(client):
     body = await gql(
         client, ARCHIVE_ENTRY, {"id": fake_id}, expect_errors=True, headers=H
     )
-    assert body["data"] is None or body["data"]["archiveMoodEntry"] is None
-    assert any(
-        e.get("extensions", {}).get("code") == "NOT_FOUND"
-        for e in body["errors"]
-    )
+    assert_that(body["data"] is None or body["data"]["archiveMoodEntry"] is None).is_true()
+    codes = [e.get("extensions", {}).get("code") for e in body["errors"]]
+    assert_that(codes).contains("NOT_FOUND")
 
 
 async def test_log_mood_nonexistent_user(client):
@@ -73,7 +71,7 @@ async def test_log_mood_nonexistent_user(client):
         expect_errors=True,
         headers=auth_header(fake_id),
     )
-    assert "errors" in body
+    assert_that(body).contains_key("errors")
 
 
 async def test_create_duplicate_email(client):
@@ -83,7 +81,7 @@ async def test_create_duplicate_email(client):
         {"input": {"name": "A", "email": "same@test.com"}},
         headers=H,
     )
-    assert body["data"]["createUser"]["id"]
+    assert_that(body["data"]["createUser"]["id"]).is_not_empty()
 
     body = await gql(
         client,
@@ -92,7 +90,7 @@ async def test_create_duplicate_email(client):
         expect_errors=True,
         headers=H,
     )
-    assert "errors" in body
+    assert_that(body).contains_key("errors")
 
 
 async def test_archive_already_archived_tag(client):
@@ -108,9 +106,9 @@ async def test_archive_already_archived_tag(client):
     )
 
     body = await gql(client, ARCHIVE_TAG, {"name": "dup"}, headers=H)
-    assert body["data"]["archiveTag"]["archivedAt"] is not None
+    assert_that(body["data"]["archiveTag"]["archivedAt"]).is_not_none()
 
     body = await gql(
         client, ARCHIVE_TAG, {"name": "dup"}, expect_errors=True, headers=H
     )
-    assert "errors" in body
+    assert_that(body).contains_key("errors")

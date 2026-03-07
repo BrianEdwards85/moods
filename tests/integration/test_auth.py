@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, patch
 
 import httpx
 import jwt
+from assertpy import assert_that
 
 from moods.config import settings
 from tests.integration.conftest import auth_cookie, auth_header, gql
@@ -50,7 +51,7 @@ async def _create_user(client, name="Alice", email="alice@test.com"):
 async def test_send_login_code(mock_send, client, pool):
     user = await _create_user(client)
     body = await gql(client, SEND_LOGIN_CODE, {"email": user["email"]})
-    assert body["data"]["sendLoginCode"]["success"] is True
+    assert_that(body["data"]["sendLoginCode"]["success"]).is_true()
 
     # Verify code was created in DB
     async with pool.acquire() as conn:
@@ -58,9 +59,9 @@ async def test_send_login_code(mock_send, client, pool):
             "SELECT code, expires_at, used_at FROM auth_codes WHERE user_id = $1",
             user["id"],
         )
-        assert row is not None
-        assert len(row["code"]) == 6
-        assert row["used_at"] is None
+        assert_that(row).is_not_none()
+        assert_that(row["code"]).is_length(6)
+        assert_that(row["used_at"]).is_none()
 
     mock_send.assert_called_once()
 
@@ -71,12 +72,12 @@ async def test_send_login_code_rate_limited(mock_send, client, pool):
     # Send 3 codes — all should succeed and create codes
     for _ in range(3):
         await gql(client, SEND_LOGIN_CODE, {"email": user["email"]})
-    assert mock_send.call_count == 3
+    assert_that(mock_send.call_count).is_equal_to(3)
 
     # 4th request should still return success but NOT create a new code or send email
     mock_send.reset_mock()
     body = await gql(client, SEND_LOGIN_CODE, {"email": user["email"]})
-    assert body["data"]["sendLoginCode"]["success"] is True
+    assert_that(body["data"]["sendLoginCode"]["success"]).is_true()
     mock_send.assert_not_called()
 
     async with pool.acquire() as conn:
@@ -85,7 +86,7 @@ async def test_send_login_code_rate_limited(mock_send, client, pool):
             " AND used_at IS NULL AND expires_at > NOW()",
             user["id"],
         )
-    assert count == 3
+    assert_that(count).is_equal_to(3)
 
 
 @patch("moods.services.email.Email.send_code_email", new_callable=AsyncMock)
@@ -108,9 +109,9 @@ async def test_verify_login_code(mock_send, client, pool):
         },
     )
     result = body["data"]["verifyLoginCode"]
-    assert result["token"]
-    assert result["user"]["id"] == user["id"]
-    assert result["user"]["email"] == user["email"]
+    assert_that(result["token"]).is_not_empty()
+    assert_that(result["user"]["id"]).is_equal_to(user["id"])
+    assert_that(result["user"]["email"]).is_equal_to(user["email"])
 
 
 @patch("moods.services.email.Email.send_code_email", new_callable=AsyncMock)
@@ -133,7 +134,7 @@ async def test_verify_locked_out_after_5_failures(mock_send, client, pool):
             {"email": user["email"], "code": "000000"},
             expect_errors=True,
         )
-        assert "errors" in body
+        assert_that(body).contains_key("errors")
 
     # 6th attempt with the REAL code should still fail (locked out)
     body = await gql(
@@ -142,7 +143,7 @@ async def test_verify_locked_out_after_5_failures(mock_send, client, pool):
         {"email": user["email"], "code": real_code},
         expect_errors=True,
     )
-    assert "errors" in body
+    assert_that(body).contains_key("errors")
 
     # Confirm failed_attempts was tracked in DB
     async with pool.acquire() as conn:
@@ -151,7 +152,7 @@ async def test_verify_locked_out_after_5_failures(mock_send, client, pool):
             " WHERE user_id = $1 AND used_at IS NULL AND expires_at > NOW()",
             user["id"],
         )
-    assert total == 5
+    assert_that(total).is_equal_to(5)
 
 
 @patch("moods.services.email.Email.send_code_email", new_callable=AsyncMock)
@@ -176,7 +177,7 @@ async def test_verify_expired_code(mock_send, client, pool):
         {"email": user["email"], "code": row["code"]},
         expect_errors=True,
     )
-    assert "errors" in body
+    assert_that(body).contains_key("errors")
 
 
 @patch("moods.services.email.Email.send_code_email", new_callable=AsyncMock)
@@ -190,34 +191,31 @@ async def test_verify_wrong_code(mock_send, client):
         {"email": user["email"], "code": "000000"},
         expect_errors=True,
     )
-    assert "errors" in body
-    assert any(
-        e.get("extensions", {}).get("code") == "VALIDATION_ERROR"
-        for e in body["errors"]
-    )
+    assert_that(body).contains_key("errors")
+    codes = [e.get("extensions", {}).get("code") for e in body["errors"]]
+    assert_that(codes).contains("VALIDATION_ERROR")
 
 
 async def test_protected_query_without_token(client):
     body = await gql(client, MOOD_ENTRIES_QUERY, expect_errors=True)
-    assert "errors" in body
-    assert any("authentication" in e["message"].lower() for e in body["errors"])
-    assert any(
-        e.get("extensions", {}).get("code") == "AUTHENTICATION_ERROR"
-        for e in body["errors"]
-    )
+    assert_that(body).contains_key("errors")
+    messages = [e["message"].lower() for e in body["errors"]]
+    assert_that(any("authentication" in m for m in messages)).is_true()
+    codes = [e.get("extensions", {}).get("code") for e in body["errors"]]
+    assert_that(codes).contains("AUTHENTICATION_ERROR")
 
 
 async def test_protected_query_with_token(client):
     user = await _create_user(client)
     h = auth_header(user["id"])
     body = await gql(client, MOOD_ENTRIES_QUERY, headers=h)
-    assert body["data"]["moodEntries"]["edges"] == []
+    assert_that(body["data"]["moodEntries"]["edges"]).is_empty()
 
 
 async def test_users_query_is_public(client):
     body = await gql(client, USERS_QUERY)
-    assert "errors" not in body
-    assert isinstance(body["data"]["users"], list)
+    assert_that(body).does_not_contain_key("errors")
+    assert_that(body["data"]["users"]).is_instance_of(list)
 
 
 REFRESH_TOKEN = """
@@ -247,8 +245,10 @@ async def test_verify_login_code_has_refresh_after_claim(mock_send, client, pool
     )
     token = body["data"]["verifyLoginCode"]["token"]
     payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
-    assert "refresh_after" in payload
-    assert payload["refresh_after"] > int(datetime.now(UTC).timestamp())
+    assert_that(payload).contains_key("refresh_after")
+    assert_that(payload["refresh_after"]).is_greater_than(
+        int(datetime.now(UTC).timestamp())
+    )
 
 
 async def test_refresh_token_success(client):
@@ -257,8 +257,8 @@ async def test_refresh_token_success(client):
     body = await gql(client, REFRESH_TOKEN, headers=h)
     new_token = body["data"]["refreshToken"]["token"]
     payload = jwt.decode(new_token, settings.jwt_secret, algorithms=["HS256"])
-    assert payload["sub"] == user["id"]
-    assert "refresh_after" in payload
+    assert_that(payload["sub"]).is_equal_to(user["id"])
+    assert_that(payload).contains_key("refresh_after")
 
 
 async def test_refresh_token_expired_fails(client):
@@ -275,12 +275,12 @@ async def test_refresh_token_expired_fails(client):
         headers={"Authorization": f"Bearer {expired_token}"},
         expect_errors=True,
     )
-    assert "errors" in body
+    assert_that(body).contains_key("errors")
 
 
 async def test_refresh_token_without_auth_fails(client):
     body = await gql(client, REFRESH_TOKEN, expect_errors=True)
-    assert "errors" in body
+    assert_that(body).contains_key("errors")
 
 
 # --- Cookie-based auth tests ---
@@ -303,12 +303,12 @@ async def test_verify_login_code_sets_cookie(mock_send, client, pool):
             "variables": {"email": user["email"], "code": row["code"]},
         },
     )
-    assert resp.status_code == 200
+    assert_that(resp.status_code).is_equal_to(200)
     cookie_header = resp.headers.get("set-cookie", "")
-    assert "moods_token=" in cookie_header
-    assert "httponly" in cookie_header.lower()
-    assert "samesite=lax" in cookie_header.lower()
-    assert "path=/" in cookie_header.lower()
+    assert_that(cookie_header).contains("moods_token=")
+    assert_that(cookie_header.lower()).contains("httponly")
+    assert_that(cookie_header.lower()).contains("samesite=lax")
+    assert_that(cookie_header.lower()).contains("path=/")
 
 
 async def test_cookie_auth_works(client):
@@ -319,10 +319,10 @@ async def test_cookie_auth_works(client):
         json={"query": MOOD_ENTRIES_QUERY},
         cookies=cookies,
     )
-    assert resp.status_code == 200
+    assert_that(resp.status_code).is_equal_to(200)
     body = resp.json()
-    assert "errors" not in body
-    assert body["data"]["moodEntries"]["edges"] == []
+    assert_that(body).does_not_contain_key("errors")
+    assert_that(body["data"]["moodEntries"]["edges"]).is_empty()
 
 
 async def test_header_takes_precedence_over_cookie(client):
@@ -338,10 +338,10 @@ async def test_header_takes_precedence_over_cookie(client):
         headers=h,
         cookies=bad_cookies,
     )
-    assert resp.status_code == 200
+    assert_that(resp.status_code).is_equal_to(200)
     body = resp.json()
-    assert "errors" not in body
-    assert body["data"]["moodEntries"]["edges"] == []
+    assert_that(body).does_not_contain_key("errors")
+    assert_that(body["data"]["moodEntries"]["edges"]).is_empty()
 
 
 async def test_refresh_token_from_cookie(client):
@@ -352,12 +352,12 @@ async def test_refresh_token_from_cookie(client):
         json={"query": REFRESH_TOKEN},
         cookies=cookies,
     )
-    assert resp.status_code == 200
+    assert_that(resp.status_code).is_equal_to(200)
     body = resp.json()
-    assert "errors" not in body
+    assert_that(body).does_not_contain_key("errors")
     new_token = body["data"]["refreshToken"]["token"]
     payload = jwt.decode(new_token, settings.jwt_secret, algorithms=["HS256"])
-    assert payload["sub"] == user["id"]
+    assert_that(payload["sub"]).is_equal_to(user["id"])
     # Should also set a cookie with the new token
     cookie_header = resp.headers.get("set-cookie", "")
-    assert "moods_token=" in cookie_header
+    assert_that(cookie_header).contains("moods_token=")
