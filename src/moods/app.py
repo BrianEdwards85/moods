@@ -2,6 +2,7 @@ import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import asyncpg
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -93,8 +94,8 @@ async def health(request: Request) -> Response:
         async with request.app.state.pool.acquire() as conn:
             await conn.fetchval("SELECT 1")
         checks["db"] = "ok"
-    except Exception:
-        logging.exception("Health check DB failure")
+    except (asyncpg.PostgresError, OSError):
+        logger.exception("Health check DB failure")
         checks["db"] = "error"
 
     healthy = all(v == "ok" for v in checks.values())
