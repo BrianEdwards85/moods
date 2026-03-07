@@ -18,7 +18,7 @@ class Tags:
         after: str | None = None,
     ) -> dict:
         limit = first or DEFAULT_PAGE_SIZE
-        after_name = decode_cursor(after) if after else None
+        after_name = decode_cursor(after, search=search) if after else None
 
         if search:
             gen = queries.search_tags(
@@ -37,7 +37,7 @@ class Tags:
             )
 
         rows = [dict(r) async for r in gen]
-        return build_connection(rows, "name", limit)
+        return build_connection(rows, "name", limit, search=search)
 
     async def update_tag_metadata(self, name: str, metadata: dict) -> dict:
         row = await queries.update_tag_metadata(self.pool, name=name, metadata=metadata)

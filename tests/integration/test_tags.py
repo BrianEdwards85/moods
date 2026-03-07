@@ -1,4 +1,4 @@
-from tests.conftest import auth_header, gql
+from tests.integration.conftest import auth_header, gql
 
 H = auth_header("00000000-0000-0000-0000-000000000000")
 

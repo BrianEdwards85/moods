@@ -5,7 +5,7 @@ import httpx
 import jwt
 
 from moods.config import settings
-from tests.conftest import auth_cookie, auth_header, gql
+from tests.integration.conftest import auth_cookie, auth_header, gql
 
 H = auth_header("00000000-0000-0000-0000-000000000000")
 

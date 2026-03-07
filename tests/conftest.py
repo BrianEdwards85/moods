@@ -1,112 +1,14 @@
-"""
-Test fixtures for the moods GraphQL API.
-
-Prerequisites:
-  - PostgreSQL running on localhost:5433
-  - A 'moods_test' database owned by the 'moods' user
-"""
-
 import os
 
+# Must be set before importing app so Dynaconf loads the [testing] environment
 os.environ["MOODS_ENV"] = "testing"
 
-from datetime import UTC, datetime, timedelta
-
-import httpx
-import jwt
 import pytest
-from httpx import ASGITransport
-
-from moods.app import app as _app
-from moods.config import settings
-from moods.db import apply_migrations, create_pool
-from moods.resolvers import create_gql
-
-TABLES = [
-    "mood_share_filters",
-    "mood_shares",
-    "mood_entry_tags",
-    "mood_entries",
-    "tags",
-    "auth_codes",
-    "users",
-]
-
-apply_migrations()
 
 
-@pytest.fixture
-async def pool():
-    p = await create_pool()
-    yield p
-    await p.close()
-
-
-@pytest.fixture
-async def client(pool):
-    _app.state.pool = pool
-    _app.state.graphql = create_gql(pool, settings)
-    transport = ASGITransport(app=_app)
-    async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
-        yield c
-
-
-@pytest.fixture(autouse=True)
-async def _clean_db(pool):
-    """Truncate all application tables after each test."""
-    yield
-    async with pool.acquire() as conn:
-        await conn.execute(f"TRUNCATE {', '.join(TABLES)} CASCADE")
-
-
-def _mint_token(user_id: str, email: str = "test@test.com") -> str:
-    """Mint a JWT for test use."""
-    now = datetime.now(UTC)
-    return jwt.encode(
-        {
-            "sub": str(user_id),
-            "email": email,
-            "exp": now + timedelta(days=1),
-            "refresh_after": int((now + timedelta(hours=12)).timestamp()),
-        },
-        settings.jwt_secret,
-        algorithm="HS256",
-    )
-
-
-def auth_header(user_id: str) -> dict:
-    """Mint a JWT for test use and return an Authorization header dict."""
-    return {"Authorization": f"Bearer {_mint_token(user_id)}"}
-
-
-def auth_cookie(user_id: str) -> httpx.Cookies:
-    """Mint a JWT for test use and return it as a cookies jar."""
-    cookies = httpx.Cookies()
-    cookies.set("moods_token", _mint_token(user_id))
-    return cookies
-
-
-async def gql(
-    client: httpx.AsyncClient,
-    query: str,
-    variables: dict | None = None,
-    *,
-    expect_errors: bool = False,
-    headers: dict | None = None,
-):
-    """Send a GraphQL request and return the parsed response body.
-
-    Asserts no errors unless expect_errors is True.
-    """
-    payload = {"query": query}
-    if variables:
-        payload["variables"] = variables
-
-    resp = await client.post("/graphql", json=payload, headers=headers or {})
-    assert resp.status_code == 200
-    body = resp.json()
-
-    if not expect_errors:
-        assert "errors" not in body, body.get("errors")
-
-    return body
+def pytest_collection_modifyitems(items):
+    for item in items:
+        if "/integration/" in str(item.fspath):
+            item.add_marker(pytest.mark.integration)
+        elif "/unit/" in str(item.fspath):
+            item.add_marker(pytest.mark.unit)

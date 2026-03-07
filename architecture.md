@@ -174,15 +174,18 @@ moods/
     generate.py              Script to generate client query files from operations
     operations/              Shared .graphql files (14 operations)
   tests/
-    conftest.py              Fixtures (DB pool, GraphQL client, auth helpers)
-    test_auth.py             Login code & JWT tests
-    test_users.py            User CRUD tests
-    test_moods.py            Mood entry, delta, tags tests
-    test_tags.py             Tag CRUD & search tests
-    test_user_entries.py     User.entries pagination tests
-    test_health.py           Health endpoint tests
-    test_edge_cases.py       Edge cases
-    test_sharing.py          Sharing visibility & filter tests
+    conftest.py              Env setup, auto-markers (unit/integration)
+    integration/
+      conftest.py            DB pool, GraphQL client, auth helpers
+      test_auth.py           Login code & JWT tests
+      test_users.py          User CRUD tests
+      test_moods.py          Mood entry, delta, tags tests
+      test_tags.py           Tag CRUD & search tests
+      test_user_entries.py   User.entries pagination tests
+      test_health.py         Health endpoint tests
+      test_edge_cases.py     Edge cases
+      test_sharing.py        Sharing visibility & filter tests
+    unit/                    Pure unit tests (no I/O, no database)
 ```
 
 ---
@@ -259,14 +262,19 @@ User action
 
 ### Pagination
 
-Mood entries and tags use Relay-style cursor pagination. Cursors are base64-encoded UUIDs. The data layer fetches `limit + 1` rows; if the extra row exists, `hasNextPage` is true and the row is trimmed from results.
+Mood entries and tags use Relay-style cursor pagination. Cursors are base64-encoded JSON payloads containing `{"id": "<value>", "search": "<query>"}`. The `search` field binds the cursor to its originating search context — decoding validates that the search matches, preventing cursor reuse across different queries. The data layer fetches `limit + 1` rows; if the extra row exists, `hasNextPage` is true and the row is trimmed from results.
 
 ### DataLoaders
 
-Two loaders are created fresh per request to prevent N+1 queries on nested fields:
+Two loaders are created fresh per request to prevent N+1 queries on nested fields. Both use abstract base classes to eliminate boilerplate:
 
-- **UserLoader** — batches `MoodEntry.user` lookups into a single `WHERE id = ANY(...)` query
-- **MoodEntryTagsLoader** — batches `MoodEntry.tags` lookups by joining `mood_entry_tags` and `tags`
+- **`_ByIdLoader`** — base class for id → single row lookups. Subclasses set `query_fn`.
+- **`_OneToManyLoader`** — base class for parent_id → list of child rows. Subclasses set `query_fn`, `parent_key`, and optionally `ids_param`.
+
+Concrete loaders:
+
+- **UserLoader** (`_ByIdLoader`) — batches `MoodEntry.user` lookups into a single `WHERE id = ANY(...)` query
+- **MoodEntryTagsLoader** (`_OneToManyLoader`) — batches `MoodEntry.tags` lookups by joining `mood_entry_tags` and `tags`
 
 ---
 

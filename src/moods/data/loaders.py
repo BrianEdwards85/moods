@@ -6,42 +6,53 @@ from asyncpg import Pool
 from .utils import queries
 
 
-class UserLoader(DataLoader):
+class _ByIdLoader(DataLoader):
+    """Batch loader: id -> single row. Subclasses set query_fn."""
+
+    query_fn = None
+
     def __init__(self, pool: Pool):
         super().__init__()
         self.pool = pool
 
-    async def batch_load_fn(self, user_ids):
-        rows = [
-            dict(r)
-            async for r in queries.get_users_by_ids(self.pool, ids=list(user_ids))
-        ]
+    async def batch_load_fn(self, ids):
+        rows = [dict(r) async for r in self.query_fn(self.pool, ids=list(ids))]
         by_id = {str(r["id"]): r for r in rows}
-        return [by_id.get(str(uid)) for uid in user_ids]
+        return [by_id.get(str(i)) for i in ids]
 
 
-class MoodEntryTagsLoader(DataLoader):
+class _OneToManyLoader(DataLoader):
+    """Batch loader: parent_id -> list of child rows.
+
+    Subclasses set query_fn, parent_key, and optionally ids_param.
+    """
+
+    query_fn = None
+    parent_key = None
+    ids_param = "ids"
+
     def __init__(self, pool: Pool):
         super().__init__()
         self.pool = pool
 
-    async def batch_load_fn(self, entry_ids):
-        rows = [
-            dict(r)
-            async for r in queries.get_tags_for_entries(
-                self.pool, mood_entry_ids=list(entry_ids)
-            )
-        ]
-        by_entry = defaultdict(list)
-        for r in rows:
-            by_entry[str(r["mood_entry_id"])].append(
-                {
-                    "name": r["name"],
-                    "metadata": r["metadata"],
-                    "archived_at": r["archived_at"],
-                }
-            )
-        return [by_entry.get(str(eid), []) for eid in entry_ids]
+    async def batch_load_fn(self, parent_ids):
+        by_parent = defaultdict(list)
+        async for r in self.query_fn(
+            self.pool, **{self.ids_param: list(parent_ids)}
+        ):
+            d = dict(r)
+            by_parent[str(d[self.parent_key])].append(d)
+        return [by_parent.get(str(pid), []) for pid in parent_ids]
+
+
+class UserLoader(_ByIdLoader):
+    query_fn = queries.get_users_by_ids
+
+
+class MoodEntryTagsLoader(_OneToManyLoader):
+    query_fn = queries.get_tags_for_entries
+    parent_key = "mood_entry_id"
+    ids_param = "mood_entry_ids"
 
 
 def create_loaders(pool: Pool) -> dict:
