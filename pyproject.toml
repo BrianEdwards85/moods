@@ -4,7 +4,7 @@ version = "3.0.0"
 description = "Shared mood-tracking app"
 requires-python = ">=3.12"
 dependencies = [
-    "starlette",
+    "fastapi>=0.115",
     "ariadne",
     "asyncpg",
     "aiosql",
@@ -25,7 +25,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest",
-    "pytest-asyncio",
+    "pytest-asyncio>=0.24",
     "httpx",
 ]
 
@@ -38,6 +38,8 @@ packages = ["src/moods"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
 testpaths = ["tests"]
 
 [dependency-groups]

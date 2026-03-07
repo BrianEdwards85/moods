@@ -17,7 +17,7 @@ import jwt
 import pytest
 from httpx import ASGITransport
 
-from moods.app import create_app
+from moods.app import app as _app
 from moods.config import settings
 from moods.db import apply_migrations, create_pool
 from moods.resolvers import create_gql
@@ -33,7 +33,6 @@ TABLES = [
 ]
 
 apply_migrations()
-_app = create_app()
 
 
 @pytest.fixture

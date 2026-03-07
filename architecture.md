@@ -10,7 +10,7 @@ Moods is a shared mood-tracking app for partners. Both users log how they're fee
 
 | Role | Library | Notes |
 |------|---------|-------|
-| HTTP framework | [Starlette](https://www.starlette.io/) | ASGI, async |
+| HTTP framework | [FastAPI](https://fastapi.tiangolo.com/) | ASGI, async (Starlette-based) |
 | GraphQL | [Ariadne](https://ariadnegraphql.org/) | Schema-first |
 | Database driver | [asyncpg](https://magicstack.github.io/asyncpg/) | Async PostgreSQL |
 | SQL queries | [aiosql](https://nackjicholson.github.io/aiosql/) | Named queries from `.sql` files |
@@ -66,9 +66,10 @@ Moods is a shared mood-tracking app for partners. Both users log how they're fee
 moods/
   migrations/              Plain-SQL migrations (yoyo), 0000–0011
   src/moods/
-    app.py                 Starlette app factory, GraphQL mount, auth context
+    app.py                 FastAPI app, GraphQL mount, middleware, auth context
     config.py              Dynaconf settings loader
     db.py                  asyncpg pool creation, migration runner
+    errors.py              AppError hierarchy (NotFoundError, ValidationError, AuthenticationError)
     schema/                .graphql files (schema-first)
       schema.graphql         Root Query & Mutation types, PageInfo
       auth.graphql           SendCodeResult, AuthPayload, login mutations
@@ -210,7 +211,7 @@ Client (Web/Mobile)
   │  HTTP POST /graphql  (Bearer token in Authorization header)
   │
   ▼
-Starlette  ──▶  CORSMiddleware
+FastAPI  ──▶  CORSMiddleware
   │
   ▼
 Ariadne GraphQL handler
@@ -397,6 +398,12 @@ Sharing rules are updated atomically via `set_shares`: the entire rule set for a
 - Root types in `schema.graphql`; domain types use `extend type Query` / `extend type Mutation`.
 - Doc-strings on non-obvious fields only.
 - Relay-style connections for lists.
+
+### Error Handling
+
+- **AppError hierarchy** — base `AppError` with a `code` attribute, subclasses `NotFoundError`, `ValidationError`, `AuthenticationError` (defined in `moods.errors`).
+- Resolvers and data layer raise `AppError` subclasses; the `format_error` callback on the Ariadne `GraphQL()` instance maps them to `extensions.code` in the GraphQL response.
+- Unhandled exceptions are logged and replaced with a generic "Internal server error" message with `extensions.code = "INTERNAL_ERROR"` — internal details are never leaked to clients.
 
 ### Python
 

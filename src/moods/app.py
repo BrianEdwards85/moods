@@ -2,14 +2,11 @@ import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from starlette.applications import Starlette
-from starlette.middleware import Middleware
+from fastapi import FastAPI, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.middleware.cors import CORSMiddleware
-from starlette.requests import Request
-from starlette.responses import FileResponse, JSONResponse, Response
-from starlette.routing import Mount, Route
-from starlette.staticfiles import StaticFiles
 
 from moods.config import settings
 from moods.db import apply_migrations, create_pool
@@ -21,6 +18,8 @@ from moods.telemetry import (
     setup_telemetry,
     shutdown_telemetry,
 )
+
+logger = logging.getLogger(__name__)
 
 WEB_PUBLIC = Path(__file__).parent.parent.parent / "web" / "resources" / "public"
 
@@ -56,81 +55,69 @@ class AuthCookieMiddleware(BaseHTTPMiddleware):
         return response
 
 
-def create_app() -> Starlette:
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    setup_telemetry()
+    instrument_db()
+    apply_migrations()
+    pool = await create_pool()
+    app.state.pool = pool
+    app.state.graphql = create_gql(pool, settings)
+    logger.info("moods started")
+    yield
+    await pool.close()
+    shutdown_telemetry()
+    logger.info("moods stopped")
 
-    @asynccontextmanager
-    async def lifespan(app):
-        setup_telemetry()
-        instrument_db()
-        apply_migrations()
-        pool = await create_pool()
-        app.state.pool = pool
-        app.state.graphql = create_gql(pool, settings)
-        yield
-        await pool.close()
-        shutdown_telemetry()
 
-    class _GraphQLProxy:
-        """Routes to the GraphQL ASGI app stored in app.state during lifespan."""
+app = FastAPI(title="moods", lifespan=lifespan)
+instrument_app(app)
 
-        async def __call__(self, scope, receive, send):
-            await scope["app"].state.graphql(scope, receive, send)
+app.add_middleware(AuthCookieMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors.allow_origins,
+    allow_credentials=settings.cors.allow_credentials,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["*"],
+)
 
-    async def health(request):
-        checks = {}
 
-        # Database
-        try:
-            async with request.app.state.pool.acquire() as conn:
-                await conn.fetchval("SELECT 1")
-            checks["db"] = "ok"
-        except Exception:
-            logging.exception("Health check DB failure")
-            checks["db"] = "error"
+@app.get("/health")
+async def health(request: Request) -> Response:
+    checks = {}
+    try:
+        async with request.app.state.pool.acquire() as conn:
+            await conn.fetchval("SELECT 1")
+        checks["db"] = "ok"
+    except Exception:
+        logging.exception("Health check DB failure")
+        checks["db"] = "error"
 
-        healthy = all(v == "ok" for v in checks.values())
-        return JSONResponse(
-            {"status": "healthy" if healthy else "degraded", "checks": checks},
-            status_code=200 if healthy else 503,
-        )
-
-    async def spa_fallback(request):
-        return FileResponse(WEB_PUBLIC / "index.html")
-
-    routes = [
-        Route("/health", health, methods=["GET"]),
-        Route("/graphql", _GraphQLProxy(), methods=["GET", "POST"]),
-    ]
-
-    if (WEB_PUBLIC / "js").is_dir():
-        routes.append(Mount("/js", StaticFiles(directory=WEB_PUBLIC / "js"), name="js"))
-    if (WEB_PUBLIC / "css").is_dir():
-        routes.append(
-            Mount("/css", StaticFiles(directory=WEB_PUBLIC / "css"), name="css")
-        )
-
-    routes += [
-        Route("/favicon.svg", spa_fallback),
-        Route("/{path:path}", spa_fallback),
-    ]
-
-    starlette_app = Starlette(
-        lifespan=lifespan,
-        routes=routes,
-        middleware=[
-            Middleware(
-                CORSMiddleware,
-                allow_origins=settings.cors.allow_origins,
-                allow_credentials=settings.cors.allow_credentials,
-                allow_methods=["GET", "POST", "OPTIONS"],
-                allow_headers=["*"],
-            ),
-            Middleware(SecurityHeadersMiddleware),
-            Middleware(AuthCookieMiddleware),
-        ],
+    healthy = all(v == "ok" for v in checks.values())
+    return JSONResponse(
+        {"status": "healthy" if healthy else "degraded", "checks": checks},
+        status_code=200 if healthy else 503,
     )
-    instrument_app(starlette_app)
-    return starlette_app
 
 
-app = create_app()
+@app.api_route("/graphql", methods=["GET", "POST", "OPTIONS"])
+async def graphql_endpoint(request: Request) -> Response:
+    return await request.app.state.graphql.handle_request(request)
+
+
+if (WEB_PUBLIC / "js").is_dir():
+    app.mount("/js", StaticFiles(directory=WEB_PUBLIC / "js"), name="js")
+if (WEB_PUBLIC / "css").is_dir():
+    app.mount("/css", StaticFiles(directory=WEB_PUBLIC / "css"), name="css")
+
+
+@app.get("/favicon.svg")
+async def favicon(request: Request) -> Response:
+    return FileResponse(WEB_PUBLIC / "index.html")
+
+
+@app.get("/{path:path}")
+async def spa_fallback(request: Request, path: str) -> Response:
+    return FileResponse(WEB_PUBLIC / "index.html")
